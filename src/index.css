@@ -1,0 +1,216 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+iframe {
+  border: 0;
+}
+
+.ap-app {
+  background: #f6f6f6 !important;
+}
+
+.ap-header {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.ap-header > div {
+  width: 100%;
+  border-radius: 0;
+  border-bottom: 1px solid rgba(23, 34, 51, 0.08);
+  box-shadow: none !important;
+}
+
+.ap-shift-card {
+  background: #f6f6f6 !important;
+  padding: 28px !important;
+}
+
+.ap-volunteer-chip-card {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+.ap-schedule-view {
+  width: 100% !important;
+}
+
+.ap-period-card {
+  width: 100% !important;
+}
+
+.ap-form-card {
+  padding: 32px !important;
+}
+
+.ap-stat-card {
+  position: relative;
+}
+
+.ap-stat-icon {
+  margin-top: -18px;
+  margin-right: -18px;
+}
+
+.ap-app,
+.ap-app * {
+  font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.app-nav-button,
+.app-mobile-nav-button {
+  color: #42d27b;
+  border-radius: 999px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.app-nav-button {
+  padding: 16px 24px;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  gap: 15px !important;
+}
+
+.app-nav-button:hover {
+  background: #1e4541;
+  color: #42d27b;
+}
+
+.app-nav-button.is-active {
+  background: #1e4541;
+  color: #42d27b;
+  box-shadow: none;
+}
+
+.app-nav-button i,
+.app-mobile-nav-button i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 18px;
+}
+
+.app-nav-button i {
+  width: 20px;
+  min-width: 20px;
+  margin-right: 0;
+}
+
+.app-toast {
+  z-index: 10050 !important;
+  bottom: 104px !important;
+}
+
+.ap-mobile-nav {
+  display: none;
+}
+
+.mobile-department-brand {
+  display: none;
+}
+
+.ap-day-tabs {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.ap-day-tabs button {
+  padding: 16px 32px !important;
+  border-radius: 999px !important;
+}
+
+@media (max-width: 1023px) {
+  aside {
+    display: none !important;
+  }
+
+  .mobile-department-brand {
+    display: block !important;
+    background: #172233 !important;
+    color: #ffffff;
+    width: 100%;
+  }
+
+  .mobile-department-brand + .mobile-department-brand {
+    display: none !important;
+  }
+
+  .ap-mobile-nav {
+    position: fixed !important;
+    top: auto !important;
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    z-index: 9999 !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    border-radius: 999px;
+    background: #172233;
+    border: 1px solid #172233;
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(14px);
+  }
+
+  .app-mobile-nav-button {
+    min-height: 48px;
+    flex: 1;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 6px;
+    font-size: 10px;
+    background: transparent;
+  }
+
+  .app-mobile-nav-button.is-active {
+    background: #1e4541;
+    color: #42d27b;
+  }
+
+  .app-mobile-nav-button span {
+    line-height: 1;
+  }
+
+  .ap-main-content {
+    padding-bottom: 104px !important;
+  }
+}
