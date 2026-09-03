@@ -1,5 +1,3 @@
-export const EDIT_PASSWORD = "1cor14:40";
-
 export const responsibleContacts = {
   Carlos: "11952389922",
   Adenilton: "83991134066",
@@ -15,9 +13,9 @@ export const dayTheme = {
 
 export const UNASSIGNED_LABEL = "Aguardando escala";
 export const OFFLINE_CACHE_KEY = "ap_offline_snapshot_v1";
-const SUPABASE_URL = "https://ufyyhvsnrobhrjsrnqpq.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_Vhf19-EYVnwDFyJr6AnqiQ_Qei9VJdf";
-const SUPABASE_REST_URL = SUPABASE_URL + "/rest/v1";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
+const SUPABASE_REST_URL = SUPABASE_URL ? SUPABASE_URL + "/rest/v1" : "";
 
 export const initialSchedule = [
   {
@@ -121,45 +119,6 @@ export function isValidSchedule(schedule) {
   return totalShifts >= 16;
 }
 
-function getSupabaseHeaders({ preferRepresentation = false } = {}) {
-  const headers = {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: "Bearer " + SUPABASE_ANON_KEY,
-    "Content-Type": "application/json",
-  };
-  if (preferRepresentation) {
-    headers.Prefer = "return=representation";
-  }
-  return headers;
-}
-
-export async function supabaseRequest(path, options = {}) {
-  const response = await fetch(SUPABASE_REST_URL + path, {
-    ...options,
-    headers: {
-      ...getSupabaseHeaders({ preferRepresentation: options.preferRepresentation }),
-      ...(options.headers || {}),
-    },
-  });
-
-  const text = await response.text();
-
-  if (!response.ok) {
-    const safeText = text && text.trim().startsWith("<")
-      ? "Acesso negado ao Supabase. Verifique a chave pública e as políticas RLS."
-      : text;
-    throw new Error(safeText || "Erro ao comunicar com Supabase.");
-  }
-
-  if (!text || response.status === 204) return null;
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new Error("Resposta inválida do Supabase: " + text.slice(0, 120));
-  }
-}
-
 export function sortScheduleBlocks(blocks) {
   const order = ["sex-manha", "sex-tarde", "sab-manha", "sab-tarde", "dom-manha", "dom-tarde"];
   return [...blocks].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
@@ -197,82 +156,6 @@ export function mapAppVolunteerToDb(volunteer) {
     congregation: volunteer.congregation || "",
     phone: volunteer.phone || "",
     active: volunteer.active !== false,
-  };
-}
-
-export async function seedSupabaseScheduleIfEmpty() {
-  const [blocks, shifts] = await Promise.all([
-    supabaseRequest("/schedule_blocks?select=id"),
-    supabaseRequest("/shifts?select=id"),
-  ]);
-
-  const shouldSeedBlocks = !Array.isArray(blocks) || blocks.length < 6;
-  const shouldSeedShifts = !Array.isArray(shifts) || shifts.length < 16;
-
-  const scheduleBlocks = initialSchedule.map((block) => ({
-    id: block.id,
-    day: block.day,
-    period: block.period,
-    responsible: block.responsible,
-    accent: block.accent,
-  }));
-
-  const initialShifts = initialSchedule.flatMap((block) =>
-    block.shifts.map((shift) => ({
-      id: shift.id,
-      block_id: block.id,
-      start_time: shift.start,
-      end_time: shift.end,
-    }))
-  );
-
-  if (shouldSeedBlocks) {
-    await supabaseRequest("/schedule_blocks?on_conflict=id", {
-      method: "POST",
-      body: JSON.stringify(scheduleBlocks),
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-    });
-  }
-
-  if (shouldSeedShifts) {
-    await supabaseRequest("/shifts?on_conflict=id", {
-      method: "POST",
-      body: JSON.stringify(initialShifts),
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-    });
-  }
-}
-
-export async function fetchSupabaseData() {
-  await seedSupabaseScheduleIfEmpty();
-  const [blocks, shifts, assigned, volunteers, lostItems] = await Promise.all([
-    supabaseRequest("/schedule_blocks?select=*"),
-    supabaseRequest("/shifts?select=*"),
-    supabaseRequest("/shift_volunteers?select=*"),
-    supabaseRequest("/volunteers?select=*&order=created_at.desc"),
-    supabaseRequest("/lost_items?select=*&order=created_at.desc"),
-  ]);
-
-  const groupedSchedule = sortScheduleBlocks(blocks).map((block) => ({
-    id: block.id,
-    day: block.day,
-    period: block.period,
-    responsible: block.responsible,
-    accent: block.accent,
-    shifts: sortShifts(shifts.filter((shift) => shift.block_id === block.id)).map((shift) => ({
-      id: shift.id,
-      start: shift.start_time,
-      end: shift.end_time,
-      volunteerIds: assigned.filter((item) => item.shift_id === shift.id).map((item) => item.volunteer_id),
-    })),
-  }));
-
-  return {
-    schedule: sanitizeSchedule(groupedSchedule),
-    volunteers: Array.isArray(volunteers)
-      ? volunteers.filter((v) => !["Durval", "Flavio", "João Passos"].includes(v.name))
-      : initialVolunteers,
-    items: Array.isArray(lostItems) ? lostItems.map(mapDbItemToApp) : initialItems,
   };
 }
 
@@ -378,17 +261,11 @@ export function formatCurrentDate(date = new Date()) {
   });
 }
 
-export function registerServiceWorker() {
-  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => console.warn("Service Worker não registrado."));
-  });
-}
-
 export const navigationItems = [
-  { value: "Programação", label: "Escala", iconClass: "fi fi-rr-calendar-lines" },
-  { value: "Voluntários", label: "Voluntários", iconClass: "fi fi-rr-users" },
-  { value: "Checklist", label: "Itens Perdidos", iconClass: "fi fi-rr-ballot-check" },
+  { path: "/", label: "Escala", iconClass: "fi fi-rr-calendar-lines" },
+  { path: "/voluntarios", label: "Voluntários", iconClass: "fi fi-rr-users" },
+  { path: "/itens", label: "Itens Perdidos", iconClass: "fi fi-rr-ballot-check" },
+  { path: "/departamentos", label: "Departamentos", iconClass: "fi fi-rr-building" },
 ];
 
 export const STAT_ICON_PATHS = {

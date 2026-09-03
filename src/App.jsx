@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { HashRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import {
   initialSchedule,
   initialVolunteers,
@@ -6,46 +7,79 @@ import {
   emptyVolunteer,
   emptyItem,
   sanitizeSchedule,
-  fetchSupabaseData,
-  supabaseRequest,
   mapAppVolunteerToDb,
   mapAppItemToDb,
   mapDbItemToApp,
   makeId,
   formatCurrentDate,
-  registerServiceWorker,
   buildOfflineSnapshot,
   saveOfflineSnapshot,
   loadOfflineSnapshot,
   navigationItems,
 } from "./utils/helpers";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import { Stat, Button, Modal } from "./components/UI";
-import ScheduleView from "./components/ScheduleView";
-import VolunteersView from "./components/VolunteersView";
-import ChecklistView from "./components/ChecklistView";
+import { useAuth } from "./context/AuthContext";
+import { uploadImage } from "./services/storageService";
+import {
+  getLostItems,
+  createLostItem,
+  updateLostItem,
+  deleteLostItem,
+  updateLostItemStatus,
+} from "./services/itemsService";
+import {
+  getVolunteers,
+  createVolunteer,
+  updateVolunteer,
+  deleteVolunteer,
+} from "./services/volunteersService";
+import {
+  fetchDepartmentData,
+  assignVolunteersToShift,
+} from "./services/scheduleService";
+import { Stat, Button } from "./components/UI";
 import ShiftEditorModal from "./components/ShiftEditorModal";
+import LoginModal from "./components/LoginModal";
+import Programacao from "./pages/Programacao";
+import Voluntarios from "./pages/Voluntarios";
+import ItensPerdidos from "./pages/ItensPerdidos";
+import GerenciarDepartamentos from "./pages/GerenciarDepartamentos";
+import PublicCadastro from "./pages/PublicCadastro";
 
-export default function App() {
+function EmptyDepartment() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-4xl">
+        <i className="fi fi-rr-building" />
+      </div>
+      <h2 className="mt-6 text-2xl font-bold text-[#172233]">Nenhum departamento selecionado</h2>
+      <p className="mt-3 max-w-md text-sm text-slate-500">
+        Para acessar o painel, faça login e selecione um departamento ao qual você pertence.
+      </p>
+    </div>
+  );
+}
+
+function AppLayout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, login, activeDepartment } = useAuth();
+
   const [activeDay, setActiveDay] = useState("Sexta-feira");
-  const [activeView, setActiveView] = useState("Programação");
   const [query, setQuery] = useState("");
   const [schedule, setSchedule] = useLocalStorage("ap_schedule_v4_validation", initialSchedule, sanitizeSchedule);
   const [volunteers, setVolunteers] = useLocalStorage("ap_volunteers", initialVolunteers);
   const [items, setItems] = useLocalStorage("ap_items", initialItems);
-  const [passwordModal, setPasswordModal] = useState(null);
   const [shiftEditor, setShiftEditor] = useState(null);
   const [volunteerForm, setVolunteerForm] = useState(emptyVolunteer());
   const [itemForm, setItemForm] = useState(emptyItem());
-  const [passwordError, setPasswordError] = useState("");
   const [toast, setToast] = useState("");
   const [now, setNow] = useState(() => new Date());
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [hasLoadedRemoteData, setHasLoadedRemoteData] = useState(false);
+  const [loginModal, setLoginModal] = useState(null);
 
-  useEffect(() => {
-    registerServiceWorker();
-  }, []);
+  const departmentId = activeDepartment?.id || activeDepartment?.department?.id || null;
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setNow(new Date()), 60000);
@@ -68,10 +102,20 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    setHasLoadedRemoteData(false);
+  }, [departmentId]);
+
+  useEffect(() => {
     async function loadRemoteData() {
-      if (!isOnline || hasLoadedRemoteData) return;
+      if (!isOnline || hasLoadedRemoteData || !departmentId) return;
       try {
-        const data = await fetchSupabaseData();
+        const data = await fetchDepartmentData(
+          departmentId,
+          initialSchedule,
+          initialVolunteers,
+          initialItems,
+          mapDbItemToApp
+        );
         setSchedule(data.schedule);
         setVolunteers(data.volunteers);
         setItems(data.items);
@@ -89,14 +133,13 @@ export default function App() {
       }
     }
     loadRemoteData();
-  }, [isOnline, hasLoadedRemoteData, setSchedule, setVolunteers, setItems]);
+  }, [isOnline, hasLoadedRemoteData, departmentId, setSchedule, setVolunteers, setItems]);
 
   useEffect(() => {
     const snapshot = buildOfflineSnapshot(schedule, volunteers, items);
     saveOfflineSnapshot(snapshot);
   }, [schedule, volunteers, items]);
 
-  const isVolunteerEditorUnlocked = passwordModal?.unlocked === true;
   const dayCards = useMemo(() => schedule.filter((item) => item.day === activeDay), [schedule, activeDay]);
   const totalShifts = useMemo(() => schedule.reduce((acc, item) => acc + item.shifts.length, 0), [schedule]);
   const assignedShifts = useMemo(
@@ -115,32 +158,24 @@ export default function App() {
     );
   }, [items, query]);
 
-  function openProtectedAction(action, payload = null) {
-    setPasswordError("");
-    setPasswordModal({ action, payload, password: "", unlocked: false });
+  async function handleLoginFromModal(email, password) {
+    await login(email, password);
+    if (loginModal?.callback) {
+      loginModal.callback(...(loginModal.args || []));
+    }
+    setLoginModal(null);
   }
 
-  function confirmPassword() {
-    if (!passwordModal || passwordModal.password !== "1cor14:40") {
-      setPasswordError("Senha incorreta. Tente novamente.");
-      return;
-    }
-    const { action, payload } = passwordModal;
-    setPasswordError("");
-
-    if (action === "edit-shift") {
+  function handleEditShift(payload) {
+    if (user) {
       setShiftEditor(payload);
-      setPasswordModal(null);
-      return;
-    }
-
-    if (action === "edit-volunteers") {
-      setPasswordModal({ ...passwordModal, unlocked: true });
+    } else {
+      setLoginModal({ callback: (p) => setShiftEditor(p), args: [payload] });
     }
   }
 
   async function saveShiftVolunteers(selectedIds) {
-    if (!shiftEditor) return;
+    if (!shiftEditor || !departmentId) return;
     const targetShiftId = shiftEditor.shiftId;
     const nextSchedule = schedule.map((block) => ({
       ...block,
@@ -156,18 +191,7 @@ export default function App() {
     if (!isOnline) return;
 
     try {
-      await supabaseRequest(
-        "/shift_volunteers?shift_id=eq." + encodeURIComponent(targetShiftId),
-        { method: "DELETE", headers: { Prefer: "return=minimal" } }
-      );
-
-      if (selectedIds.length) {
-        await supabaseRequest("/shift_volunteers", {
-          method: "POST",
-          body: JSON.stringify(selectedIds.map((volunteerId) => ({ shift_id: targetShiftId, volunteer_id: volunteerId }))),
-          headers: { Prefer: "return=minimal" },
-        });
-      }
+      await assignVolunteersToShift(targetShiftId, selectedIds, departmentId);
     } catch (error) {
       console.warn("Falha ao salvar escala no Supabase.", error);
       showToast("Escala salva offline. Sincronize quando voltar a internet.");
@@ -177,7 +201,7 @@ export default function App() {
   async function saveVolunteer(event) {
     event.preventDefault();
     const name = volunteerForm.name.trim();
-    if (!name) return;
+    if (!name || !departmentId) return;
 
     const payload = {
       ...volunteerForm,
@@ -199,19 +223,13 @@ export default function App() {
     }
 
     try {
+      const dbData = mapAppVolunteerToDb(payload);
       if (payload.id && !String(payload.id).startsWith("local-")) {
-        const [updated] = await supabaseRequest(
-          "/volunteers?id=eq." + encodeURIComponent(payload.id),
-          { method: "PATCH", body: JSON.stringify(mapAppVolunteerToDb(payload)), preferRepresentation: true }
-        );
+        const updated = await updateVolunteer(payload.id, departmentId, dbData);
         setVolunteers((current) => current.map((volunteer) => (volunteer.id === payload.id ? updated : volunteer)));
         showToast("Voluntário atualizado.");
       } else {
-        const [created] = await supabaseRequest("/volunteers", {
-          method: "POST",
-          body: JSON.stringify(mapAppVolunteerToDb(payload)),
-          preferRepresentation: true,
-        });
+        const created = await createVolunteer(departmentId, dbData);
         setVolunteers((current) => [created, ...current]);
         showToast("Voluntário cadastrado.");
       }
@@ -235,13 +253,10 @@ export default function App() {
     );
     showToast("Voluntário removido da lista e da escala.");
 
-    if (!isOnline || String(id).startsWith("local-")) return;
+    if (!isOnline || String(id).startsWith("local-") || !departmentId) return;
 
     try {
-      await supabaseRequest("/volunteers?id=eq." + encodeURIComponent(id), {
-        method: "DELETE",
-        headers: { Prefer: "return=minimal" },
-      });
+      await deleteVolunteer(id, departmentId);
     } catch (error) {
       console.warn("Falha ao excluir voluntário no Supabase.", error);
     }
@@ -250,7 +265,19 @@ export default function App() {
   async function saveItem(event) {
     event.preventDefault();
     const itemName = itemForm.item.trim();
-    if (!itemName) return;
+    if (!itemName || !departmentId) return;
+
+    let photoUrl = itemForm.photo || "";
+
+    if (itemForm.imageFile && isOnline) {
+      try {
+        photoUrl = await uploadImage(itemForm.imageFile);
+      } catch (uploadError) {
+        console.warn("Falha ao fazer upload da imagem.", uploadError);
+        showToast("Falha no upload da imagem. Salvando sem foto.");
+        photoUrl = "";
+      }
+    }
 
     const payload = {
       id: itemForm.id,
@@ -258,7 +285,7 @@ export default function App() {
       item: itemName,
       day: itemForm.day,
       status: itemForm.status,
-      photo: itemForm.photo || "",
+      photo: photoUrl,
     };
 
     if (!isOnline) {
@@ -274,19 +301,16 @@ export default function App() {
     }
 
     try {
+      const dbData = mapAppItemToDb(payload);
       if (payload.id && !String(payload.id).startsWith("local-")) {
-        const [updated] = await supabaseRequest(
-          "/lost_items?id=eq." + encodeURIComponent(payload.id),
-          { method: "PATCH", body: JSON.stringify(mapAppItemToDb(payload)), preferRepresentation: true }
-        );
+        if (itemForm.imageFile) {
+          dbData.oldPhotoUrl = items.find((i) => i.id === payload.id)?.photo || "";
+        }
+        const updated = await updateLostItem(payload.id, departmentId, dbData);
         setItems((current) => current.map((item) => (item.id === payload.id ? mapDbItemToApp(updated) : item)));
         showToast("Item atualizado.");
       } else {
-        const [created] = await supabaseRequest("/lost_items", {
-          method: "POST",
-          body: JSON.stringify(mapAppItemToDb(payload)),
-          preferRepresentation: true,
-        });
+        const created = await createLostItem(departmentId, dbData);
         setItems((current) => [mapDbItemToApp(created), ...current]);
         showToast("Item cadastrado.");
       }
@@ -301,13 +325,10 @@ export default function App() {
     setItems((current) => current.filter((item) => item.id !== id));
     showToast("Item removido do checklist.");
 
-    if (!isOnline || String(id).startsWith("local-")) return;
+    if (!isOnline || String(id).startsWith("local-") || !departmentId) return;
 
     try {
-      await supabaseRequest("/lost_items?id=eq." + encodeURIComponent(id), {
-        method: "DELETE",
-        headers: { Prefer: "return=minimal" },
-      });
+      await deleteLostItem(id, departmentId);
     } catch (error) {
       console.warn("Falha ao excluir item no Supabase.", error);
     }
@@ -316,14 +337,10 @@ export default function App() {
   async function updateItemStatus(id, status) {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));
 
-    if (!isOnline || String(id).startsWith("local-")) return;
+    if (!isOnline || String(id).startsWith("local-") || !departmentId) return;
 
     try {
-      await supabaseRequest("/lost_items?id=eq." + encodeURIComponent(id), {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-        headers: { Prefer: "return=minimal" },
-      });
+      await updateLostItemStatus(id, departmentId, status);
     } catch (error) {
       console.warn("Falha ao atualizar status no Supabase.", error);
     }
@@ -332,6 +349,12 @@ export default function App() {
   function showToast(message) {
     setToast(message);
     window.setTimeout(() => setToast(""), 2200);
+  }
+
+  const activeView = location.pathname;
+
+  function navTo(path) {
+    navigate(path);
   }
 
   return (
@@ -356,10 +379,10 @@ export default function App() {
         <nav className="mt-5 space-y-2">
           {navigationItems.map((item) => (
             <button
-              key={item.value}
-              onClick={() => setActiveView(item.value)}
+              key={item.path}
+              onClick={() => navTo(item.path)}
               className={`app-nav-button flex w-full items-center gap-3 text-sm transition ${
-                activeView === item.value ? "is-active" : ""
+                activeView === item.path ? "is-active" : ""
               }`}
             >
               <i className={item.iconClass} />
@@ -377,79 +400,111 @@ export default function App() {
 
         <header className="ap-header">
           <div className="w-full bg-white px-5 py-5 shadow-sm md:px-8 md:py-6">
-            <h1 className="text-xl font-bold tracking-tight text-[#172233] md:text-3xl">Dashboard</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold tracking-tight text-[#172233] md:text-3xl">Dashboard</h1>
+              {user ? (
+                <button
+                  onClick={() => useAuth().logout()}
+                  className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200"
+                >
+                  Sair
+                </button>
+              ) : (
+                <button
+                  onClick={() => setLoginModal({ callback: null, args: [] })}
+                  className="rounded-full bg-[#172233] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#101827]"
+                >
+                  Entrar
+                </button>
+              )}
+            </div>
           </div>
         </header>
 
         <section className="ap-main-content space-y-6 p-4 md:p-8">
-          <p className="text-sm font-medium capitalize text-slate-500 md:text-base">
-            {formatCurrentDate(now)}
-          </p>
+          {!departmentId ? (
+            <EmptyDepartment />
+          ) : (
+            <>
+              <p className="text-sm font-medium capitalize text-slate-500 md:text-base">
+                {formatCurrentDate(now)}
+              </p>
 
-          <div className="ap-stats-scroll -mx-4 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
-            <div className="ap-stats-row flex min-w-max gap-3 md:grid md:min-w-0 md:grid-cols-3 md:gap-4">
-              <Stat
-                icon="clock"
-                label="Turnos"
-                value={totalShifts}
-                detail={assignedShifts + "/" + totalShifts + " designado"}
-                day={activeDay}
-              />
-              <Stat
-                icon="users"
-                label="Voluntários"
-                value={volunteers.length}
-                detail="cadastros ativos"
-                day={activeDay}
-              />
-              <Stat
-                icon="checklist"
-                label="Checklist"
-                value={pendingItems}
-                detail="itens perdidos"
-                day={activeDay}
-              />
-            </div>
-          </div>
+              <div className="ap-stats-scroll -mx-4 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+                <div className="ap-stats-row flex min-w-max gap-3 md:grid md:min-w-0 md:grid-cols-3 md:gap-4">
+                  <Stat
+                    icon="clock"
+                    label="Turnos"
+                    value={totalShifts}
+                    detail={assignedShifts + "/" + totalShifts + " designado"}
+                    day={activeDay}
+                  />
+                  <Stat
+                    icon="users"
+                    label="Voluntários"
+                    value={volunteers.length}
+                    detail="cadastros ativos"
+                    day={activeDay}
+                  />
+                  <Stat
+                    icon="checklist"
+                    label="Checklist"
+                    value={pendingItems}
+                    detail="itens perdidos"
+                    day={activeDay}
+                  />
+                </div>
+              </div>
 
-          {activeView === "Programação" && (
-            <ScheduleView
-              activeDay={activeDay}
-              setActiveDay={setActiveDay}
-              dayCards={dayCards}
-              volunteers={volunteers}
-              now={now}
-              onEditShift={(payload) => openProtectedAction("edit-shift", payload)}
-            />
-          )}
-
-          {activeView === "Voluntários" && (
-            <VolunteersView
-              volunteers={volunteers}
-              volunteerForm={volunteerForm}
-              setVolunteerForm={setVolunteerForm}
-              isUnlocked={isVolunteerEditorUnlocked}
-              onUnlock={() => openProtectedAction("edit-volunteers")}
-              onSave={saveVolunteer}
-              onEdit={setVolunteerForm}
-              onDelete={removeVolunteer}
-              onCancel={() => setVolunteerForm(emptyVolunteer())}
-            />
-          )}
-
-          {activeView === "Checklist" && (
-            <ChecklistView
-              query={query}
-              setQuery={setQuery}
-              items={filteredItems}
-              itemForm={itemForm}
-              setItemForm={setItemForm}
-              onSave={saveItem}
-              onEdit={setItemForm}
-              onDelete={removeItem}
-              onStatusChange={updateItemStatus}
-              onCancel={() => setItemForm(emptyItem())}
-            />
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <Programacao
+                      activeDay={activeDay}
+                      setActiveDay={setActiveDay}
+                      dayCards={dayCards}
+                      volunteers={volunteers}
+                      now={now}
+                      onEditShift={handleEditShift}
+                    />
+                  }
+                />
+                <Route
+                  path="/voluntarios"
+                  element={
+                    <Voluntarios
+                      volunteers={volunteers}
+                      volunteerForm={volunteerForm}
+                      setVolunteerForm={setVolunteerForm}
+                      onSave={saveVolunteer}
+                      onEdit={setVolunteerForm}
+                      onDelete={removeVolunteer}
+                    />
+                  }
+                />
+                <Route
+                  path="/itens"
+                  element={
+                    <ItensPerdidos
+                      query={query}
+                      setQuery={setQuery}
+                      items={filteredItems}
+                      itemForm={itemForm}
+                      setItemForm={setItemForm}
+                      onSave={saveItem}
+                      onEdit={setItemForm}
+                      onDelete={removeItem}
+                      onStatusChange={updateItemStatus}
+                    />
+                  }
+                />
+                <Route
+                  path="/departamentos"
+                  element={<GerenciarDepartamentos />}
+                />
+              </Routes>
+            </>
           )}
         </section>
       </main>
@@ -457,9 +512,9 @@ export default function App() {
       <div className="ap-mobile-nav lg:hidden">
         {navigationItems.map((item) => (
           <button
-            key={item.value}
-            onClick={() => setActiveView(item.value)}
-            className={`app-mobile-nav-button ${activeView === item.value ? "is-active" : ""}`}
+            key={item.path}
+            onClick={() => navTo(item.path)}
+            className={`app-mobile-nav-button ${activeView === item.path ? "is-active" : ""}`}
           >
             <i className={item.iconClass} />
             <span>{item.label}</span>
@@ -467,26 +522,11 @@ export default function App() {
         ))}
       </div>
 
-      {passwordModal && !passwordModal.unlocked && (
-        <Modal title="Senha para editar" onClose={() => setPasswordModal(null)}>
-          <p className="text-sm text-slate-500">Digite a senha para liberar esta edição.</p>
-          <input
-            type="password"
-            value={passwordModal.password}
-            onChange={(event) => setPasswordModal({ ...passwordModal, password: event.target.value })}
-            onKeyDown={(event) => event.key === "Enter" && confirmPassword()}
-            placeholder="Senha"
-            className="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400"
-            autoFocus
-          />
-          {passwordError && <p className="mt-2 text-sm font-medium text-rose-600">{passwordError}</p>}
-          <div className="mt-5 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setPasswordModal(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={confirmPassword}>Liberar</Button>
-          </div>
-        </Modal>
+      {loginModal && (
+        <LoginModal
+          onLogin={handleLoginFromModal}
+          onClose={() => setLoginModal(null)}
+        />
       )}
 
       {shiftEditor && (
@@ -499,5 +539,16 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <HashRouter>
+      <Routes>
+        <Route path="/p/:slug/cadastro" element={<PublicCadastro />} />
+        <Route path="*" element={<AppLayout />} />
+      </Routes>
+    </HashRouter>
   );
 }

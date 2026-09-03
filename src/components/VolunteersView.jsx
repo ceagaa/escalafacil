@@ -20,10 +20,10 @@ export default function VolunteersView({
         </div>
         <h3 className="mt-4 text-2xl font-bold">Edição protegida</h3>
         <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-          Para cadastrar, editar ou excluir voluntários, informe a senha de edição.
+          Para cadastrar, editar ou excluir voluntários, faça login na sua conta.
         </p>
         <Button className="mt-5" onClick={onUnlock}>
-          Liberar edição
+          Fazer login
         </Button>
       </Card>
     );

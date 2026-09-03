@@ -51,15 +51,6 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/cdn\.tailwindcss\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'tailwind-cdn',
-              expiration: { maxEntries: 10, maxAgeSeconds: 86400 * 7 },
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
-          {
             urlPattern: /^https:\/\/ufyyhvsnrobhrjsrnqpq\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
             options: {

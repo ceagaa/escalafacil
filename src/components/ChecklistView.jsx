@@ -1,4 +1,4 @@
-import { compressImage } from "../utils/compressImage";
+import imageCompression from "browser-image-compression";
 import { statusClass } from "../utils/helpers";
 import { Card, Button, IconButton, Field, Select, Icon } from "./UI";
 
@@ -18,8 +18,13 @@ export default function ChecklistView({
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      const compressed = await compressImage(file);
-      setItemForm({ ...itemForm, photo: compressed });
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+      });
+      const preview = await imageCompression.getDataUrlFromFile(compressedFile);
+      setItemForm({ ...itemForm, photo: preview, imageFile: compressedFile });
     } catch {
       const dataUrl = await readFileAsDataUrl(file);
       setItemForm({ ...itemForm, photo: dataUrl });

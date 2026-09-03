@@ -1,20 +1,12 @@
-// src/services/itemsService.js
-/**
- * Service for CRUD operations on `items` table.
- * All functions use the shared Supabase client and return plain JS objects.
- */
-
 import { supabase } from "./supabase.js";
 import { uploadImage, deleteImage } from "./storageService.js";
 
-/**
- * Fetch all items ordered by newest first.
- * @returns {Promise<Array<any>>} Array of item objects.
- */
-export async function getItems() {
+export async function getLostItems(departmentId) {
+  if (!departmentId) throw new Error("departmentId is required");
   const { data, error } = await supabase
-    .from("items")
+    .from("lost_items")
     .select("*")
+    .eq("department_id", departmentId)
     .order("created_at", { ascending: false });
   if (error) {
     throw new Error(`Failed to fetch items: ${error.message}`);
@@ -22,16 +14,13 @@ export async function getItems() {
   return data;
 }
 
-/**
- * Fetch a single item by UUID.
- * @param {string} id - Item UUID.
- * @returns {Promise<any>} The item object.
- */
-export async function getItem(id) {
+export async function getLostItem(id, departmentId) {
+  if (!departmentId) throw new Error("departmentId is required");
   const { data, error } = await supabase
-    .from("items")
+    .from("lost_items")
     .select("*")
     .eq("id", id)
+    .eq("department_id", departmentId)
     .single();
   if (error) {
     throw new Error(`Failed to fetch item ${id}: ${error.message}`);
@@ -39,75 +28,57 @@ export async function getItem(id) {
   return data;
 }
 
-/**
- * Create a new item. If `data.imageFile` is provided, upload it first.
- * The uploaded image URL is stored in `image_url`.
- * @param {object} data - Item fields. May include `imageFile` (File).
- * @returns {Promise<any>} The created item.
- */
-export async function createItem(data) {
-  // Handle optional image upload
+export async function createLostItem(departmentId, data) {
+  if (!departmentId) throw new Error("departmentId is required");
   if (data.imageFile) {
     const publicUrl = await uploadImage(data.imageFile);
-    data.image_url = publicUrl;
-    delete data.imageFile; // remove raw file before DB insert
+    data.photo_url = publicUrl;
+    delete data.imageFile;
   }
 
+  const payload = { ...data, department_id: departmentId };
   const { data: inserted, error } = await supabase
-    .from("items")
-    .insert([data])
+    .from("lost_items")
+    .insert([payload])
     .select();
   if (error) {
     throw new Error(`Failed to create item: ${error.message}`);
   }
-  // insert returns an array; return the first element
   return inserted[0];
 }
 
-/**
- * Update an existing item. Supports optional new image upload.
- * If `data.imageFile` is present, the new image is uploaded, the DB record
- * updated with the new URL, and the previous image (passed as `oldImageUrl`)
- * is deleted after a successful DB update.
- * @param {string} id - UUID of the item to update.
- * @param {object} data - Fields to update. May contain `imageFile` and `oldImageUrl`.
- * @returns {Promise<any>} The updated item.
- */
-export async function updateItem(id, data) {
-  // If a new image is supplied, upload it first
+export async function updateLostItem(id, departmentId, data) {
+  if (!departmentId) throw new Error("departmentId is required");
   if (data.imageFile) {
     const publicUrl = await uploadImage(data.imageFile);
-    data.image_url = publicUrl;
+    data.photo_url = publicUrl;
     delete data.imageFile;
-    // Preserve the old URL for later deletion
-    const oldUrl = data.oldImageUrl;
-    delete data.oldImageUrl;
+    const oldUrl = data.oldPhotoUrl;
+    delete data.oldPhotoUrl;
 
     const { data: updated, error } = await supabase
-      .from("items")
+      .from("lost_items")
       .update(data)
       .eq("id", id)
+      .eq("department_id", departmentId)
       .select()
       .single();
     if (error) {
-      // If DB update fails, remove the newly uploaded image to avoid orphan
       await deleteImage(publicUrl);
       throw new Error(`Failed to update item ${id}: ${error.message}`);
     }
-    // Delete the previous image after success (if it existed)
-    if (oldUrl) {
-      // Strip the bucket URL to obtain the storage path
+    if (oldUrl && !oldUrl.startsWith("data:")) {
       const path = oldUrl.split("/").pop();
       await deleteImage(path);
     }
     return updated;
   }
 
-  // No image handling required
   const { data: updated, error } = await supabase
-    .from("items")
+    .from("lost_items")
     .update(data)
     .eq("id", id)
+    .eq("department_id", departmentId)
     .select()
     .single();
   if (error) {
@@ -116,14 +87,29 @@ export async function updateItem(id, data) {
   return updated;
 }
 
-/**
- * Delete an item by its UUID.
- * @param {string} id - Item UUID.
- */
-export async function deleteItem(id) {
-  const { error } = await supabase.from("items").delete().eq("id", id);
+export async function deleteLostItem(id, departmentId) {
+  if (!departmentId) throw new Error("departmentId is required");
+  const { error } = await supabase
+    .from("lost_items")
+    .delete()
+    .eq("id", id)
+    .eq("department_id", departmentId);
   if (error) {
     throw new Error(`Failed to delete item ${id}: ${error.message}`);
   }
 }
 
+export async function updateLostItemStatus(id, departmentId, status) {
+  if (!departmentId) throw new Error("departmentId is required");
+  const { data, error } = await supabase
+    .from("lost_items")
+    .update({ status })
+    .eq("id", id)
+    .eq("department_id", departmentId)
+    .select()
+    .single();
+  if (error) {
+    throw new Error(`Failed to update status for item ${id}: ${error.message}`);
+  }
+  return data;
+}
