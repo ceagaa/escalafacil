@@ -330,7 +330,6 @@ export const navigationItems = [
   { path: "/programacao", label: "Escala", iconClass: "fi fi-rr-calendar-lines" },
   { path: "/voluntarios", label: "Voluntários", iconClass: "fi fi-rr-users" },
   { path: "/itens", label: "Itens Perdidos", iconClass: "fi fi-rr-ballot-check" },
-  { path: "/departamentos", label: "Departamentos", iconClass: "fi fi-rr-building" },
   { path: "/configuracoes", label: "Configurações", iconClass: "fi fi-rr-settings" },
 ];
 

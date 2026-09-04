@@ -50,10 +50,19 @@ import Configuracoes from "./pages/Configuracoes";
 import PublicCadastro from "./pages/PublicCadastro";
 import PublicEscala from "./pages/PublicEscala";
 
+const ROUTE_TITLES = {
+  "/": "",
+  "/programacao": "Escala",
+  "/voluntarios": "Voluntários",
+  "/itens": "Achados e Perdidos",
+  "/departamentos": "Departamentos",
+  "/configuracoes": "Configurações",
+};
+
 function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, activeDepartment } = useAuth();
+  const { user, logout, activeDepartment, departments, selectDepartment } = useAuth();
 
   const [activeDay, setActiveDay] = useState("Sexta-feira");
   const [query, setQuery] = useState("");
@@ -67,6 +76,7 @@ function AppLayout() {
   const [now, setNow] = useState(() => new Date());
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [hasLoadedRemoteData, setHasLoadedRemoteData] = useState(false);
+  const [showDeptSwitcher, setShowDeptSwitcher] = useState(false);
 
   const departmentId = activeDepartment?.department?.id || activeDepartment?.id || null;
   const departmentName = activeDepartment?.department?.name || "";
@@ -84,6 +94,8 @@ function AppLayout() {
       }),
     [lostItemsEnabled, isCoordinator]
   );
+
+  const hasMultipleDepts = departments.length > 1;
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setNow(new Date()), 60000);
@@ -456,9 +468,11 @@ function AppLayout() {
   }
 
   const activeView = location.pathname;
+  const routeTitle = ROUTE_TITLES[activeView] || "";
 
   function navTo(path) {
     navigate(path);
+    setShowDeptSwitcher(false);
   }
 
   return (
@@ -471,9 +485,57 @@ function AppLayout() {
 
       <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[#172233] bg-[#172233] p-5 backdrop-blur-xl lg:block">
         <div>
-          <h1 className="font-semibold leading-tight text-[#42d27b]">
-            {departmentName || "Achados Perdidos & Guarda Volumes"}
-          </h1>
+          {hasMultipleDepts && departmentId ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowDeptSwitcher(!showDeptSwitcher)}
+                className="flex w-full items-center gap-2 text-left transition hover:opacity-80"
+              >
+                <h1 className="font-semibold leading-tight text-[#42d27b] truncate">
+                  {departmentName || "Selecionar departamento"}
+                </h1>
+                <i className={`fi fi-rr-angle-small-down text-sm text-[#42d27b] transition-transform ${showDeptSwitcher ? "rotate-180" : ""}`} />
+              </button>
+              {showDeptSwitcher && (
+                <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl border border-[#2a3a4f] bg-[#1e2d40] p-2 shadow-2xl">
+                  {departments.map((dept) => {
+                    const deptName = dept.department?.name || "Departamento";
+                    const isActive = dept.department?.id === departmentId;
+                    return (
+                      <button
+                        key={dept.id}
+                        type="button"
+                        onClick={() => { selectDepartment(dept); setShowDeptSwitcher(false); }}
+                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                          isActive
+                            ? "bg-[#42d27b]/15 text-[#42d27b]"
+                            : "text-slate-300 hover:bg-white/5 hover:text-white"
+                        }`}
+                      >
+                        <i className={`fi fi-rr-building text-base ${isActive ? "text-[#42d27b]" : "text-slate-500"}`} />
+                        <span className="truncate">{deptName}</span>
+                        {isActive && <i className="fi fi-rr-check ml-auto text-xs text-[#42d27b]" />}
+                      </button>
+                    );
+                  })}
+                  <div className="my-1 border-t border-[#2a3a4f]" />
+                  <button
+                    type="button"
+                    onClick={() => { selectDepartment(null); setShowDeptSwitcher(false); }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
+                  >
+                    <i className="fi fi-rr-apps text-base text-slate-500" />
+                    Ver todos os departamentos
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <h1 className="font-semibold leading-tight text-[#42d27b]">
+              {departmentName || "Achados Perdidos & Guarda Volumes"}
+            </h1>
+          )}
         </div>
 
         <div className="mt-10 flex items-center gap-4 px-2">
@@ -498,16 +560,20 @@ function AppLayout() {
       </aside>
 
       <main className="lg:pl-72">
-        <div className="mobile-department-brand px-4 pb-2 pt-5">
-          <h1 className="font-semibold leading-tight text-[#42d27b]">
-            {departmentName || "Achados Perdidos & Guarda Volumes"}
-          </h1>
-        </div>
+        {departmentId && (
+          <div className="mobile-department-brand px-4 pb-2 pt-5 lg:hidden">
+            <h1 className="font-semibold leading-tight text-[#42d27b]">
+              {departmentName}
+            </h1>
+          </div>
+        )}
 
         <header className="ap-header">
           <div className="w-full bg-white px-5 py-5 shadow-sm md:px-8 md:py-6">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold tracking-tight text-[#172233] md:text-3xl">Dashboard</h1>
+              <h1 className="text-xl font-bold tracking-tight text-[#172233] md:text-3xl">
+                {activeView === "/" ? (departmentName || "Dashboard") : routeTitle}
+              </h1>
               {user && (
                 <button
                   onClick={() => logout()}
@@ -525,45 +591,43 @@ function AppLayout() {
             <Route path="/" element={<Dashboard />} />
           </Routes>
 
-          {!departmentId ? (
-            <GerenciarDepartamentos />
-          ) : (
+          {departmentId && activeView !== "/" && (
             <>
-              {activeView !== "/" && (
-                <>
-                  <p className="text-sm font-medium capitalize text-slate-500 md:text-base">
-                    {formatCurrentDate(now)}
-                  </p>
+              <p className="text-sm font-medium capitalize text-slate-500 md:text-base">
+                {formatCurrentDate(now)}
+              </p>
 
-                  <div className="ap-stats-scroll -mx-4 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
-                    <div className="ap-stats-row flex min-w-max gap-3 md:grid md:min-w-0 md:grid-cols-3 md:gap-4">
-                      <Stat
-                        icon="clock"
-                        label="Turnos"
-                        value={totalShifts}
-                        detail={assignedShifts + "/" + totalShifts + " designado"}
-                        day={activeDay}
-                      />
-                      <Stat
-                        icon="users"
-                        label="Voluntários"
-                        value={volunteers.filter((volunteer) => volunteer.active !== false).length}
-                        detail="cadastros ativos"
-                        day={activeDay}
-                      />
-                      <Stat
-                        icon="checklist"
-                        label="Checklist"
-                        value={pendingItems}
-                        detail="itens perdidos"
-                        day={activeDay}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
+              <div className="ap-stats-scroll -mx-4 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+                <div className="ap-stats-row flex min-w-max gap-3 md:grid md:min-w-0 md:grid-cols-3 md:gap-4">
+                  <Stat
+                    icon="clock"
+                    label="Turnos"
+                    value={totalShifts}
+                    detail={assignedShifts + "/" + totalShifts + " designado"}
+                    day={activeDay}
+                  />
+                  <Stat
+                    icon="users"
+                    label="Voluntários"
+                    value={volunteers.filter((volunteer) => volunteer.active !== false).length}
+                    detail="cadastros ativos"
+                    day={activeDay}
+                  />
+                  <Stat
+                    icon="checklist"
+                    label="Checklist"
+                    value={pendingItems}
+                    detail="itens perdidos"
+                    day={activeDay}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
-              <Routes>
+          <Routes>
+            {activeView !== "/" && (
+              <>
                 <Route
                   path="/programacao"
                   element={
@@ -619,9 +683,9 @@ function AppLayout() {
                   path="/configuracoes"
                   element={<Configuracoes />}
                 />
-              </Routes>
-            </>
-          )}
+              </>
+            )}
+          </Routes>
         </section>
       </main>
 

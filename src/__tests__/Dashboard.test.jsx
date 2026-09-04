@@ -11,6 +11,7 @@ vi.mock("../services/supabase.js", () => ({
       const builder = {
         select: vi.fn(() => builder),
         eq: vi.fn(() => builder),
+        neq: vi.fn(() => builder),
         maybeSingle: vi.fn(() => Promise.resolve({ data: null, error: null })),
         then: (resolve) => resolve(mockState.deptListResult),
       };
@@ -39,22 +40,15 @@ import { useAuth } from "../context/AuthContext";
 import {
   createDepartment,
   linkUserAsCoordinator,
-  getDashboardStats,
   getDepartmentOwnerBySlugRpc,
 } from "../services/departmentService";
 
 const authDefaults = {
   user: { id: "user-1" },
   departments: [],
+  activeDepartment: null,
   selectDepartment: vi.fn(),
   refreshSession: vi.fn().mockResolvedValue([]),
-};
-
-const statsResult = {
-  total_departments: 3,
-  total_volunteers: 12,
-  total_coordinators: 2,
-  top_department: "Indicadores",
 };
 
 function renderDashboard() {
@@ -68,127 +62,172 @@ function renderDashboard() {
 beforeEach(() => {
   vi.clearAllMocks();
   useAuth.mockReturnValue(authDefaults);
-  getDashboardStats.mockResolvedValue(statsResult);
   getDepartmentOwnerBySlugRpc.mockResolvedValue(null);
   mockState.deptListResult = { data: [], error: null };
 });
 
 describe("Dashboard", () => {
-  it("renders the 4 stat cards from the RPC", async () => {
-    renderDashboard();
-    await waitFor(() => {
-      expect(screen.getByText("Total de Departamentos")).toBeDefined();
-      expect(screen.getByText("Total de Voluntários")).toBeDefined();
-      expect(screen.getByText("Total de Coordenadores")).toBeDefined();
-      expect(screen.getByText("Maior Departamento")).toBeDefined();
-      expect(screen.getAllByText("3").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText("12").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText("2").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText("Indicadores").length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
-  it("renders the 3 standard department cards", () => {
-    renderDashboard();
-    expect(screen.getByText("Achados Perdidos e Guarda Volumes")).toBeDefined();
-    expect(screen.getByText("Limpeza")).toBeDefined();
-  });
-
-  it("opens control panel when clicking own department", async () => {
-    useAuth.mockReturnValue({
-      ...authDefaults,
-      departments: [
-        {
-          id: "dm-1",
-          role: "coordenador",
-          department: { id: "d-1", name: "Achados Perdidos e Guarda Volumes" },
-        },
-      ],
-    });
-    mockState.deptListResult = {
-      data: [{ id: "d-1", name: "Achados Perdidos e Guarda Volumes", slug: "achados-perdidos-guarda-volumes" }],
-      error: null,
-    };
-    getDepartmentOwnerBySlugRpc.mockResolvedValue("Carlos Henrique");
-
-    renderDashboard();
-    await waitFor(() => {
-      expect(screen.getByText("Meu departamento")).toBeDefined();
+  describe("empty state (no department selected)", () => {
+    it("renders welcome message and selection cards", () => {
+      renderDashboard();
+      expect(screen.getByText("Bem-vindo!")).toBeDefined();
+      expect(screen.getByText("Escolha o departamento da sua equipe para começar.")).toBeDefined();
+      expect(screen.getByText("Achados Perdidos e Guarda Volumes")).toBeDefined();
+      expect(screen.getByText("Indicadores")).toBeDefined();
+      expect(screen.getByText("Limpeza")).toBeDefined();
     });
 
-    fireEvent.click(screen.getByText("Achados Perdidos e Guarda Volumes"));
-
-    await waitFor(() => {
-      expect(screen.getByText(/Painel de Controle/)).toBeDefined();
-      expect(screen.getByText("Link de Cadastro de Voluntários")).toBeDefined();
-      expect(screen.getByText("Link Público da Escala")).toBeDefined();
-      expect(screen.getByText("Gestão de Escalas")).toBeDefined();
-    });
-    expect(screen.getByText("Achados e Perdidos")).toBeDefined();
-  });
-
-  it("shows owner toast when clicking someone else's department", async () => {
-    mockState.deptListResult = {
-      data: [{ id: "d-1", name: "Indicadores", slug: "indicadores" }],
-      error: null,
-    };
-    getDepartmentOwnerBySlugRpc.mockResolvedValue("Ana Souza");
-
-    renderDashboard();
-    await waitFor(() => {
-      expect(screen.getByText("Ocupado")).toBeDefined();
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /Indicadores/ }));
-
-    await waitFor(() => {
-      expect(
-        screen.getByText("Departamento já criado. Responsável: Ana Souza")
-      ).toBeDefined();
-    });
-    expect(screen.queryByText(/Painel de Controle/)).toBeNull();
-  });
-
-  it("claims a free department and opens control panel", async () => {
-    createDepartment.mockResolvedValue({ id: "d-3", name: "Limpeza", slug: "limpeza" });
-    linkUserAsCoordinator.mockResolvedValue();
-    mockState.deptListResult = { data: [], error: null };
-
-    renderDashboard();
-    await waitFor(() => {
+    it("shows claim hint for available departments", () => {
+      renderDashboard();
+      expect(screen.getAllByText("Ao reivindicar, você será o coordenador deste departamento.").length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText("Disponível").length).toBeGreaterThanOrEqual(1);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /Limpeza/ }));
+    it("shows owner name for taken departments", async () => {
+      mockState.deptListResult = {
+        data: [{ id: "d-1", name: "Indicadores", slug: "indicadores" }],
+        error: null,
+      };
+      getDepartmentOwnerBySlugRpc.mockResolvedValue("Ana Souza");
 
-    await waitFor(() => {
-      expect(createDepartment).toHaveBeenCalledWith("Limpeza", "limpeza");
-      expect(linkUserAsCoordinator).toHaveBeenCalledWith("d-3", "user-1");
-      expect(screen.getByText(/Painel de Controle — Limpeza/)).toBeDefined();
+      renderDashboard();
+      await waitFor(() => {
+        expect(screen.getByText("Responsável: Ana Souza.")).toBeDefined();
+      });
+      expect(screen.getAllByText("Ocupado").length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("claims a free department and switches to active state", async () => {
+      createDepartment.mockResolvedValue({ id: "d-3", name: "Limpeza", slug: "limpeza" });
+      linkUserAsCoordinator.mockResolvedValue();
+
+      renderDashboard();
+
+      fireEvent.click(screen.getByRole("button", { name: /Limpeza/ }));
+
+      await waitFor(() => {
+        expect(createDepartment).toHaveBeenCalledWith("Limpeza", "limpeza");
+        expect(linkUserAsCoordinator).toHaveBeenCalledWith("d-3", "user-1");
+        expect(authDefaults.selectDepartment).toHaveBeenCalled();
+      });
+    });
+
+    it("shows toast when clicking a taken department", async () => {
+      mockState.deptListResult = {
+        data: [{ id: "d-1", name: "Indicadores", slug: "indicadores" }],
+        error: null,
+      };
+      getDepartmentOwnerBySlugRpc.mockResolvedValue("Ana Souza");
+
+      renderDashboard();
+      await waitFor(() => {
+        expect(screen.getByText("Ocupado")).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: /Indicadores/ }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Departamento já criado. Responsável: Ana Souza")).toBeDefined();
+      });
+    });
+
+    it("selects own department on click", async () => {
+      useAuth.mockReturnValue({
+        ...authDefaults,
+        departments: [
+          { id: "dm-1", role: "coordenador", department: { id: "d-1", name: "Limpeza", slug: "limpeza" } },
+        ],
+      });
+      mockState.deptListResult = {
+        data: [{ id: "d-1", name: "Limpeza", slug: "limpeza" }],
+        error: null,
+      };
+      getDepartmentOwnerBySlugRpc.mockResolvedValue("Carlos");
+
+      renderDashboard();
+      await waitFor(() => {
+        expect(screen.getByText("Seu departamento")).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: /Limpeza/ }));
+
+      expect(authDefaults.selectDepartment).toHaveBeenCalled();
     });
   });
 
-  it("does not show Achados e Perdidos module for other departments", async () => {
-    useAuth.mockReturnValue({
+  describe("active state (department selected)", () => {
+    const deptAuth = {
       ...authDefaults,
       departments: [
-        { id: "dm-2", role: "coordenador", department: { id: "d-2", name: "Limpeza" } },
+        { id: "dm-1", role: "coordenador", department: { id: "d-1", name: "Limpeza", slug: "limpeza", features: { lostItems: false } } },
       ],
-    });
-    mockState.deptListResult = {
-      data: [{ id: "d-2", name: "Limpeza", slug: "limpeza" }],
-      error: null,
+      activeDepartment: { id: "dm-1", role: "coordenador", department: { id: "d-1", name: "Limpeza", slug: "limpeza", features: { lostItems: false } } },
     };
 
-    renderDashboard();
-    await waitFor(() => {
-      expect(screen.getByText("Meu departamento")).toBeDefined();
+    it("shows department name as title", () => {
+      useAuth.mockReturnValue(deptAuth);
+      renderDashboard();
+      expect(screen.getByText("Limpeza")).toBeDefined();
+      expect(screen.getByText("Painel do coordenador")).toBeDefined();
     });
-    fireEvent.click(screen.getByText("Limpeza"));
-    await waitFor(() => {
-      expect(screen.getByText(/Painel de Controle/)).toBeDefined();
+
+    it("shows stat cards for the department", () => {
+      useAuth.mockReturnValue(deptAuth);
+      renderDashboard();
+      expect(screen.getByText("Voluntários")).toBeDefined();
+      expect(screen.getByText("Turnos")).toBeDefined();
     });
-    expect(screen.queryByText("Achados e Perdidos")).toBeNull();
-    expect(screen.getByText("Gestão de Escalas")).toBeDefined();
+
+    it("shows share links with WhatsApp buttons", () => {
+      useAuth.mockReturnValue(deptAuth);
+      renderDashboard();
+      expect(screen.getByText("Cadastro de Voluntários")).toBeDefined();
+      expect(screen.getByText("Escala Pública")).toBeDefined();
+      expect(screen.getAllByText("WhatsApp").length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("shows module shortcuts", () => {
+      useAuth.mockReturnValue(deptAuth);
+      renderDashboard();
+      expect(screen.getByText("Gestão de Escalas")).toBeDefined();
+      expect(screen.getByText("Equipe e Aprovação")).toBeDefined();
+      expect(screen.getByText("Configurações")).toBeDefined();
+    });
+
+    it("shows Achados e Perdidos for that department", () => {
+      useAuth.mockReturnValue({
+        ...deptAuth,
+        activeDepartment: {
+          ...deptAuth.activeDepartment,
+          department: { id: "d-ap", name: "Achados Perdidos", slug: "achados-perdidos-guarda-volumes" },
+        },
+      });
+      renderDashboard();
+      expect(screen.getByText("Achados e Perdidos")).toBeDefined();
+    });
+
+    it("hides Achados e Perdidos for other departments", () => {
+      useAuth.mockReturnValue(deptAuth);
+      renderDashboard();
+      expect(screen.queryByText("Achados e Perdidos")).toBeNull();
+    });
+
+    it("shows Trocar de departamento when user has multiple depts", () => {
+      useAuth.mockReturnValue({
+        ...deptAuth,
+        departments: [
+          { id: "dm-1", role: "coordenador", department: { id: "d-1", name: "Limpeza", slug: "limpeza" } },
+          { id: "dm-2", role: "coordenador", department: { id: "d-2", name: "Indicadores", slug: "indicadores" } },
+        ],
+      });
+      renderDashboard();
+      expect(screen.getByText("Trocar de departamento")).toBeDefined();
+    });
+
+    it("hides Trocar de departamento when user has only one dept", () => {
+      useAuth.mockReturnValue(deptAuth);
+      renderDashboard();
+      expect(screen.queryByText("Trocar de departamento")).toBeNull();
+    });
   });
 });
