@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import logo from "../assets/img/logotipo.png";
 
 export default function Login() {
   const { user, loading, login, signUp, resetPassword } = useAuth();
@@ -98,17 +99,13 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#172233] px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-[#42d27b]/15 text-3xl text-[#42d27b]">
-            <i className="fi fi-rr-calendar-lines" />
+    <div className="grid min-h-screen bg-white lg:grid-cols-2">
+      <section className="flex items-center justify-center bg-white px-6 py-12 sm:px-12 lg:px-16">
+        <div className="w-full max-w-md">
+          <div className="mb-8">
+            <img src={logo} alt="" className="mx-auto h-[120px] w-[120px] object-contain" />
           </div>
-          <h1 className="mt-4 text-2xl font-bold text-white">Achados & Perdidos</h1>
-          <p className="mt-1 text-sm text-slate-400">Gestão de Escalas e Guarda Volumes</p>
-        </div>
 
-        <div className="rounded-3xl bg-white p-8 shadow-2xl">
           <div className="flex rounded-2xl bg-slate-100 p-1">
             <button
               type="button"
@@ -132,30 +129,30 @@ export default function Login() {
 
           {mode === "login" ? (
             <form onSubmit={handleLoginSubmit}>
-              <h2 className="mt-6 text-lg font-bold text-[#172233]">Entrar</h2>
-              <p className="mt-1 text-sm text-slate-500">Acesse o painel do seu departamento.</p>
+                <h2 className="mt-8 text-lg font-bold text-[#172233]">Entrar</h2>
+                <p className="mt-1 text-sm text-slate-500">Acesse o painel do seu departamento.</p>
 
               <div className="mt-5 space-y-4">
                 <label className="block">
-                  <span className="text-sm font-medium text-slate-600">E-mail</span>
+                  <span className="text-sm font-medium text-[#172233]">E-mail</span>
                   <input
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="seu@email.com"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+                    className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-0"
                     autoComplete="email"
                     autoFocus
                   />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-medium text-slate-600">Senha</span>
+                  <span className="text-sm font-medium text-[#172233]">Senha</span>
                   <input
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="Sua senha"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+                    className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-0"
                     autoComplete="current-password"
                   />
                 </label>
@@ -191,43 +188,43 @@ export default function Login() {
             </form>
           ) : (
             <form onSubmit={handleSignUpSubmit}>
-              <h2 className="mt-6 text-lg font-bold text-[#172233]">Criar conta</h2>
+              <h2 className="mt-8 text-lg font-bold text-[#172233]">Criar conta</h2>
               <p className="mt-1 text-sm text-slate-500">
                 Cadastre-se como coordenador e reivindique o departamento da sua equipe.
               </p>
 
               <div className="mt-5 space-y-4">
                 <label className="block">
-                  <span className="text-sm font-medium text-slate-600">Nome completo</span>
+                  <span className="text-sm font-medium text-[#172233]">Nome completo</span>
                   <input
                     type="text"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Seu nome"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+                    className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-0"
                     autoComplete="name"
                     autoFocus
                   />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-medium text-slate-600">E-mail</span>
+                  <span className="text-sm font-medium text-[#172233]">E-mail</span>
                   <input
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="seu@email.com"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+                    className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-0"
                     autoComplete="email"
                   />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-medium text-slate-600">Senha</span>
+                  <span className="text-sm font-medium text-[#172233]">Senha</span>
                   <input
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="Mínimo de 6 caracteres"
-                    className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+                    className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-sm text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-0"
                     autoComplete="new-password"
                   />
                 </label>
@@ -254,7 +251,26 @@ export default function Login() {
             </form>
           )}
         </div>
-      </div>
+      </section>
+
+      <section className="flex items-center bg-[#172233] px-6 py-12 sm:px-12 lg:px-20">
+        <div className="max-w-lg">
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#42d27b]">Organização simples</span>
+          <h2 className="mt-4 text-3xl font-bold leading-tight text-white sm:text-4xl">
+            Tudo o que sua equipe precisa para cuidar do dia.
+          </h2>
+          <p className="mt-5 text-base leading-7 text-slate-300">
+            Centralize a programação de escalas, acompanhe voluntários e mantenha a boa organização em um só lugar,
+            com informações claras para todo o departamento.
+          </p>
+          <div className="mt-8 flex items-center gap-3 text-sm font-semibold text-white">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#42d27b]/15 text-[#42d27b]">
+              <i className="fi fi-rr-check" />
+            </span>
+            Feito para organizar o trabalho dos departamentos
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

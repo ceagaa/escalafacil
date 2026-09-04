@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg', 'icons.svg'],
+        includeAssets: ['favicon.svg'],
         manifest: {
           name: 'Achados & Perdidos - Guarda Volumes',
           short_name: 'Achados',
@@ -27,8 +27,20 @@ export default defineConfig(({ mode }) => {
           icons: [
             {
               src: 'favicon.svg',
-              sizes: '48x48 72x72 96x96 128x128 256x256',
+              sizes: 'any',
               type: 'image/svg+xml',
+              purpose: 'any',
+            },
+            {
+              src: 'favicon.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+            {
+              src: 'favicon.png',
+              sizes: '192x192',
+              type: 'image/png',
               purpose: 'any',
             },
           ],
