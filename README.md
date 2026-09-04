@@ -86,10 +86,15 @@ Se o deploy falhar com:
 
 é porque o `CLOUDFLARE_API_TOKEN` configurado no projeto não tem a permissão `Cloudflare Pages: Edit`. Um "User API Token" com escopo só de usuário consegue autenticar, mas não tem acesso ao projeto Pages, e o wrangler falha na chamada da API.
 
-Pra corrigir, escolha uma das opções:
+Pra corrigir (o dashboard não deixa salvar o deploy command vazio, então use a opção 2):
 
-1. **Remover o deploy command** (recomendado pra integração Git): em Settings > Builds & deployments do projeto Pages, deixe o deploy command vazio. O Pages publica o `dist` automaticamente depois do build, sem precisar de token.
-2. **Corrigir o token**: crie um token novo em https://dash.cloudflare.com/profile/api-tokens com permissão `Account > Cloudflare Pages > Edit` na conta do projeto, atualize a variável `CLOUDFLARE_API_TOKEN` em Settings > Environment variables e rode o deploy de novo (Retry deployment).
+1. **Corrigir o token** (recomendado): crie um token novo em https://dash.cloudflare.com/profile/api-tokens:
+   - Create Token > Create custom token (ou o template de Pages)
+   - Permissions: `Account > Cloudflare Pages > Edit`
+   - Account Resources: `Include > Specific account` > a conta `Sswebtechcontato@gmail.com's Account` (`6e04823d080a758e7acea0a837746b01`)
+   - Continue > Create Token e copie o valor (ele só aparece uma vez)
+   - No projeto Pages: Settings > Environment variables, atualize a variável `CLOUDFLARE_API_TOKEN` (Production e Preview) com o token novo e rode o deploy de novo (Retry deployment)
+2. **Remover o deploy command** (se o painel permitir): em Settings > Builds & deployments do projeto Pages, deixe o deploy command vazio. O Pages publica o `dist` automaticamente depois do build, sem precisar de token.
 
 ## Banco de dados
 
