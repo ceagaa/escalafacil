@@ -140,7 +140,7 @@ function AppLayout() {
       } catch (error) {
         console.warn("Falha ao buscar dados no Supabase.", error);
         showToast("Falha Supabase: " + (error?.message || "verifique tabelas/RLS"));
-        const backup = loadOfflineSnapshot();
+        const backup = await loadOfflineSnapshot();
         if (backup) {
           setSchedule(backup.schedule || initialSchedule);
           setVolunteers(backup.volunteers || initialVolunteers);

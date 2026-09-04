@@ -1,9 +1,17 @@
-export const responsibleContacts = {
-  Carlos: "11952389922",
-  Adenilton: "83991134066",
-  David: "83987675560",
-  Eduardo: "83988197441",
-};
+import { encryptData, decryptData, isLocalStorageAvailable } from "./crypto.js";
+
+function decodeContacts(encoded) {
+  return Object.fromEntries(
+    Object.entries(encoded).map(([k, v]) => [k, atob(v)])
+  );
+}
+
+export const responsibleContacts = decodeContacts({
+  Carlos: "MTE5NTIzODk5MjI=",
+  Adenilton: "ODM5OTExMzQwNjY=",
+  David: "ODM5ODc2NzU1NjA=",
+  Eduardo: "ODM5ODgxOTc0NDE=",
+});
 
 export const dayTheme = {
   "Sexta-feira": { key: "sexta", color: "#D65A00", soft: "rgba(214, 90, 0, 0.10)", border: "rgba(214, 90, 0, 0.18)" },
@@ -297,20 +305,28 @@ export function buildOfflineSnapshot(schedule, volunteers, items) {
   return { schedule, volunteers, items, savedAt: new Date().toISOString() };
 }
 
-export function saveOfflineSnapshot(snapshot) {
+export async function saveOfflineSnapshot(snapshot) {
   try {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(OFFLINE_CACHE_KEY, JSON.stringify(snapshot));
+    if (typeof window === "undefined" || !isLocalStorageAvailable()) return;
+    const json = JSON.stringify(snapshot);
+    const encrypted = await encryptData(json);
+    window.localStorage.setItem(OFFLINE_CACHE_KEY, encrypted);
   } catch {
     console.warn("Não foi possível salvar o backup offline.");
   }
 }
 
-export function loadOfflineSnapshot() {
+export async function loadOfflineSnapshot() {
   try {
-    if (typeof window === "undefined") return null;
-    const saved = window.localStorage.getItem(OFFLINE_CACHE_KEY);
-    return saved ? JSON.parse(saved) : null;
+    if (typeof window === "undefined" || !isLocalStorageAvailable()) return null;
+    const raw = window.localStorage.getItem(OFFLINE_CACHE_KEY);
+    if (!raw) return null;
+    try {
+      const decrypted = await decryptData(raw);
+      return JSON.parse(decrypted);
+    } catch {
+      return JSON.parse(raw);
+    }
   } catch {
     return null;
   }

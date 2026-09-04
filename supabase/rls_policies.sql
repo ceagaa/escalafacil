@@ -194,7 +194,7 @@ DROP FUNCTION IF EXISTS public.department_has_coordinator(uuid) CASCADE;
 
 CREATE OR REPLACE FUNCTION public.is_department_member(p_department_id uuid)
 RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER
+LANGUAGE sql STABLE
 SET search_path = public
 AS $$
   SELECT EXISTS (
@@ -206,7 +206,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.is_department_coordinator(p_department_id uuid)
 RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER
+LANGUAGE sql STABLE
 SET search_path = public
 AS $$
   SELECT EXISTS (
@@ -219,7 +219,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION public.department_has_coordinator(p_department_id uuid)
 RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER
+LANGUAGE sql STABLE
 SET search_path = public
 AS $$
   SELECT EXISTS (

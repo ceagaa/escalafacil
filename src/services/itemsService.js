@@ -1,5 +1,6 @@
 import { supabase } from "./supabase.js";
 import { uploadImage, deleteImage } from "./storageService.js";
+import { sanitizeError } from "../utils/errors.js";
 
 export async function getLostItems(departmentId) {
   if (!departmentId) throw new Error("departmentId is required");
@@ -9,7 +10,7 @@ export async function getLostItems(departmentId) {
     .eq("department_id", departmentId)
     .order("created_at", { ascending: false });
   if (error) {
-    throw new Error(`Failed to fetch items: ${error.message}`);
+    throw new Error(sanitizeError(error, "fetch"));
   }
   return data;
 }
@@ -23,7 +24,7 @@ export async function getLostItem(id, departmentId) {
     .eq("department_id", departmentId)
     .single();
   if (error) {
-    throw new Error(`Failed to fetch item ${id}: ${error.message}`);
+    throw new Error(sanitizeError(error, "fetch"));
   }
   return data;
 }
@@ -42,7 +43,7 @@ export async function createLostItem(departmentId, data) {
     .insert([payload])
     .select();
   if (error) {
-    throw new Error(`Failed to create item: ${error.message}`);
+    throw new Error(sanitizeError(error, "create"));
   }
   return inserted[0];
 }
@@ -65,7 +66,7 @@ export async function updateLostItem(id, departmentId, data) {
       .single();
     if (error) {
       await deleteImage(publicUrl);
-      throw new Error(`Failed to update item ${id}: ${error.message}`);
+      throw new Error(sanitizeError(error, "update"));
     }
     if (oldUrl && !oldUrl.startsWith("data:")) {
       const path = oldUrl.split("/").pop();
@@ -82,7 +83,7 @@ export async function updateLostItem(id, departmentId, data) {
     .select()
     .single();
   if (error) {
-    throw new Error(`Failed to update item ${id}: ${error.message}`);
+    throw new Error(sanitizeError(error, "update"));
   }
   return updated;
 }
@@ -95,7 +96,7 @@ export async function deleteLostItem(id, departmentId) {
     .eq("id", id)
     .eq("department_id", departmentId);
   if (error) {
-    throw new Error(`Failed to delete item ${id}: ${error.message}`);
+    throw new Error(sanitizeError(error, "delete"));
   }
 }
 
@@ -109,7 +110,7 @@ export async function updateLostItemStatus(id, departmentId, status) {
     .select()
     .single();
   if (error) {
-    throw new Error(`Failed to update status for item ${id}: ${error.message}`);
+    throw new Error(sanitizeError(error, "update"));
   }
   return data;
 }

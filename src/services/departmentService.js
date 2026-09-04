@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { sanitizeError } from "../utils/errors.js";
 
 export const STANDARD_DEPARTMENTS = [
   { name: "Achados Perdidos e Guarda Volumes", slug: "achados-perdidos-guarda-volumes" },
@@ -9,7 +10,7 @@ export const STANDARD_DEPARTMENTS = [
 export async function getDashboardStats() {
   const { data, error } = await supabase.rpc("get_dashboard_stats");
   if (error) {
-    throw new Error(error.message || "Erro ao carregar estatísticas.");
+    throw new Error(sanitizeError(error, "fetch"));
   }
   return data;
 }
@@ -76,14 +77,13 @@ export async function createDepartment(name, slug) {
         if (ownerName) {
           throw new Error("Departamento já criado. Responsável: " + ownerName);
         }
-        // Departamento órfão (existe, mas sem coordenador): permite reivindicar.
         return existing;
       }
       throw new Error(
         "Este nome de departamento já está em uso por outra equipe. Escolha outro nome ou contate os administradores."
       );
     }
-    throw new Error(error.message || "Erro ao criar departamento.");
+    throw new Error(sanitizeError(error, "create"));
   }
 
   return data;
@@ -99,7 +99,7 @@ export async function linkUserAsCoordinator(departmentId, userId) {
     });
 
   if (error) {
-    throw new Error(error.message || "Erro ao vincular ao departamento.");
+    throw new Error(sanitizeError(error, "create"));
   }
 }
 
@@ -112,21 +112,22 @@ export async function updateDepartmentFeatures(departmentId, features) {
     .single();
 
   if (error) {
-    throw new Error(error.message || "Erro ao atualizar configurações do departamento.");
+    throw new Error(sanitizeError(error, "update"));
   }
 
   return data;
 }
 
 export async function findProfileByEmail(email) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
-    .ilike("email", String(email || "").trim())
+    .select("id, email, name")
+    .eq("email", normalizedEmail)
     .maybeSingle();
 
   if (error) {
-    throw new Error(error.message || "Erro ao buscar usuário.");
+    throw new Error(sanitizeError(error, "fetch"));
   }
 
   return data;
@@ -141,7 +142,7 @@ export async function addDepartmentMember(departmentId, userId, role = "assisten
     if (error.code === "23505") {
       throw new Error("Este usuário já faz parte do departamento.");
     }
-    throw new Error(error.message || "Erro ao adicionar membro.");
+    throw new Error(sanitizeError(error, "create"));
   }
 }
 
@@ -152,7 +153,7 @@ export async function listDepartmentMembers(departmentId) {
     .eq("department_id", departmentId);
 
   if (error) {
-    throw new Error(error.message || "Erro ao listar membros.");
+    throw new Error(sanitizeError(error, "fetch"));
   }
 
   return Array.isArray(data) ? data : [];
@@ -165,6 +166,6 @@ export async function removeDepartmentMember(membershipId) {
     .eq("id", membershipId);
 
   if (error) {
-    throw new Error(error.message || "Erro ao remover membro.");
+    throw new Error(sanitizeError(error, "delete"));
   }
 }

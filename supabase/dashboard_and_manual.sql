@@ -15,13 +15,13 @@ ALTER TABLE public.shifts
   ADD COLUMN IF NOT EXISTS description text;
 
 -- ---------------------------------------------------------------------
--- 2. RPC: get_dashboard_stats (SECURITY DEFINER ignora RLS)
+-- 2. RPC: get_dashboard_stats (requer autenticação)
 -- ---------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.get_dashboard_stats() CASCADE;
 
 CREATE OR REPLACE FUNCTION public.get_dashboard_stats()
 RETURNS json
-LANGUAGE sql STABLE SECURITY DEFINER
+LANGUAGE sql STABLE
 SET search_path = public
 AS $$
   SELECT json_build_object(
@@ -44,13 +44,13 @@ AS $$
 $$;
 
 -- ---------------------------------------------------------------------
--- 3. RPC: get_department_owner_by_slug (retorna nome do coordenador)
+-- 3. RPC: get_department_owner_by_slug (requer autenticação)
 -- ---------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.get_department_owner_by_slug(text) CASCADE;
 
 CREATE OR REPLACE FUNCTION public.get_department_owner_by_slug(p_slug text)
 RETURNS text
-LANGUAGE sql STABLE SECURITY DEFINER
+LANGUAGE sql STABLE
 SET search_path = public
 AS $$
   SELECT p.name
@@ -61,5 +61,6 @@ AS $$
   JOIN public.profiles p
     ON p.id = dm.user_id
   WHERE d.slug = p_slug
+    AND auth.uid() IS NOT NULL
   LIMIT 1;
 $$;

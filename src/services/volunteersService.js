@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { sanitizeError } from "../utils/errors.js";
 
 export async function getVolunteers(departmentId) {
   if (!departmentId) throw new Error("departmentId is required");
@@ -8,7 +9,7 @@ export async function getVolunteers(departmentId) {
     .eq("department_id", departmentId)
     .order("created_at", { ascending: false });
   if (error) {
-    throw new Error(`Failed to fetch volunteers: ${error.message}`);
+    throw new Error(sanitizeError(error, "fetch"));
   }
   return data;
 }
@@ -22,7 +23,7 @@ export async function getVolunteer(id, departmentId) {
     .eq("department_id", departmentId)
     .single();
   if (error) {
-    throw new Error(`Failed to fetch volunteer ${id}: ${error.message}`);
+    throw new Error(sanitizeError(error, "fetch"));
   }
   return data;
 }
@@ -35,7 +36,7 @@ export async function createVolunteer(departmentId, data) {
     .insert([payload])
     .select();
   if (error) {
-    throw new Error(`Failed to create volunteer: ${error.message}`);
+    throw new Error(sanitizeError(error, "create"));
   }
   return inserted[0];
 }
@@ -50,7 +51,7 @@ export async function updateVolunteer(id, departmentId, data) {
     .select()
     .single();
   if (error) {
-    throw new Error(`Failed to update volunteer ${id}: ${error.message}`);
+    throw new Error(sanitizeError(error, "update"));
   }
   return updated;
 }
@@ -63,6 +64,6 @@ export async function deleteVolunteer(id, departmentId) {
     .eq("id", id)
     .eq("department_id", departmentId);
   if (error) {
-    throw new Error(`Failed to delete volunteer ${id}: ${error.message}`);
+    throw new Error(sanitizeError(error, "delete"));
   }
 }

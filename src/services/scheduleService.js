@@ -2,6 +2,7 @@ import { supabase } from "./supabase.js";
 import { getVolunteers } from "./volunteersService.js";
 import { getLostItems } from "./itemsService.js";
 import { makeId } from "../utils/helpers.js";
+import { sanitizeError } from "../utils/errors.js";
 
 export async function getScheduleBlocks(departmentId) {
   if (!departmentId) throw new Error("departmentId is required");
@@ -11,7 +12,7 @@ export async function getScheduleBlocks(departmentId) {
     .eq("department_id", departmentId)
     .order("created_at", { ascending: false });
   if (error) {
-    throw new Error(`Failed to fetch schedule blocks: ${error.message}`);
+    throw new Error(sanitizeError(error, "fetch"));
   }
   return data;
 }
@@ -24,7 +25,7 @@ export async function getShiftsByBlock(blockId, departmentId) {
     .eq("block_id", blockId)
     .eq("department_id", departmentId);
   if (error) {
-    throw new Error(`Failed to fetch shifts for block ${blockId}: ${error.message}`);
+    throw new Error(sanitizeError(error, "fetch"));
   }
   return data;
 }
@@ -36,7 +37,7 @@ export async function getAllShifts(departmentId) {
     .select("*")
     .eq("department_id", departmentId);
   if (error) {
-    throw new Error(`Failed to fetch shifts: ${error.message}`);
+    throw new Error(sanitizeError(error, "fetch"));
   }
   return data;
 }
@@ -48,7 +49,7 @@ export async function getShiftVolunteers(departmentId) {
     .select("*, shift:shifts!inner(department_id)")
     .eq("shift.department_id", departmentId);
   if (error) {
-    throw new Error(`Failed to fetch shift volunteers: ${error.message}`);
+    throw new Error(sanitizeError(error, "fetch"));
   }
   return data;
 }
@@ -60,7 +61,7 @@ export async function assignVolunteersToShift(shiftId, volunteerIds, departmentI
     .delete()
     .eq("shift_id", shiftId);
   if (deleteError) {
-    throw new Error(`Failed to clear shift volunteers: ${deleteError.message}`);
+    throw new Error(sanitizeError(deleteError, "delete"));
   }
 
   if (volunteerIds.length === 0) return;
@@ -75,7 +76,7 @@ export async function assignVolunteersToShift(shiftId, volunteerIds, departmentI
     .from("shift_volunteers")
     .insert(rows);
   if (insertError) {
-    throw new Error(`Failed to assign volunteers to shift: ${insertError.message}`);
+    throw new Error(sanitizeError(insertError, "create"));
   }
 }
 
@@ -87,7 +88,7 @@ export async function saveShiftAssignments(shiftId, assignments, departmentId) {
     .delete()
     .eq("shift_id", shiftId);
   if (deleteError) {
-    throw new Error(`Failed to clear shift assignments: ${deleteError.message}`);
+    throw new Error(sanitizeError(deleteError, "delete"));
   }
 
   if (assignments.length === 0) return;
@@ -103,7 +104,7 @@ export async function saveShiftAssignments(shiftId, assignments, departmentId) {
     .from("shift_volunteers")
     .insert(rows);
   if (insertError) {
-    throw new Error(`Failed to save shift assignments: ${insertError.message}`);
+    throw new Error(sanitizeError(insertError, "create"));
   }
 }
 
@@ -124,7 +125,7 @@ export async function createShift(departmentId, blockId, payload) {
     .select()
     .single();
   if (error) {
-    throw new Error(`Failed to create shift: ${error.message}`);
+    throw new Error(sanitizeError(error, "create"));
   }
   return data;
 }
@@ -143,7 +144,7 @@ export async function updateShift(departmentId, shiftId, payload) {
     .select()
     .single();
   if (error) {
-    throw new Error(`Failed to update shift ${shiftId}: ${error.message}`);
+    throw new Error(sanitizeError(error, "update"));
   }
   return data;
 }
@@ -156,7 +157,7 @@ export async function deleteShift(departmentId, shiftId) {
     .eq("id", shiftId)
     .eq("department_id", departmentId);
   if (error) {
-    throw new Error(`Failed to delete shift ${shiftId}: ${error.message}`);
+    throw new Error(sanitizeError(error, "delete"));
   }
 }
 

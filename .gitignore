@@ -17,6 +17,38 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Cloudflare
+.wrangler
+.dev.vars
+
+# Database schemas (sensitive - do not commit)
+supabase/*.sql
+supabase/**/*.sql
+*.sql
+
+# AI agent config files
+.opencode
+.opencode.json
+.opencode.jsonc
+.opencode/
+AGENTS.md
+AGENTS.txt
+CLAUDE.md
+.cursorrules
+.cursor/
+.github/copilot-instructions.md
+.claude
+.claude.json
+
+# Diagrams and modeling
+*.drawio
+*.puml
+*.plantuml
+*.mermaid
+*.dbml
+schema.*
+diagram.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

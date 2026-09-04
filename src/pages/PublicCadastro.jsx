@@ -18,6 +18,18 @@ function formatPhone(value) {
   return `+${digits.slice(0, 2)} ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
+function isValidPhone(value) {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 13;
+}
+
+function sanitizeInput(value) {
+  return String(value || "").trim().replace(/[<>]/g, "");
+}
+
+const SUBMISSION_KEY = "ap_public_submission_ts";
+const RATE_LIMIT_MS = 30000;
+
 export default function PublicCadastro() {
   const { slug } = useParams();
   const [department, setDepartment] = useState(null);
@@ -60,8 +72,8 @@ export default function PublicCadastro() {
     e.preventDefault();
     if (!department) return;
 
-    const trimmedName = name.trim();
-    const trimmedCongregation = congregation.trim();
+    const trimmedName = sanitizeInput(name);
+    const trimmedCongregation = sanitizeInput(congregation);
     const trimmedPhone = phone.trim();
 
     if (!trimmedName || !trimmedCongregation || !trimmedPhone) {
@@ -69,8 +81,26 @@ export default function PublicCadastro() {
       return;
     }
 
+    if (trimmedName.length > 120 || trimmedCongregation.length > 120) {
+      setError("Campos excedem o tamanho máximo permitido.");
+      return;
+    }
+
+    if (!isValidPhone(trimmedPhone)) {
+      setError("Número de telefone inválido.");
+      return;
+    }
+
+    const lastSubmission = parseInt(localStorage.getItem(SUBMISSION_KEY) || "0", 10);
+    if (Date.now() - lastSubmission < RATE_LIMIT_MS) {
+      setError("Aguarde alguns segundos antes de cadastrar novamente.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
+
+    localStorage.setItem(SUBMISSION_KEY, String(Date.now()));
 
     const { error: insertError } = await supabase.from("volunteers").insert({
       department_id: department.id,
