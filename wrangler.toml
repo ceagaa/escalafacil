@@ -41,3 +41,7 @@ pages_build_output_dir = "dist"
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Aponta para a pasta gerada pelo Vite (dist)
+[assets]
+directory = "./dist"
