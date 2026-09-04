@@ -69,6 +69,9 @@ O projeto tá pronto pra Cloudflare Pages. É só conectar o repositório GitHub
 
 Build: `vite build`
 Saída: `dist/`
+Deploy manual: `npm run deploy`
+
+No Cloudflare Pages, use `npm run build` como build command e `npx wrangler pages deploy dist --project-name escalafacil` como deploy command. Não use `wrangler deploy`, que é o comando de Workers e pode interpretar o `_redirects` incorretamente.
 
 ## Banco de dados
 
