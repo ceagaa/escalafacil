@@ -71,7 +71,9 @@ Build: `vite build`
 Saída: `dist/`
 Deploy manual: `npm run deploy`
 
-No Cloudflare Pages, use `npm run build` como build command e `npx wrangler pages deploy dist --project-name escalafacil` como deploy command. Não use `wrangler deploy`, que é o comando de Workers e pode interpretar o `_redirects` incorretamente.
+No Cloudflare Pages conectado ao GitHub, use `npm run build` como build command, `dist` como output directory e deixe o deploy command vazio: o Pages publica automaticamente o resultado do build. Não use `wrangler deploy`, que é o comando de Workers.
+
+Para deploy manual fora da integração Git, use `npm run deploy` com um `CLOUDFLARE_API_TOKEN` que tenha a permissão `Account > Cloudflare Pages > Edit` na conta correta.
 
 ## Banco de dados
 
