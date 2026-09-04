@@ -49,6 +49,7 @@ import GerenciarDepartamentos from "./pages/GerenciarDepartamentos";
 import Configuracoes from "./pages/Configuracoes";
 import PublicCadastro from "./pages/PublicCadastro";
 import PublicEscala from "./pages/PublicEscala";
+import logo from "./assets/img/logotipo.png";
 
 const ROUTE_TITLES = {
   "/": "",
@@ -485,6 +486,7 @@ function AppLayout() {
 
       <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[#172233] bg-[#172233] p-5 backdrop-blur-xl lg:block">
         <div>
+          <img src={logo} alt="" className="mx-auto mb-8 h-[120px] w-[120px] object-contain" />
           {hasMultipleDepts && departmentId ? (
             <div className="relative">
               <button
