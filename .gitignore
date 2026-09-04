@@ -40,6 +40,9 @@ CLAUDE.md
 .claude
 .claude.json
 
+# Internal docs (not for repo)
+STYLE_GUIDE.md
+
 # Diagrams and modeling
 *.drawio
 *.puml
