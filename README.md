@@ -71,9 +71,25 @@ Build: `vite build`
 Saída: `dist/`
 Deploy manual: `npm run deploy`
 
-No Cloudflare Pages conectado ao GitHub, use `npm run build` como build command, `dist` como output directory e deixe o deploy command vazio: o Pages publica automaticamente o resultado do build. Não use `wrangler deploy`, que é o comando de Workers.
+No Cloudflare Pages conectado ao GitHub, use `npm run build` como build command, `dist` como output directory e deixe o deploy command vazio: o Pages publica automaticamente o resultado do build. Não use `wrangler deploy`, que é o comando de Workers. O deploy command só deve usar `wrangler pages deploy` se você tiver um token com a permissão correta (ver erro 10000 abaixo).
 
 Para deploy manual fora da integração Git, use `npm run deploy` com um `CLOUDFLARE_API_TOKEN` que tenha a permissão `Account > Cloudflare Pages > Edit` na conta correta.
+
+### Erro 10000 no deploy (Authentication error)
+
+Se o deploy falhar com:
+
+```
+✘ [ERROR] A request to the Cloudflare API (.../pages/projects/escalafacil) failed.
+  Authentication error [code: 10000]
+```
+
+é porque o `CLOUDFLARE_API_TOKEN` configurado no projeto não tem a permissão `Cloudflare Pages: Edit`. Um "User API Token" com escopo só de usuário consegue autenticar, mas não tem acesso ao projeto Pages, e o wrangler falha na chamada da API.
+
+Pra corrigir, escolha uma das opções:
+
+1. **Remover o deploy command** (recomendado pra integração Git): em Settings > Builds & deployments do projeto Pages, deixe o deploy command vazio. O Pages publica o `dist` automaticamente depois do build, sem precisar de token.
+2. **Corrigir o token**: crie um token novo em https://dash.cloudflare.com/profile/api-tokens com permissão `Account > Cloudflare Pages > Edit` na conta do projeto, atualize a variável `CLOUDFLARE_API_TOKEN` em Settings > Environment variables e rode o deploy de novo (Retry deployment).
 
 ## Banco de dados
 
