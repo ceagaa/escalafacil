@@ -2,13 +2,6 @@ name = "app-achados-e-perdidos"
 compatibility_date = "2024-09-01"
 pages_build_output_dir = "dist"
 
-# Variáveis de ambiente (não commite valores reais)
-# Defina via Cloudflare Dashboard > Pages > Settings > Environment variables
-# [vars]
-# VITE_SUPABASE_URL = ""
-# VITE_SUPABASE_ANON_KEY = ""
-# VITE_STORAGE_PASSPHRASE = ""
-
 # Headers de segurança globais
 [[headers]]
   for = "/*"
@@ -36,12 +29,6 @@ pages_build_output_dir = "dist"
   [headers.values]
     Cache-Control = "no-cache"
 
-# SPA fallback ( HashRouter já cuida disso, mas por segurança )
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-# Aponta para a pasta gerada pelo Vite (dist)
+# Diretório de assets gerado pelo Vite
 [assets]
 directory = "./dist"
