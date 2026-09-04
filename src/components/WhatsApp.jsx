@@ -1,4 +1,4 @@
-import { createWhatsAppUrl, getResponsibleNames, responsibleContacts } from "../utils/helpers";
+import { createWhatsAppUrl, createWaMeLink, getResponsibleNames, responsibleContacts } from "../utils/helpers";
 
 export function WhatsAppIcon({ className = "" }) {
   return (
@@ -13,8 +13,8 @@ export function WhatsAppIcon({ className = "" }) {
   );
 }
 
-export function WhatsAppIconLink({ phone, label = "WhatsApp", compact = false }) {
-  const url = createWhatsAppUrl(phone);
+export function WhatsAppIconLink({ phone, label = "WhatsApp", compact = false, text = "" }) {
+  const url = text ? createWaMeLink(phone, text) : createWhatsAppUrl(phone);
   if (!url) return <span className="text-slate-400">Sem WhatsApp</span>;
   return (
     <a
@@ -33,7 +33,7 @@ export function WhatsAppIconLink({ phone, label = "WhatsApp", compact = false })
   );
 }
 
-export function VolunteerWhatsAppName({ volunteer, compact = false }) {
+export function VolunteerWhatsAppName({ volunteer, compact = false, message = "" }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full font-semibold ${
@@ -42,7 +42,7 @@ export function VolunteerWhatsAppName({ volunteer, compact = false }) {
       style={{ color: "#172233" }}
     >
       <span>{volunteer.name}</span>
-      <WhatsAppIconLink phone={volunteer.phone} label={volunteer.name} compact />
+      <WhatsAppIconLink phone={volunteer.phone} label={volunteer.name} compact text={message} />
     </span>
   );
 }

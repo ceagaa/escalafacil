@@ -21,49 +21,39 @@ import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useAuth } from "./context/AuthContext";
 import { uploadImage } from "./services/storageService";
 import {
-  getLostItems,
   createLostItem,
   updateLostItem,
   deleteLostItem,
   updateLostItemStatus,
 } from "./services/itemsService";
 import {
-  getVolunteers,
   createVolunteer,
   updateVolunteer,
   deleteVolunteer,
 } from "./services/volunteersService";
 import {
   fetchDepartmentData,
-  assignVolunteersToShift,
+  createShift,
+  updateShift,
+  saveShiftAssignments,
 } from "./services/scheduleService";
-import { Stat, Button } from "./components/UI";
+import { Stat } from "./components/UI";
 import ShiftEditorModal from "./components/ShiftEditorModal";
-import LoginModal from "./components/LoginModal";
+import RequireAuth from "./components/RequireAuth";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
 import Programacao from "./pages/Programacao";
 import Voluntarios from "./pages/Voluntarios";
 import ItensPerdidos from "./pages/ItensPerdidos";
 import GerenciarDepartamentos from "./pages/GerenciarDepartamentos";
+import Configuracoes from "./pages/Configuracoes";
 import PublicCadastro from "./pages/PublicCadastro";
-
-function EmptyDepartment() {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-4xl">
-        <i className="fi fi-rr-building" />
-      </div>
-      <h2 className="mt-6 text-2xl font-bold text-[#172233]">Nenhum departamento selecionado</h2>
-      <p className="mt-3 max-w-md text-sm text-slate-500">
-        Para acessar o painel, faça login e selecione um departamento ao qual você pertence.
-      </p>
-    </div>
-  );
-}
+import PublicEscala from "./pages/PublicEscala";
 
 function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, login, activeDepartment } = useAuth();
+  const { user, logout, activeDepartment } = useAuth();
 
   const [activeDay, setActiveDay] = useState("Sexta-feira");
   const [query, setQuery] = useState("");
@@ -77,9 +67,23 @@ function AppLayout() {
   const [now, setNow] = useState(() => new Date());
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [hasLoadedRemoteData, setHasLoadedRemoteData] = useState(false);
-  const [loginModal, setLoginModal] = useState(null);
 
-  const departmentId = activeDepartment?.id || activeDepartment?.department?.id || null;
+  const departmentId = activeDepartment?.department?.id || activeDepartment?.id || null;
+  const departmentName = activeDepartment?.department?.name || "";
+  const isCoordinator = activeDepartment?.role === "coordenador";
+  const lostItemsEnabled =
+    !activeDepartment?.department?.features ||
+    activeDepartment.department.features.lostItems !== false;
+
+  const visibleNavigationItems = useMemo(
+    () =>
+      navigationItems.filter((item) => {
+        if (item.path === "/itens" && !lostItemsEnabled) return false;
+        if (item.path === "/configuracoes" && !isCoordinator) return false;
+        return true;
+      }),
+    [lostItemsEnabled, isCoordinator]
+  );
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setNow(new Date()), 60000);
@@ -158,40 +162,104 @@ function AppLayout() {
     );
   }, [items, query]);
 
-  async function handleLoginFromModal(email, password) {
-    await login(email, password);
-    if (loginModal?.callback) {
-      loginModal.callback(...(loginModal.args || []));
-    }
-    setLoginModal(null);
-  }
-
   function handleEditShift(payload) {
-    if (user) {
-      setShiftEditor(payload);
-    } else {
-      setLoginModal({ callback: (p) => setShiftEditor(p), args: [payload] });
-    }
+    setShiftEditor(payload);
   }
 
-  async function saveShiftVolunteers(selectedIds) {
-    if (!shiftEditor || !departmentId) return;
-    const targetShiftId = shiftEditor.shiftId;
-    const nextSchedule = schedule.map((block) => ({
-      ...block,
-      shifts: block.shifts.map((shift) =>
-        shift.id === targetShiftId ? { ...shift, volunteerIds: selectedIds } : shift
-      ),
-    }));
+  function handleCreateShift(blockId) {
+    setShiftEditor({ blockId, shiftId: null });
+  }
 
-    setSchedule(nextSchedule);
+  async function saveShiftFromModal(data) {
+    if (!departmentId) return;
+
+    const manualNames = data.manualName ? [data.manualName] : [];
+    let localShiftId = null;
+
+    if (data.shiftId) {
+      setSchedule((current) =>
+        current.map((block) => ({
+          ...block,
+          shifts: block.shifts.map((shift) =>
+            shift.id === data.shiftId
+              ? {
+                  ...shift,
+                  start: data.startTime,
+                  end: data.endTime,
+                  description: data.description,
+                  volunteerIds: data.selectedIds,
+                  manualNames,
+                }
+              : shift
+          ),
+        }))
+      );
+    } else {
+      localShiftId = makeId("local-shift");
+      setSchedule((current) =>
+        current.map((block) =>
+          block.id === data.blockId
+            ? {
+                ...block,
+                shifts: [
+                  ...block.shifts,
+                  {
+                    id: localShiftId,
+                    start: data.startTime,
+                    end: data.endTime,
+                    description: data.description,
+                    volunteerIds: data.selectedIds,
+                    manualNames,
+                  },
+                ],
+              }
+            : block
+        )
+      );
+    }
+
     setShiftEditor(null);
-    showToast("Voluntários atualizados no turno.");
+    showToast(data.shiftId ? "Turno atualizado." : "Escala criada.");
 
-    if (!isOnline) return;
+    if (!isOnline) {
+      showToast("Salvo offline. Sincronize quando voltar a internet.");
+      return;
+    }
 
     try {
-      await assignVolunteersToShift(targetShiftId, selectedIds, departmentId);
+      let targetShiftId = data.shiftId;
+      if (targetShiftId) {
+        await updateShift(departmentId, targetShiftId, {
+          start_time: data.startTime,
+          end_time: data.endTime,
+          description: data.description,
+        });
+      } else {
+        const created = await createShift(departmentId, data.blockId, {
+          start_time: data.startTime,
+          end_time: data.endTime,
+          description: data.description,
+        });
+        targetShiftId = created.id;
+        setSchedule((current) =>
+          current.map((block) =>
+            block.id === data.blockId
+              ? {
+                  ...block,
+                  shifts: block.shifts.map((shift) =>
+                    shift.id === localShiftId ? { ...shift, id: targetShiftId } : shift
+                  ),
+                }
+              : block
+          )
+        );
+      }
+
+      const assignments = [
+        ...data.selectedIds.map((id) => ({ volunteer_id: id, manual_name: null })),
+        ...(data.manualName ? [{ volunteer_id: null, manual_name: data.manualName }] : []),
+      ];
+      await saveShiftAssignments(targetShiftId, assignments, departmentId);
     } catch (error) {
       console.warn("Falha ao salvar escala no Supabase.", error);
       showToast("Escala salva offline. Sincronize quando voltar a internet.");
@@ -259,6 +327,42 @@ function AppLayout() {
       await deleteVolunteer(id, departmentId);
     } catch (error) {
       console.warn("Falha ao excluir voluntário no Supabase.", error);
+    }
+  }
+
+  async function approveVolunteer(id) {
+    if (!departmentId) return;
+
+    if (!isOnline) {
+      setVolunteers((current) =>
+        current.map((volunteer) => (volunteer.id === id ? { ...volunteer, active: true } : volunteer))
+      );
+      showToast("Voluntário aprovado offline.");
+      return;
+    }
+
+    try {
+      await updateVolunteer(id, departmentId, { active: true });
+      setVolunteers((current) =>
+        current.map((volunteer) => (volunteer.id === id ? { ...volunteer, active: true } : volunteer))
+      );
+      showToast("Voluntário aprovado!");
+    } catch (error) {
+      console.warn("Falha ao aprovar voluntário.", error);
+      showToast("Não foi possível aprovar o voluntário.");
+    }
+  }
+
+  async function rejectVolunteer(id) {
+    setVolunteers((current) => current.filter((volunteer) => volunteer.id !== id));
+    showToast("Cadastro recusado.");
+
+    if (!isOnline || String(id).startsWith("local-") || !departmentId) return;
+
+    try {
+      await deleteVolunteer(id, departmentId);
+    } catch (error) {
+      console.warn("Falha ao recusar voluntário.", error);
     }
   }
 
@@ -367,8 +471,9 @@ function AppLayout() {
 
       <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[#172233] bg-[#172233] p-5 backdrop-blur-xl lg:block">
         <div>
-          <p className="text-sm text-slate-400">Departamento</p>
-          <h1 className="font-semibold leading-tight text-[#42d27b]">Achados Perdidos & Guarda Volumes</h1>
+          <h1 className="font-semibold leading-tight text-[#42d27b]">
+            {departmentName || "Achados Perdidos & Guarda Volumes"}
+          </h1>
         </div>
 
         <div className="mt-10 flex items-center gap-4 px-2">
@@ -377,7 +482,7 @@ function AppLayout() {
         </div>
 
         <nav className="mt-5 space-y-2">
-          {navigationItems.map((item) => (
+          {visibleNavigationItems.map((item) => (
             <button
               key={item.path}
               onClick={() => navTo(item.path)}
@@ -394,27 +499,21 @@ function AppLayout() {
 
       <main className="lg:pl-72">
         <div className="mobile-department-brand px-4 pb-2 pt-5">
-          <p className="text-sm text-slate-400">Departamento</p>
-          <h1 className="font-semibold leading-tight text-[#42d27b]">Achados Perdidos & Guarda Volumes</h1>
+          <h1 className="font-semibold leading-tight text-[#42d27b]">
+            {departmentName || "Achados Perdidos & Guarda Volumes"}
+          </h1>
         </div>
 
         <header className="ap-header">
           <div className="w-full bg-white px-5 py-5 shadow-sm md:px-8 md:py-6">
             <div className="flex items-center justify-between">
               <h1 className="text-xl font-bold tracking-tight text-[#172233] md:text-3xl">Dashboard</h1>
-              {user ? (
+              {user && (
                 <button
-                  onClick={() => useAuth().logout()}
+                  onClick={() => logout()}
                   className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200"
                 >
                   Sair
-                </button>
-              ) : (
-                <button
-                  onClick={() => setLoginModal({ callback: null, args: [] })}
-                  className="rounded-full bg-[#172233] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#101827]"
-                >
-                  Entrar
                 </button>
               )}
             </div>
@@ -422,43 +521,51 @@ function AppLayout() {
         </header>
 
         <section className="ap-main-content space-y-6 p-4 md:p-8">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+          </Routes>
+
           {!departmentId ? (
-            <EmptyDepartment />
+            <GerenciarDepartamentos />
           ) : (
             <>
-              <p className="text-sm font-medium capitalize text-slate-500 md:text-base">
-                {formatCurrentDate(now)}
-              </p>
+              {activeView !== "/" && (
+                <>
+                  <p className="text-sm font-medium capitalize text-slate-500 md:text-base">
+                    {formatCurrentDate(now)}
+                  </p>
 
-              <div className="ap-stats-scroll -mx-4 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
-                <div className="ap-stats-row flex min-w-max gap-3 md:grid md:min-w-0 md:grid-cols-3 md:gap-4">
-                  <Stat
-                    icon="clock"
-                    label="Turnos"
-                    value={totalShifts}
-                    detail={assignedShifts + "/" + totalShifts + " designado"}
-                    day={activeDay}
-                  />
-                  <Stat
-                    icon="users"
-                    label="Voluntários"
-                    value={volunteers.length}
-                    detail="cadastros ativos"
-                    day={activeDay}
-                  />
-                  <Stat
-                    icon="checklist"
-                    label="Checklist"
-                    value={pendingItems}
-                    detail="itens perdidos"
-                    day={activeDay}
-                  />
-                </div>
-              </div>
+                  <div className="ap-stats-scroll -mx-4 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+                    <div className="ap-stats-row flex min-w-max gap-3 md:grid md:min-w-0 md:grid-cols-3 md:gap-4">
+                      <Stat
+                        icon="clock"
+                        label="Turnos"
+                        value={totalShifts}
+                        detail={assignedShifts + "/" + totalShifts + " designado"}
+                        day={activeDay}
+                      />
+                      <Stat
+                        icon="users"
+                        label="Voluntários"
+                        value={volunteers.filter((volunteer) => volunteer.active !== false).length}
+                        detail="cadastros ativos"
+                        day={activeDay}
+                      />
+                      <Stat
+                        icon="checklist"
+                        label="Checklist"
+                        value={pendingItems}
+                        detail="itens perdidos"
+                        day={activeDay}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <Routes>
                 <Route
-                  path="/"
+                  path="/programacao"
                   element={
                     <Programacao
                       activeDay={activeDay}
@@ -467,6 +574,8 @@ function AppLayout() {
                       volunteers={volunteers}
                       now={now}
                       onEditShift={handleEditShift}
+                      onCreateShift={handleCreateShift}
+                      departmentName={departmentName}
                     />
                   }
                 />
@@ -480,6 +589,9 @@ function AppLayout() {
                       onSave={saveVolunteer}
                       onEdit={setVolunteerForm}
                       onDelete={removeVolunteer}
+                      onApprove={approveVolunteer}
+                      onReject={rejectVolunteer}
+                      departmentName={departmentName}
                     />
                   }
                 />
@@ -503,6 +615,10 @@ function AppLayout() {
                   path="/departamentos"
                   element={<GerenciarDepartamentos />}
                 />
+                <Route
+                  path="/configuracoes"
+                  element={<Configuracoes />}
+                />
               </Routes>
             </>
           )}
@@ -510,7 +626,7 @@ function AppLayout() {
       </main>
 
       <div className="ap-mobile-nav lg:hidden">
-        {navigationItems.map((item) => (
+        {visibleNavigationItems.map((item) => (
           <button
             key={item.path}
             onClick={() => navTo(item.path)}
@@ -522,20 +638,13 @@ function AppLayout() {
         ))}
       </div>
 
-      {loginModal && (
-        <LoginModal
-          onLogin={handleLoginFromModal}
-          onClose={() => setLoginModal(null)}
-        />
-      )}
-
       {shiftEditor && (
         <ShiftEditorModal
           shiftEditor={shiftEditor}
           volunteers={volunteers}
           schedule={schedule}
           onClose={() => setShiftEditor(null)}
-          onSave={saveShiftVolunteers}
+          onSave={saveShiftFromModal}
         />
       )}
     </div>
@@ -546,8 +655,17 @@ export default function App() {
   return (
     <HashRouter>
       <Routes>
+        <Route path="/login" element={<Login />} />
         <Route path="/p/:slug/cadastro" element={<PublicCadastro />} />
-        <Route path="*" element={<AppLayout />} />
+        <Route path="/p/:slug/escala" element={<PublicEscala />} />
+        <Route
+          path="*"
+          element={
+            <RequireAuth>
+              <AppLayout />
+            </RequireAuth>
+          }
+        />
       </Routes>
     </HashRouter>
   );

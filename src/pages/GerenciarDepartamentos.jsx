@@ -1,41 +1,38 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { createDepartment, linkUserAsCoordinator } from "../services/departmentService";
-
-function slugify(name) {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+import {
+  createDepartment,
+  linkUserAsCoordinator,
+  STANDARD_DEPARTMENTS,
+} from "../services/departmentService";
 
 export default function GerenciarDepartamentos() {
   const { user, refreshSession, selectDepartment, departments } = useAuth();
-  const [name, setName] = useState("");
+  const [selectedSlug, setSelectedSlug] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const previewSlug = name ? slugify(name) : "";
-
   async function handleSubmit(e) {
     e.preventDefault();
-    const trimmed = name.trim();
-    if (!trimmed || !user) return;
+    const option = STANDARD_DEPARTMENTS.find((dept) => dept.slug === selectedSlug);
+    if (!option || !user) return;
 
     setLoading(true);
     setError("");
 
     try {
-      const department = await createDepartment(trimmed);
+      const department = await createDepartment(option.name, option.slug);
       await linkUserAsCoordinator(department.id, user.id);
-      await refreshSession();
-      selectDepartment({
-        id: department.id,
-        department: { id: department.id, name: department.name },
-      });
-      setName("");
+      const depts = await refreshSession();
+      const membership = (depts || []).find((member) => member?.department?.id === department.id);
+      selectDepartment(
+        membership || {
+          id: department.id,
+          department: { id: department.id, name: department.name, features: {} },
+          role: "coordenador",
+        }
+      );
+      setSelectedSlug("");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -46,32 +43,32 @@ export default function GerenciarDepartamentos() {
   return (
     <div className="mx-auto max-w-lg">
       <div className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
-        <h2 className="text-lg font-bold text-[#172233]">Criar Departamento</h2>
+        <h2 className="text-lg font-bold text-[#172233]">Reivindicar Departamento</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Crie um novo departamento e se torne automaticamente o coordenador.
+          Escolha o departamento da sua equipe e se torne automaticamente o coordenador.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700">
-              Nome do Departamento
+              Departamento
             </label>
-            <input
-              type="text"
-              value={name}
+            <select
+              value={selectedSlug}
               onChange={(e) => {
-                setName(e.target.value);
+                setSelectedSlug(e.target.value);
                 setError("");
               }}
-              placeholder="Ex: Achados e Perdidos"
-              className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
               disabled={loading}
-            />
-            {previewSlug && (
-              <p className="mt-1.5 text-xs text-slate-400">
-                Slug: <span className="font-mono text-slate-500">{previewSlug}</span>
-              </p>
-            )}
+              className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+            >
+              <option value="">Selecione o departamento</option>
+              {STANDARD_DEPARTMENTS.map((dept) => (
+                <option key={dept.slug} value={dept.slug}>
+                  {dept.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error && (
@@ -82,10 +79,10 @@ export default function GerenciarDepartamentos() {
 
           <button
             type="submit"
-            disabled={loading || !name.trim()}
+            disabled={loading || !selectedSlug}
             className="w-full rounded-xl bg-[#42d27b] px-4 py-3 text-sm font-semibold text-[#172233] transition hover:bg-[#36b868] disabled:opacity-50"
           >
-            {loading ? "Criando..." : "Criar e Vincular"}
+            {loading ? "Criando..." : "Reivindicar Departamento"}
           </button>
         </form>
 

@@ -9,6 +9,7 @@ const mockDepts = [{ id: "dm-1", user_id: "user-1", department: { id: "dept-1", 
 vi.mock("../services/supabase.js", () => {
   const mockSignIn = vi.fn();
   const mockSignOut = vi.fn();
+  const mockSignUp = vi.fn();
   const mockGetSession = vi.fn();
   const mockOnAuthStateChange = vi.fn();
 
@@ -16,6 +17,7 @@ vi.mock("../services/supabase.js", () => {
     supabase: {
       auth: {
         signInWithPassword: mockSignIn,
+        signUp: mockSignUp,
         signOut: mockSignOut,
         getSession: mockGetSession,
         onAuthStateChange: mockOnAuthStateChange,
@@ -24,9 +26,10 @@ vi.mock("../services/supabase.js", () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: mockProfile, error: null }),
+        upsert: vi.fn().mockResolvedValue({ error: null }),
       })),
     },
-    __mocks: { mockSignIn, mockSignOut, mockGetSession, mockOnAuthStateChange },
+    __mocks: { mockSignIn, mockSignUp, mockSignOut, mockGetSession, mockOnAuthStateChange },
   };
 });
 
@@ -54,11 +57,13 @@ describe("AuthContext", () => {
     expect(result.current.user).toBeNull();
   });
 
-  it("exposes login and logout functions", () => {
+  it("exposes login, signUp and logout functions", () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useAuth(), { wrapper });
     expect(typeof result.current.login).toBe("function");
+    expect(typeof result.current.signUp).toBe("function");
     expect(typeof result.current.logout).toBe("function");
+    expect(typeof result.current.resetPassword).toBe("function");
   });
 
   it("exposes selectDepartment function", () => {

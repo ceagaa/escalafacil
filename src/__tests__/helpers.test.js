@@ -12,6 +12,12 @@ import {
   mapAppVolunteerToDb,
   makeId,
   createWhatsAppUrl,
+  createWaMeLink,
+  parseAvailability,
+  getAvailabilitySlotId,
+  volunteerIsAvailable,
+  buildAssignmentMessage,
+  buildDaySummary,
   getResponsibleNames,
   hexToRgba,
   buildOfflineSnapshot,
@@ -167,6 +173,132 @@ describe("createWhatsAppUrl", () => {
   it("returns empty string for no phone", () => {
     expect(createWhatsAppUrl("")).toBe("");
     expect(createWhatsAppUrl(null)).toBe("");
+  });
+});
+
+describe("createWaMeLink", () => {
+  it("creates wa.me link with encoded text", () => {
+    const url = createWaMeLink("83999999999", "Olá João, seu cadastro foi aprovado!");
+    expect(url.startsWith("https://wa.me/5583999999999?text=")).toBe(true);
+    expect(url).toContain(encodeURIComponent("Olá João, seu cadastro foi aprovado!"));
+  });
+
+  it("creates link without text", () => {
+    expect(createWaMeLink("83999999999")).toBe("https://wa.me/5583999999999");
+  });
+
+  it("returns empty for no phone", () => {
+    expect(createWaMeLink("", "oi")).toBe("");
+  });
+});
+
+describe("parseAvailability", () => {
+  it("parses JSON string availability", () => {
+    expect(parseAvailability('["sexta-manha","sabado-tarde"]')).toEqual(["sexta-manha", "sabado-tarde"]);
+  });
+
+  it("returns array as-is", () => {
+    expect(parseAvailability(["domingo-manha"])).toEqual(["domingo-manha"]);
+  });
+
+  it("handles invalid JSON gracefully", () => {
+    expect(parseAvailability("not-json")).toEqual([]);
+    expect(parseAvailability(null)).toEqual([]);
+    expect(parseAvailability(undefined)).toEqual([]);
+  });
+});
+
+describe("getAvailabilitySlotId", () => {
+  it("maps day and period to slot id", () => {
+    expect(getAvailabilitySlotId("Sexta-feira", "Manhã")).toBe("sexta-manha");
+    expect(getAvailabilitySlotId("Sábado", "Tarde")).toBe("sabado-tarde");
+    expect(getAvailabilitySlotId("Domingo", "Manhã")).toBe("domingo-manha");
+  });
+
+  it("returns empty for unknown day", () => {
+    expect(getAvailabilitySlotId("Quinta-feira", "Manhã")).toBe("");
+  });
+});
+
+describe("volunteerIsAvailable", () => {
+  it("returns true when volunteer has matching slot", () => {
+    const volunteer = { availability: '["sexta-manha"]' };
+    expect(volunteerIsAvailable(volunteer, "Sexta-feira", "Manhã")).toBe(true);
+    expect(volunteerIsAvailable(volunteer, "Sexta-feira", "Tarde")).toBe(false);
+  });
+
+  it("returns false for missing availability", () => {
+    expect(volunteerIsAvailable({}, "Sexta-feira", "Manhã")).toBe(false);
+  });
+});
+
+describe("buildAssignmentMessage", () => {
+  it("builds assignment message with department", () => {
+    const message = buildAssignmentMessage(
+      { name: "Carlos" },
+      { day: "Sexta-feira", period: "Manhã", start: "8:00", end: "9:30" },
+      "Achados e Perdidos"
+    );
+    expect(message).toContain("Olá Carlos");
+    expect(message).toContain("Sexta-feira - Manhã");
+    expect(message).toContain("8:00 até 9:30");
+    expect(message).toContain("Local: Achados e Perdidos");
+  });
+
+  it("omits local when no department", () => {
+    const message = buildAssignmentMessage(
+      { name: "Carlos" },
+      { day: "Sexta-feira", period: "Manhã", start: "8:00", end: "9:30" }
+    );
+    expect(message).not.toContain("Local:");
+  });
+});
+
+describe("buildDaySummary", () => {
+  it("formats the schedule for a day with volunteer names", () => {
+    const schedule = [
+      {
+        id: "sex-manha",
+        day: "Sexta-feira",
+        period: "Manhã",
+        responsible: "Eduardo",
+        shifts: [
+          { id: "sex-m-1", start: "8:00", end: "9:30", volunteerIds: ["v-1"] },
+          { id: "sex-m-2", start: "9:30", end: "11:05", volunteerIds: [] },
+        ],
+      },
+      { id: "sab-manha", day: "Sábado", period: "Manhã", shifts: [] },
+    ];
+    const volunteers = [{ id: "v-1", name: "Carlos" }];
+    const summary = buildDaySummary(schedule, "Sexta-feira", volunteers, "Achados e Perdidos");
+    expect(summary).toContain("*Escala Sexta-feira* — Achados e Perdidos");
+    expect(summary).toContain("*Sexta-feira · Manhã* (Resp.: Eduardo)");
+    expect(summary).toContain("• 8:00 às 9:30: Carlos");
+    expect(summary).toContain("• 9:30 às 11:05: Aguardando escala");
+    expect(summary).not.toContain("Sábado");
+  });
+
+  it("includes manual names with (Avulso) marker", () => {
+    const schedule = [
+      {
+        id: "sex-manha",
+        day: "Sexta-feira",
+        period: "Manhã",
+        responsible: "",
+        shifts: [
+          {
+            id: "sex-m-1",
+            start: "8:00",
+            end: "9:30",
+            volunteerIds: ["v-1"],
+            manualNames: ["Irmão Joãozinho"],
+          },
+        ],
+      },
+    ];
+    const volunteers = [{ id: "v-1", name: "Carlos" }];
+    const summary = buildDaySummary(schedule, "Sexta-feira", volunteers);
+    expect(summary).toContain("• 8:00 às 9:30: Carlos, Irmão Joãozinho (Avulso)");
   });
 });
 

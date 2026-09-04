@@ -1,6 +1,15 @@
 import ScheduleView from "../components/ScheduleView";
 
-export default function Programacao({ activeDay, setActiveDay, dayCards, volunteers, now, onEditShift }) {
+export default function Programacao({
+  activeDay,
+  setActiveDay,
+  dayCards,
+  volunteers,
+  now,
+  onEditShift,
+  onCreateShift,
+  departmentName,
+}) {
   return (
     <ScheduleView
       activeDay={activeDay}
@@ -9,6 +18,8 @@ export default function Programacao({ activeDay, setActiveDay, dayCards, volunte
       volunteers={volunteers}
       now={now}
       onEditShift={onEditShift}
+      onCreateShift={onCreateShift}
+      departmentName={departmentName}
     />
   );
 }

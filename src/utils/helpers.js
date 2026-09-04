@@ -13,9 +13,6 @@ export const dayTheme = {
 
 export const UNASSIGNED_LABEL = "Aguardando escala";
 export const OFFLINE_CACHE_KEY = "ap_offline_snapshot_v1";
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
-const SUPABASE_REST_URL = SUPABASE_URL ? SUPABASE_URL + "/rest/v1" : "";
 
 export const initialSchedule = [
   {
@@ -176,6 +173,73 @@ export function createWhatsAppUrl(phone) {
   return "https://api.whatsapp.com/send?phone=" + withCountryCode;
 }
 
+export function createWaMeLink(phone, text) {
+  const onlyNumbers = String(phone || "").replace(/\D/g, "");
+  if (!onlyNumbers) return "";
+  const withCountryCode = onlyNumbers.startsWith("55") ? onlyNumbers : "55" + onlyNumbers;
+  const suffix = text ? "?text=" + encodeURIComponent(text) : "";
+  return "https://wa.me/" + withCountryCode + suffix;
+}
+
+export const AVAILABILITY_SLOT_LABELS = {
+  "sexta-manha": "Sexta · Manhã",
+  "sexta-tarde": "Sexta · Tarde",
+  "sabado-manha": "Sábado · Manhã",
+  "sabado-tarde": "Sábado · Tarde",
+  "domingo-manha": "Domingo · Manhã",
+  "domingo-tarde": "Domingo · Tarde",
+};
+
+export function parseAvailability(value) {
+  if (Array.isArray(value)) return value.filter((item) => typeof item === "string");
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+export function getAvailabilitySlotId(day, period) {
+  const key = dayTheme[day]?.key || "";
+  if (!key) return "";
+  const periodKey = String(period || "").toLowerCase().trim() === "tarde" ? "tarde" : "manha";
+  return key + "-" + periodKey;
+}
+
+export function volunteerIsAvailable(volunteer, day, period) {
+  const slotId = getAvailabilitySlotId(day, period);
+  if (!slotId) return false;
+  return parseAvailability(volunteer?.availability).includes(slotId);
+}
+
+export function buildAssignmentMessage(volunteer, { day, period, start, end }, departmentName = "") {
+  const local = departmentName ? ` Local: ${departmentName}.` : "";
+  return `Olá ${volunteer.name}, sua designação para ${day} - ${period} está confirmada para as ${start} até ${end}.${local}`;
+}
+
+export function buildDaySummary(schedule, day, volunteers, departmentName = "") {
+  const blocks = schedule.filter((block) => block.day === day);
+  const lines = [`*Escala ${day}*${departmentName ? " — " + departmentName : ""}`];
+  for (const block of blocks) {
+    lines.push("");
+    lines.push(`*${block.day} · ${block.period}*${block.responsible ? " (Resp.: " + block.responsible + ")" : ""}`);
+    block.shifts.forEach((shift) => {
+      const names = shift.volunteerIds
+        .map((id) => volunteers.find((volunteer) => String(volunteer.id) === String(id)))
+        .filter(Boolean)
+        .map((volunteer) => volunteer.name);
+      const manualNames = (shift.manualNames || []).map((name) => name + " (Avulso)");
+      const allNames = [...names, ...manualNames];
+      lines.push(`• ${shift.start} às ${shift.end}: ${allNames.length ? allNames.join(", ") : "Aguardando escala"}`);
+    });
+  }
+  return lines.join("\n");
+}
+
 export function makeId(prefix) {
   return prefix + "-" + Date.now() + "-" + Math.random().toString(16).slice(2);
 }
@@ -262,10 +326,12 @@ export function formatCurrentDate(date = new Date()) {
 }
 
 export const navigationItems = [
-  { path: "/", label: "Escala", iconClass: "fi fi-rr-calendar-lines" },
+  { path: "/", label: "Início", iconClass: "fi fi-rr-home" },
+  { path: "/programacao", label: "Escala", iconClass: "fi fi-rr-calendar-lines" },
   { path: "/voluntarios", label: "Voluntários", iconClass: "fi fi-rr-users" },
   { path: "/itens", label: "Itens Perdidos", iconClass: "fi fi-rr-ballot-check" },
   { path: "/departamentos", label: "Departamentos", iconClass: "fi fi-rr-building" },
+  { path: "/configuracoes", label: "Configurações", iconClass: "fi fi-rr-settings" },
 ];
 
 export const STAT_ICON_PATHS = {

@@ -1,6 +1,7 @@
 import { supabase } from "./supabase.js";
 import { getVolunteers } from "./volunteersService.js";
 import { getLostItems } from "./itemsService.js";
+import { makeId } from "../utils/helpers.js";
 
 export async function getScheduleBlocks(departmentId) {
   if (!departmentId) throw new Error("departmentId is required");
@@ -78,6 +79,87 @@ export async function assignVolunteersToShift(shiftId, volunteerIds, departmentI
   }
 }
 
+export async function saveShiftAssignments(shiftId, assignments, departmentId) {
+  if (!departmentId) throw new Error("departmentId is required");
+
+  const { error: deleteError } = await supabase
+    .from("shift_volunteers")
+    .delete()
+    .eq("shift_id", shiftId);
+  if (deleteError) {
+    throw new Error(`Failed to clear shift assignments: ${deleteError.message}`);
+  }
+
+  if (assignments.length === 0) return;
+
+  const rows = assignments.map((assignment) => ({
+    shift_id: shiftId,
+    volunteer_id: assignment.volunteer_id || null,
+    manual_name: assignment.manual_name || null,
+    department_id: departmentId,
+  }));
+
+  const { error: insertError } = await supabase
+    .from("shift_volunteers")
+    .insert(rows);
+  if (insertError) {
+    throw new Error(`Failed to save shift assignments: ${insertError.message}`);
+  }
+}
+
+export async function createShift(departmentId, blockId, payload) {
+  if (!departmentId) throw new Error("departmentId is required");
+  const { data, error } = await supabase
+    .from("shifts")
+    .insert([
+      {
+        id: makeId("shift"),
+        block_id: blockId,
+        start_time: payload.start_time,
+        end_time: payload.end_time,
+        description: payload.description || "",
+        department_id: departmentId,
+      },
+    ])
+    .select()
+    .single();
+  if (error) {
+    throw new Error(`Failed to create shift: ${error.message}`);
+  }
+  return data;
+}
+
+export async function updateShift(departmentId, shiftId, payload) {
+  if (!departmentId) throw new Error("departmentId is required");
+  const { data, error } = await supabase
+    .from("shifts")
+    .update({
+      start_time: payload.start_time,
+      end_time: payload.end_time,
+      description: payload.description || "",
+    })
+    .eq("id", shiftId)
+    .eq("department_id", departmentId)
+    .select()
+    .single();
+  if (error) {
+    throw new Error(`Failed to update shift ${shiftId}: ${error.message}`);
+  }
+  return data;
+}
+
+export async function deleteShift(departmentId, shiftId) {
+  if (!departmentId) throw new Error("departmentId is required");
+  const { error } = await supabase
+    .from("shifts")
+    .delete()
+    .eq("id", shiftId)
+    .eq("department_id", departmentId);
+  if (error) {
+    throw new Error(`Failed to delete shift ${shiftId}: ${error.message}`);
+  }
+}
+
 export async function seedScheduleForDepartment(departmentId, initialSchedule) {
   if (!departmentId) throw new Error("departmentId is required");
 
@@ -146,9 +228,13 @@ export async function fetchDepartmentData(departmentId, initialSchedule, initial
         id: shift.id,
         start: shift.start_time,
         end: shift.end_time,
+        description: shift.description || "",
         volunteerIds: (assigned || [])
-          .filter((item) => item.shift_id === shift.id)
+          .filter((item) => item.shift_id === shift.id && item.volunteer_id)
           .map((item) => item.volunteer_id),
+        manualNames: (assigned || [])
+          .filter((item) => item.shift_id === shift.id && item.manual_name)
+          .map((item) => item.manual_name),
       })),
   }));
 

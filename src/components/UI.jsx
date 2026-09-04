@@ -8,8 +8,8 @@ export function Card({ children, className = "" }) {
   );
 }
 
-export function Button({ children, variant = "primary", square = false, className = "", type = "button", onClick }) {
-  const base = "inline-flex items-center justify-center gap-2 text-sm font-semibold transition";
+export function Button({ children, variant = "primary", square = false, className = "", type = "button", onClick, disabled = false }) {
+  const base = "inline-flex items-center justify-center gap-2 text-sm font-semibold transition disabled:opacity-50";
   const size = square ? "h-10 w-10 rounded-full p-0" : "rounded-full px-8 py-4";
   const styles = {
     primary: "bg-[#172233] text-white hover:bg-[#101827]",
@@ -21,6 +21,7 @@ export function Button({ children, variant = "primary", square = false, classNam
     <button
       type={type}
       onClick={onClick}
+      disabled={disabled}
       className={`${base} ${size} ${styles[variant] || styles.primary} ${className}`}
     >
       {children}

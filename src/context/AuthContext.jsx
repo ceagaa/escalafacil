@@ -26,13 +26,19 @@ export function AuthProvider({ children }) {
   const fetchDepartments = useCallback(async (userId) => {
     const { data, error } = await supabase
       .from("department_members")
-      .select("*, department:departments(id, name)")
+      .select("*, department:departments(id, name, features, slug)")
       .eq("user_id", userId);
     if (error) {
       console.warn("Falha ao buscar departamentos:", error.message);
       return [];
     }
     return Array.isArray(data) ? data : [];
+  }, []);
+
+  const reconcileActiveDepartment = useCallback((depts, prev) => {
+    if (!prev) return depts[0] || null;
+    const prevDeptId = prev?.department?.id || prev?.id;
+    return depts.find((member) => member?.department?.id === prevDeptId) || depts[0] || null;
   }, []);
 
   const refreshSession = useCallback(async () => {
@@ -47,15 +53,22 @@ export function AuthProvider({ children }) {
       ]);
       setProfile(profileData);
       setDepartments(depts);
-      if (depts.length > 0 && !activeDepartment) {
-        setActiveDepartment(depts[0]);
-      }
-    } else {
-      setProfile(null);
-      setDepartments([]);
-      setActiveDepartment(null);
+      setActiveDepartment((prev) => reconcileActiveDepartment(depts, prev));
+      return depts;
     }
-  }, [fetchProfile, fetchDepartments, activeDepartment]);
+    setProfile(null);
+    setDepartments([]);
+    setActiveDepartment(null);
+    return [];
+  }, [fetchProfile, fetchDepartments, reconcileActiveDepartment]);
+
+  const refreshDepartments = useCallback(async () => {
+    if (!user) return [];
+    const depts = await fetchDepartments(user.id);
+    setDepartments(depts);
+    setActiveDepartment((prev) => reconcileActiveDepartment(depts, prev));
+    return depts;
+  }, [user, fetchDepartments, reconcileActiveDepartment]);
 
   useEffect(() => {
     let mounted = true;
@@ -120,6 +133,32 @@ export function AuthProvider({ children }) {
     return data;
   }
 
+  async function signUp(email, password, name) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    });
+    if (error) throw error;
+
+    if (data?.user) {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert({ id: data.user.id, email, name }, { onConflict: "id" });
+      if (profileError) {
+        console.warn("Falha ao salvar perfil:", profileError.message);
+      }
+    }
+
+    return data;
+  }
+
+  async function resetPassword(email) {
+    const redirectTo = typeof window !== "undefined" ? window.location.origin + window.location.pathname : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw error;
+  }
+
   async function logout() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -143,9 +182,12 @@ export function AuthProvider({ children }) {
     loading,
     isSuperAdmin,
     login,
+    signUp,
+    resetPassword,
     logout,
     selectDepartment,
     refreshSession,
+    refreshDepartments,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
