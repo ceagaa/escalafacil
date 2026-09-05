@@ -113,9 +113,9 @@ export default function Dashboard() {
     }
   }
 
-  const shareBase = window.location.origin + window.location.pathname;
-  const signupLink = departmentSlug ? `${shareBase}#/p/${departmentSlug}/cadastro` : "";
-  const scaleLink = departmentSlug ? `${shareBase}#/p/${departmentSlug}/escala` : "";
+  const shareBase = window.location.origin;
+  const signupLink = departmentSlug ? `${shareBase}/${departmentSlug}/cadastro` : "";
+  const scaleLink = departmentSlug ? `${shareBase}/${departmentSlug}/escala` : "";
 
   const hasMultipleDepts = departments.length > 1;
 

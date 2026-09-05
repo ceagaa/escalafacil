@@ -80,7 +80,7 @@ describe("Configuracoes", () => {
     fireEvent.click(screen.getByText("Copiar"));
     await waitFor(() => {
       expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining("#/p/achados-perdidos-guarda-volumes/escala")
+        expect.stringContaining("/achados-perdidos-guarda-volumes/escala")
       );
       expect(screen.getByText("Copiado!")).toBeDefined();
     });

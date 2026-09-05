@@ -21,7 +21,7 @@ vi.mock("../services/supabase.js", () => ({
 
 function renderWithSlug(slug = "achados-e-perdidos") {
   return render(
-    <MemoryRouter initialEntries={[`/p/${slug}/cadastro`]}>
+    <MemoryRouter initialEntries={[`/${slug}/cadastro`]}>
       <PublicCadastro />
     </MemoryRouter>
   );

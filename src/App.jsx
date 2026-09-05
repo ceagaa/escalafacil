@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { HashRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import {
   initialSchedule,
   initialVolunteers,
@@ -719,11 +719,11 @@ function AppLayout() {
 
 export default function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/p/:slug/cadastro" element={<PublicCadastro />} />
-        <Route path="/p/:slug/escala" element={<PublicEscala />} />
+        <Route path="/:slug/cadastro" element={<PublicCadastro />} />
+        <Route path="/:slug/escala" element={<PublicEscala />} />
         <Route
           path="*"
           element={
@@ -733,6 +733,6 @@ export default function App() {
           }
         />
       </Routes>
-    </HashRouter>
+    </BrowserRouter>
   );
 }

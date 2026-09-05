@@ -26,7 +26,7 @@ export default function Configuracoes() {
 
   const departmentSlug = activeDepartment?.department?.slug || "";
   const publicScaleLink = departmentSlug
-    ? window.location.origin + window.location.pathname + "#/p/" + departmentSlug + "/escala"
+    ? window.location.origin + "/" + departmentSlug + "/escala"
     : "";
 
   useEffect(() => {

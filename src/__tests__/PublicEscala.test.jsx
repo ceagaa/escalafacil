@@ -41,9 +41,9 @@ const volunteers = [
 
 function renderAt(slug) {
   return render(
-    <MemoryRouter initialEntries={[`/p/${slug}/escala`]}>
+    <MemoryRouter initialEntries={[`/${slug}/escala`]}>
       <Routes>
-        <Route path="/p/:slug/escala" element={<PublicEscala />} />
+        <Route path="/:slug/escala" element={<PublicEscala />} />
       </Routes>
     </MemoryRouter>
   );
