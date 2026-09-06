@@ -144,7 +144,7 @@ export default function ChecklistView({
                       onChange={(event) => onStatusChange(item.id, event.target.value)}
                       className="rounded-2xl border border-slate-200 px-3 py-2 text-sm outline-none"
                     >
-                      <option>Iten Guardado</option>
+                      <option>Guardado</option>
                       <option>Entregue</option>
                     </select>
                     <IconButton label="Editar item" iconClass="fi fi-rr-pencil" onClick={() => onEdit(item)} />
