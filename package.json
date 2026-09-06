@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "deploy": "npm run build && npx wrangler pages deploy dist --project-name escalafacil",
+    "deploy": "npm run build && npx wrangler pages functions build --outdir dist && npx wrangler pages deploy dist --project-name escalafacil",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run"
