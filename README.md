@@ -1,11 +1,10 @@
 # Achados & Perdidos
 
-App para gerenciar escala de voluntários, controlar itens perdidos e guardar volumes em congregações.
+App para gerenciar escala de voluntários dos departamentos.
 
 ## O que faz
 
 - **Escala de voluntários** — monta turnos pra sexta, sábado e domingo, designa quem fica em cada período
-- **Achados e Perdidos** — registra itens com foto, acompanha se já foi entregue ou ainda tá guardado
 - **Voluntários** — cadastra, aprova e organiza a equipe por departamento
 - **Dashboard** — visão geral com stats do dia
 - **PWA** — funciona offline e pode ser instalado no celular como app
