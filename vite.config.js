@@ -1,98 +1,12 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-const SKIP_PROXY_HEADERS = new Set([
-  'host',
-  'connection',
-  'content-length',
-  'accept-encoding',
-])
-
-async function readRequestBody(req) {
-  const chunks = []
-  for await (const chunk of req) {
-    chunks.push(chunk)
-  }
-  return Buffer.concat(chunks)
-}
-
-function supabaseDevProxy(supabaseUrl, anonKey) {
-  return {
-    name: 'supabase-dev-proxy',
-    configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        proxySupabaseRequest(req, res, next, supabaseUrl, anonKey)
-      })
-    },
-    configurePreviewServer(server) {
-      server.middlewares.use((req, res, next) => {
-        proxySupabaseRequest(req, res, next, supabaseUrl, anonKey)
-      })
-    },
-  }
-}
-
-function proxySupabaseRequest(req, res, next, supabaseUrl, anonKey) {
-  const incoming = new URL(req.url || '/', 'http://127.0.0.1')
-  if (incoming.pathname !== '/sb' && !incoming.pathname.startsWith('/sb/')) {
-    next()
-    return
-  }
-
-  if (!supabaseUrl || !anonKey) {
-    res.statusCode = 500
-    res.setHeader('Content-Type', 'text/plain')
-    res.end('Missing SUPABASE_URL or SUPABASE_ANON_KEY in .env')
-    return
-  }
-
-  Promise.resolve()
-    .then(async () => {
-      const rest = incoming.pathname.replace(/^\/sb/, '') || '/'
-      const target = new URL(rest.replace(/^\//, ''), supabaseUrl.replace(/\/$/, '') + '/')
-      target.search = incoming.search
-      const headers = {}
-      for (const [key, value] of Object.entries(req.headers)) {
-        if (!value || SKIP_PROXY_HEADERS.has(key.toLowerCase())) continue
-        headers[key] = Array.isArray(value) ? value.join(',') : value
-      }
-      headers.apikey = anonKey
-      if (!headers.authorization) {
-        headers.authorization = 'Bearer ' + anonKey
-      }
-
-      const method = req.method || 'GET'
-      const init = { method, headers, redirect: 'manual' }
-      if (method !== 'GET' && method !== 'HEAD') {
-        init.body = await readRequestBody(req)
-      }
-
-      const upstream = await fetch(target, init)
-      res.statusCode = upstream.status
-      upstream.headers.forEach((value, key) => {
-        if (['content-encoding', 'transfer-encoding', 'connection'].includes(key)) return
-        res.setHeader(key, value)
-      })
-      res.end(Buffer.from(await upstream.arrayBuffer()))
-    })
-    .catch(() => {
-      res.statusCode = 502
-      res.setHeader('Content-Type', 'text/plain')
-      res.end('Supabase proxy failed')
-    })
-}
-
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
-  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL || ''
-  const anonKey = env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || ''
-
+export default defineConfig(() => {
   return {
     base: './',
     plugins: [
       react(),
-      supabaseDevProxy(supabaseUrl, anonKey),
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg'],
