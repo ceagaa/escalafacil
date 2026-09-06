@@ -73,10 +73,23 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true;
 
-    async function init() {
-      const { data: { session } } = await supabase.auth.getSession();
+    const TIMEOUT_MS = 8000;
+
+    const sessionPromise = supabase.auth.getSession();
+    const timeoutPromise = new Promise((resolve) => {
+      setTimeout(() => resolve({ timedOut: true }), TIMEOUT_MS);
+    });
+
+    Promise.race([sessionPromise, timeoutPromise]).then(async (result) => {
       if (!mounted) return;
 
+      if (result?.timedOut) {
+        console.warn("Supabase session check timed out — proceeding without auth.");
+        setLoading(false);
+        return;
+      }
+
+      const { data: { session } } = result;
       const currentUser = session?.user ?? null;
       setUser(currentUser);
 
@@ -93,9 +106,7 @@ export function AuthProvider({ children }) {
         }
       }
       setLoading(false);
-    }
-
-    init();
+    });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
