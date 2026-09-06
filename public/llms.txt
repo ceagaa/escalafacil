@@ -1,0 +1,33 @@
+# EscalaFácil - Achados e Perdidos
+
+> App para gerenciar escala de voluntários, controlar itens perdidos e guardar volumes em congregações.
+
+## Sobre
+
+O EscalaFácil é uma aplicação web Progressiva (PWA) voltada para igrejas e congregações. Ele permite montar escalas de voluntários, registrar e acompanhar itens achados e perdidos, e controlar volumes guardados.
+
+## Funcionalidades
+
+- Escala de voluntários por turno (sexta, sábado e domingo)
+- Cadastro e aprovação de voluntários
+- Registro de itens achados e perdidos com foto
+- Controle de volumes guardados
+- Dashboard com visão geral e estatísticas
+- Funciona offline (PWA)
+
+## Como Funciona
+
+O app utiliza autenticação via Supabase e armazena dados em nuvem. A comunicação com o backend é feita por meio de uma Cloudflare Pages Function que atua como proxy, protegendo as credenciais do Supabase.
+
+## Links
+
+- [Documentação do projeto (README)](/README.md)
+- [Guia de estilos (STYLE_GUIDE)](/STYLE_GUIDE.md)
+
+## Tecnologias
+
+- React 18 com Vite
+- Tailwind CSS
+- Supabase (autenticacao, banco de dados e storage)
+- Cloudflare Pages (deploy e functions)
+- Service Worker com Workbox (PWA)
