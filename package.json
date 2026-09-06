@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "deploy": "npm run build && npx wrangler pages functions build --outdir dist && npx wrangler pages deploy dist --project-name escalafacil",
+    "build:functions": "npx wrangler pages functions build --outdir dist && node --input-type=module -e \"import{renameSync as r}from'fs';r('dist/index.js','dist/_worker.js')\"",
+    "build:all": "npm run build && npm run build:functions",
+    "deploy": "npm run build:all && npx wrangler pages deploy dist --project-name escalafacil",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run"
