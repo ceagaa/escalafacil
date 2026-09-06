@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import {
   initialSchedule,
@@ -40,16 +40,17 @@ import {
 import { Stat } from "./components/UI";
 import ShiftEditorModal from "./components/ShiftEditorModal";
 import RequireAuth from "./components/RequireAuth";
-import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Programacao from "./pages/Programacao";
-import Voluntarios from "./pages/Voluntarios";
-import ItensPerdidos from "./pages/ItensPerdidos";
-import GerenciarDepartamentos from "./pages/GerenciarDepartamentos";
-import Configuracoes from "./pages/Configuracoes";
-import PublicCadastro from "./pages/PublicCadastro";
-import PublicEscala from "./pages/PublicEscala";
-import logo from "./assets/img/logotipo.png";
+
+const Login = lazy(() => import("./pages/Login"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Programacao = lazy(() => import("./pages/Programacao"));
+const Voluntarios = lazy(() => import("./pages/Voluntarios"));
+const ItensPerdidos = lazy(() => import("./pages/ItensPerdidos"));
+const GerenciarDepartamentos = lazy(() => import("./pages/GerenciarDepartamentos"));
+const Configuracoes = lazy(() => import("./pages/Configuracoes"));
+const PublicCadastro = lazy(() => import("./pages/PublicCadastro"));
+const PublicEscala = lazy(() => import("./pages/PublicEscala"));
+import logo from "./assets/img/logotipo.webp";
 
 const ROUTE_TITLES = {
   "/": "",
@@ -589,9 +590,11 @@ function AppLayout() {
         </header>
 
         <section className="ap-main-content space-y-6 p-4 md:p-8">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-          </Routes>
+          <Suspense fallback={<div className="flex items-center justify-center py-12"><p className="text-sm text-slate-400">Carregando...</p></div>}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+            </Routes>
+          </Suspense>
 
           {departmentId && activeView !== "/" && (
             <>
@@ -627,67 +630,69 @@ function AppLayout() {
             </>
           )}
 
-          <Routes>
-            {activeView !== "/" && (
-              <>
-                <Route
-                  path="/programacao"
-                  element={
-                    <Programacao
-                      activeDay={activeDay}
-                      setActiveDay={setActiveDay}
-                      dayCards={dayCards}
-                      volunteers={volunteers}
-                      now={now}
-                      onEditShift={handleEditShift}
-                      onCreateShift={handleCreateShift}
-                      departmentName={departmentName}
-                    />
-                  }
-                />
-                <Route
-                  path="/voluntarios"
-                  element={
-                    <Voluntarios
-                      volunteers={volunteers}
-                      volunteerForm={volunteerForm}
-                      setVolunteerForm={setVolunteerForm}
-                      onSave={saveVolunteer}
-                      onEdit={setVolunteerForm}
-                      onDelete={removeVolunteer}
-                      onApprove={approveVolunteer}
-                      onReject={rejectVolunteer}
-                      departmentName={departmentName}
-                    />
-                  }
-                />
-                <Route
-                  path="/itens"
-                  element={
-                    <ItensPerdidos
-                      query={query}
-                      setQuery={setQuery}
-                      items={filteredItems}
-                      itemForm={itemForm}
-                      setItemForm={setItemForm}
-                      onSave={saveItem}
-                      onEdit={setItemForm}
-                      onDelete={removeItem}
-                      onStatusChange={updateItemStatus}
-                    />
-                  }
-                />
-                <Route
-                  path="/departamentos"
-                  element={<GerenciarDepartamentos />}
-                />
-                <Route
-                  path="/configuracoes"
-                  element={<Configuracoes />}
-                />
-              </>
-            )}
-          </Routes>
+          <Suspense fallback={<div className="flex items-center justify-center py-12"><p className="text-sm text-slate-400">Carregando...</p></div>}>
+            <Routes>
+              {activeView !== "/" && (
+                <>
+                  <Route
+                    path="/programacao"
+                    element={
+                      <Programacao
+                        activeDay={activeDay}
+                        setActiveDay={setActiveDay}
+                        dayCards={dayCards}
+                        volunteers={volunteers}
+                        now={now}
+                        onEditShift={handleEditShift}
+                        onCreateShift={handleCreateShift}
+                        departmentName={departmentName}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/voluntarios"
+                    element={
+                      <Voluntarios
+                        volunteers={volunteers}
+                        volunteerForm={volunteerForm}
+                        setVolunteerForm={setVolunteerForm}
+                        onSave={saveVolunteer}
+                        onEdit={setVolunteerForm}
+                        onDelete={removeVolunteer}
+                        onApprove={approveVolunteer}
+                        onReject={rejectVolunteer}
+                        departmentName={departmentName}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/itens"
+                    element={
+                      <ItensPerdidos
+                        query={query}
+                        setQuery={setQuery}
+                        items={filteredItems}
+                        itemForm={itemForm}
+                        setItemForm={setItemForm}
+                        onSave={saveItem}
+                        onEdit={setItemForm}
+                        onDelete={removeItem}
+                        onStatusChange={updateItemStatus}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/departamentos"
+                    element={<GerenciarDepartamentos />}
+                  />
+                  <Route
+                    path="/configuracoes"
+                    element={<Configuracoes />}
+                  />
+                </>
+              )}
+            </Routes>
+          </Suspense>
         </section>
       </main>
 
@@ -720,19 +725,21 @@ function AppLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/:slug/cadastro" element={<PublicCadastro />} />
-        <Route path="/:slug/escala" element={<PublicEscala />} />
-        <Route
-          path="*"
-          element={
-            <RequireAuth>
-              <AppLayout />
-            </RequireAuth>
-          }
-        />
-      </Routes>
+      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#f6f6f6]"><p className="text-sm text-slate-400">Carregando...</p></div>}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/:slug/cadastro" element={<PublicCadastro />} />
+          <Route path="/:slug/escala" element={<PublicEscala />} />
+          <Route
+            path="*"
+            element={
+              <RequireAuth>
+                <AppLayout />
+              </RequireAuth>
+            }
+          />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

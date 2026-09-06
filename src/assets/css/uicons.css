@@ -1,0 +1,65 @@
+/* UIcons 4.0.0 - Subset (Regular Rounded + Brands) */
+/* https://www.flaticon.com/uicons */
+
+@font-face {
+  font-family: "uicons-regular-rounded";
+  src: url("https://cdn-uicons.flaticon.com/4.0.0/uicons-regular-rounded/webfonts/uicons-regular-rounded.woff2") format("woff2"),
+       url("https://cdn-uicons.flaticon.com/4.0.0/uicons-regular-rounded/webfonts/uicons-regular-rounded.woff") format("woff");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "uicons-brands";
+  src: url("https://cdn-uicons.flaticon.com/4.0.0/uicons-brands/webfonts/uicons-brands.woff2") format("woff2"),
+       url("https://cdn-uicons.flaticon.com/4.0.0/uicons-brands/webfonts/uicons-brands.woff") format("woff");
+  font-display: swap;
+}
+
+i[class^="fi-rr-"]:before,
+i[class*=" fi-rr-"]:before,
+span[class^="fi-rr-"]:before,
+span[class*=" fi-rr-"]:before {
+  font-family: uicons-regular-rounded !important;
+  font-style: normal;
+  font-weight: normal !important;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+i[class^="fi-brands-"]:before,
+i[class*=" fi-brands-"]:before,
+span[class^="fi-brands-"]:before,
+span[class*=" fi-brands-"]:before {
+  font-family: uicons-brands !important;
+  font-style: normal;
+  font-weight: normal !important;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.fi-rr-angle-small-down:before { content: "\e0a1"; }
+.fi-rr-apps:before { content: "\e0c4"; }
+.fi-rr-ballot-check:before { content: "\e194"; }
+.fi-rr-building:before { content: "\e314"; }
+.fi-rr-calendar:before { content: "\e35d"; }
+.fi-rr-calendar-lines:before { content: "\e36b"; }
+.fi-rr-check:before { content: "\e430"; }
+.fi-rr-check-circle:before { content: "\e431"; }
+.fi-rr-copy:before { content: "\e5ab"; }
+.fi-rr-hand-holding-heart:before { content: "\e9fe"; }
+.fi-rr-home:before { content: "\ea8b"; }
+.fi-rr-link-slash:before { content: "\ec25"; }
+.fi-rr-lock:before { content: "\ec4f"; }
+.fi-rr-pencil:before { content: "\eea9"; }
+.fi-rr-plus:before { content: "\ef85"; }
+.fi-rr-settings:before { content: "\f163"; }
+.fi-rr-trash:before { content: "\f463"; }
+.fi-rr-user-add:before { content: "\f4fa"; }
+.fi-rr-users:before { content: "\f554"; }
+.fi-brands-whatsapp:before { content: "\f5f5"; }

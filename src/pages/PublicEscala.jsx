@@ -100,7 +100,7 @@ export default function PublicEscala() {
       <div className="flex min-h-screen items-center justify-center bg-[#f6f6f6] px-4">
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl">
-            <i className="fi fi-rr-link-broken" />
+            <i className="fi fi-rr-link-slash" />
           </div>
           <h1 className="mt-4 text-xl font-bold text-[#172233]">Departamento não encontrado</h1>
           <p className="mt-2 text-sm text-slate-500">Verifique o link e tente novamente.</p>

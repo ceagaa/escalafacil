@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import logo from "../assets/img/logotipo.png";
+import logo from "../assets/img/logotipo.webp";
 
 export default function Login() {
   const { user, loading, login, signUp, resetPassword } = useAuth();
@@ -111,7 +111,7 @@ export default function Login() {
               type="button"
               onClick={() => switchMode("login")}
               className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-                mode === "login" ? "bg-white text-[#172233] shadow-sm" : "text-slate-500 hover:text-slate-700"
+                mode === "login" ? "bg-white text-[#172233] shadow-sm" : "text-slate-700 hover:text-slate-900"
               }`}
             >
               Login
@@ -120,7 +120,7 @@ export default function Login() {
               type="button"
               onClick={() => switchMode("signup")}
               className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-                mode === "signup" ? "bg-white text-[#172233] shadow-sm" : "text-slate-500 hover:text-slate-700"
+                mode === "signup" ? "bg-white text-[#172233] shadow-sm" : "text-slate-700 hover:text-slate-900"
               }`}
             >
               Cadastro

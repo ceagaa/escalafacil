@@ -134,7 +134,7 @@ export default function PublicCadastro() {
       <div className="flex min-h-screen items-center justify-center bg-[#f6f6f6]">
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl">
-            <i className="fi fi-rr-link-broken" />
+            <i className="fi fi-rr-link-slash" />
           </div>
           <h1 className="mt-4 text-xl font-bold text-[#172233]">Departamento não encontrado</h1>
           <p className="mt-2 text-sm text-slate-500">
@@ -168,7 +168,7 @@ export default function PublicCadastro() {
       <div className="mx-auto max-w-lg">
         <div className="mb-6 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#42d27b]/10 text-2xl text-[#2a9d5c]">
-            <i className="fi fi-rr-hand-helping" />
+            <i className="fi fi-rr-hand-holding-heart" />
           </div>
           <h1 className="mt-3 text-xl font-bold text-[#172233]">Seja um Voluntário</h1>
           <p className="mt-1 text-sm text-slate-500">
