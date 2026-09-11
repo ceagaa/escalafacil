@@ -80,55 +80,69 @@ export function AuthProvider({ children }) {
       setTimeout(() => resolve({ timedOut: true }), TIMEOUT_MS);
     });
 
-    Promise.race([sessionPromise, timeoutPromise]).then(async (result) => {
-      if (!mounted) return;
-
-      if (result?.timedOut) {
-        console.warn("Supabase session check timed out — proceeding without auth.");
-        setLoading(false);
-        return;
-      }
-
-      const { data: { session } } = result;
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        const [profileData, depts] = await Promise.all([
-          fetchProfile(currentUser.id),
-          fetchDepartments(currentUser.id),
-        ]);
+    Promise.race([sessionPromise, timeoutPromise])
+      .then(async (result) => {
         if (!mounted) return;
-        setProfile(profileData);
-        setDepartments(depts);
-        if (depts.length > 0) {
-          setActiveDepartment(depts[0]);
-        }
-      }
-      setLoading(false);
-    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+        if (result?.timedOut) {
+          console.warn("Supabase session check timed out — proceeding without auth.");
+          return;
+        }
+
+        const { data: { session } } = result;
         const currentUser = session?.user ?? null;
         setUser(currentUser);
 
         if (currentUser) {
-          const [profileData, depts] = await Promise.all([
-            fetchProfile(currentUser.id),
-            fetchDepartments(currentUser.id),
-          ]);
-          setProfile(profileData);
-          setDepartments(depts);
-          if (depts.length > 0) {
-            setActiveDepartment((prev) => prev ?? depts[0]);
+          try {
+            const [profileData, depts] = await Promise.all([
+              fetchProfile(currentUser.id),
+              fetchDepartments(currentUser.id),
+            ]);
+            if (!mounted) return;
+            setProfile(profileData);
+            setDepartments(depts);
+            if (depts.length > 0) {
+              setActiveDepartment(depts[0]);
+            }
+          } catch (err) {
+            console.warn("Erro ao buscar dados do usuário:", err);
           }
-        } else {
-          setProfile(null);
-          setDepartments([]);
-          setActiveDepartment(null);
         }
-        setLoading(false);
+      })
+      .catch((err) => {
+        console.warn("Erro ao verificar sessão:", err);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        try {
+          const currentUser = session?.user ?? null;
+          setUser(currentUser);
+
+          if (currentUser) {
+            const [profileData, depts] = await Promise.all([
+              fetchProfile(currentUser.id),
+              fetchDepartments(currentUser.id),
+            ]);
+            setProfile(profileData);
+            setDepartments(depts);
+            if (depts.length > 0) {
+              setActiveDepartment((prev) => prev ?? depts[0]);
+            }
+          } else {
+            setProfile(null);
+            setDepartments([]);
+            setActiveDepartment(null);
+          }
+        } catch (err) {
+          console.warn("Erro no onAuthStateChange:", err);
+        } finally {
+          setLoading(false);
+        }
       }
     );
 

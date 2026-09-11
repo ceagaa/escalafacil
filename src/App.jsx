@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, lazy, Suspense, Component } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import {
   initialSchedule,
@@ -51,6 +51,34 @@ const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const PublicCadastro = lazy(() => import("./pages/PublicCadastro"));
 const PublicEscala = lazy(() => import("./pages/PublicEscala"));
 import logo from "./assets/img/logotipo.webp";
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-[#f6f6f6]">
+          <div className="text-center">
+            <p className="text-sm text-slate-500">Erro ao carregar. Recarregue a página.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-lg bg-[#42d27b] px-4 py-2 text-sm font-medium text-white"
+            >
+              Recarregar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const ROUTE_TITLES = {
   "/": "",
@@ -725,21 +753,23 @@ function AppLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#f6f6f6]"><p className="text-sm text-slate-400">Carregando...</p></div>}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/:slug/cadastro" element={<PublicCadastro />} />
-          <Route path="/:slug/escala" element={<PublicEscala />} />
-          <Route
-            path="*"
-            element={
-              <RequireAuth>
-                <AppLayout />
-              </RequireAuth>
-            }
-          />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#f6f6f6]"><p className="text-sm text-slate-400">Carregando...</p></div>}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/:slug/cadastro" element={<PublicCadastro />} />
+            <Route path="/:slug/escala" element={<PublicEscala />} />
+            <Route
+              path="*"
+              element={
+                <RequireAuth>
+                  <AppLayout />
+                </RequireAuth>
+              }
+            />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }
