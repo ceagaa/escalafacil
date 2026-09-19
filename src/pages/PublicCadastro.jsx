@@ -30,6 +30,16 @@ function sanitizeInput(value) {
 const SUBMISSION_KEY = "ap_public_submission_ts";
 const RATE_LIMIT_MS = 30000;
 
+function setMetaTag(property, content) {
+  let tag = document.querySelector(`meta[property="${property}"]`);
+  if (!tag) {
+    tag = document.createElement("meta");
+    tag.setAttribute("property", property);
+    document.head.appendChild(tag);
+  }
+  tag.setAttribute("content", content);
+}
+
 export default function PublicCadastro() {
   const { slug } = useParams();
   const [department, setDepartment] = useState(null);
@@ -56,6 +66,11 @@ export default function PublicCadastro() {
         setNotFound(true);
       } else {
         setDepartment(data);
+        document.title = `Seja Voluntário — ${data.name}`;
+        setMetaTag("og:title", `Seja Voluntário — ${data.name}`);
+        setMetaTag("og:description", `Cadastre-se como voluntário no departamento ${data.name}. Participação em escalas de eventos sazonais.`);
+        setMetaTag("og:image", window.location.origin + "/favicon.png");
+        setMetaTag("og:url", window.location.href);
       }
       setLoadingDept(false);
     }

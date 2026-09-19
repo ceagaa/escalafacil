@@ -45,7 +45,7 @@ export function IconButton({ label, iconClass, onClick }) {
 
 export function Modal({ title, children, onClose }) {
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/50 p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
       <div className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl">
         <div className="flex items-center justify-between gap-4">
           <h3 className="text-xl font-bold">{title}</h3>
@@ -71,7 +71,7 @@ export function Field({ label, value, onChange, required = false, placeholder = 
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
         required={required}
-        className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none placeholder:text-slate-300 focus:border-slate-400"
+        className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none placeholder:text-slate-300 focus:border-slate-400"
       />
     </label>
   );
@@ -84,7 +84,7 @@ export function Select({ label, value, onChange, options }) {
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400"
+        className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
       >
         {options.map((option) => (
           <option key={option}>{option}</option>

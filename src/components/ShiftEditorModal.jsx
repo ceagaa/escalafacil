@@ -88,7 +88,7 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
               value={startTime}
               onChange={(event) => setStartTime(event.target.value)}
               placeholder="Ex: 8:00"
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400"
+              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
             />
           </label>
           <label className="block">
@@ -97,7 +97,7 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
               value={endTime}
               onChange={(event) => setEndTime(event.target.value)}
               placeholder="Ex: 9:30"
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400"
+              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
             />
           </label>
         </div>
@@ -108,7 +108,7 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Ex: Guarda Volumes — Entrada principal"
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400"
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
           />
         </label>
 
@@ -155,7 +155,7 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
               value={manualName}
               onChange={(event) => setManualName(event.target.value)}
               placeholder="Ex: Irmão Joãozinho"
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400"
+              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
             />
           </label>
         )}
