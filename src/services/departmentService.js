@@ -89,18 +89,65 @@ export async function createDepartment(name, slug) {
   return data;
 }
 
-export async function linkUserAsCoordinator(departmentId, userId) {
+export async function linkUserAsCoordinator(departmentId, userId, eventoId) {
+  const payload = {
+    department_id: departmentId,
+    user_id: userId,
+    role: "coordenador",
+  };
+  if (eventoId) payload.evento_id = eventoId;
+
   const { error } = await supabase
+    .from("department_members")
+    .insert(payload);
+
+  if (error) {
+    throw new Error(sanitizeError(error, "create"));
+  }
+}
+
+export async function claimDepartmentForEvento(departmentId, userId, eventoId) {
+  const { data: existing } = await supabase
+    .from("department_members")
+    .select("id")
+    .eq("department_id", departmentId)
+    .eq("user_id", userId)
+    .eq("evento_id", eventoId)
+    .maybeSingle();
+
+  if (existing) return existing;
+
+  const { data, error } = await supabase
     .from("department_members")
     .insert({
       department_id: departmentId,
       user_id: userId,
       role: "coordenador",
-    });
+      evento_id: eventoId,
+    })
+    .select()
+    .single();
 
   if (error) {
     throw new Error(sanitizeError(error, "create"));
   }
+  return data;
+}
+
+export async function getEventoDepartmentOwner(departmentId, eventoId) {
+  const query = supabase
+    .from("department_members")
+    .select("role, profiles(name)")
+    .eq("department_id", departmentId)
+    .eq("role", "coordenador");
+
+  if (eventoId) {
+    query.eq("evento_id", eventoId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error || !data) return null;
+  return data.profiles?.name || null;
 }
 
 export async function updateDepartmentFeatures(departmentId, features) {

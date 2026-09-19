@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useEvent } from "../context/EventContext";
 import {
   createDepartment,
   linkUserAsCoordinator,
   STANDARD_DEPARTMENTS,
 } from "../services/departmentService";
+import { linkDepartmentToEvento } from "../services/eventService";
 
 export default function GerenciarDepartamentos() {
   const { user, refreshSession, selectDepartment, departments } = useAuth();
+  const { activeEvent, eventoId } = useEvent();
   const [selectedSlug, setSelectedSlug] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,7 +25,10 @@ export default function GerenciarDepartamentos() {
 
     try {
       const department = await createDepartment(option.name, option.slug);
-      await linkUserAsCoordinator(department.id, user.id);
+      if (eventoId) {
+        await linkDepartmentToEvento(eventoId, department.id);
+      }
+      await linkUserAsCoordinator(department.id, user.id, eventoId);
       const depts = await refreshSession();
       const membership = (depts || []).find((member) => member?.department?.id === department.id);
       selectDepartment(
@@ -44,6 +50,11 @@ export default function GerenciarDepartamentos() {
     <div className="mx-auto max-w-lg">
       <div className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
         <h2 className="text-lg font-bold text-[#172233]">Reivindicar Departamento</h2>
+        {activeEvent && (
+          <p className="mt-1 text-xs text-slate-400">
+            Evento: {activeEvent.tipo} — {activeEvent.cidade}/{activeEvent.estado}
+          </p>
+        )}
         <p className="mt-1 text-sm text-slate-500">
           Escolha o departamento da sua equipe e se torne automaticamente o coordenador.
         </p>

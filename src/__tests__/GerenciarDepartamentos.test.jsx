@@ -11,6 +11,10 @@ vi.mock("../context/AuthContext", () => ({
   })),
 }));
 
+vi.mock("../context/EventContext", () => ({
+  useEvent: vi.fn(() => ({ activeEvent: null, eventoId: null, clearEvent: vi.fn() })),
+}));
+
 vi.mock("../services/departmentService", () => ({
   STANDARD_DEPARTMENTS: [
     { name: "Achados Perdidos e Guarda Volumes", slug: "achados-perdidos-guarda-volumes" },
@@ -19,6 +23,10 @@ vi.mock("../services/departmentService", () => ({
   ],
   createDepartment: vi.fn(),
   linkUserAsCoordinator: vi.fn(),
+}));
+
+vi.mock("../services/eventService", () => ({
+  linkDepartmentToEvento: vi.fn(),
 }));
 
 import { useAuth } from "../context/AuthContext";
@@ -68,7 +76,7 @@ describe("GerenciarDepartamentos", () => {
 
     await waitFor(() => {
       expect(createDepartment).toHaveBeenCalledWith("Indicadores", "indicadores");
-      expect(linkUserAsCoordinator).toHaveBeenCalledWith("d-1", "user-1");
+      expect(linkUserAsCoordinator).toHaveBeenCalledWith("d-1", "user-1", null);
     });
   });
 
