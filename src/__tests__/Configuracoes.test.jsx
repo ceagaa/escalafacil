@@ -7,7 +7,6 @@ vi.mock("../context/AuthContext", () => ({
 }));
 
 vi.mock("../services/departmentService", () => ({
-  updateDepartmentFeatures: vi.fn(),
   findProfileByEmail: vi.fn(),
   addDepartmentMember: vi.fn(),
   listDepartmentMembers: vi.fn().mockResolvedValue([]),
@@ -16,7 +15,6 @@ vi.mock("../services/departmentService", () => ({
 
 import { useAuth } from "../context/AuthContext";
 import {
-  updateDepartmentFeatures,
   findProfileByEmail,
   addDepartmentMember,
   listDepartmentMembers,
@@ -31,7 +29,6 @@ const coordinatorAuth = {
       id: "dept-1",
       name: "Achados e Perdidos",
       slug: "achados-perdidos-guarda-volumes",
-      features: { lostItems: true },
     },
   },
   refreshDepartments: vi.fn().mockResolvedValue([]),
@@ -54,14 +51,13 @@ describe("Configuracoes", () => {
     });
     render(<Configuracoes />);
     expect(screen.getByText("Acesso restrito a coordenadores")).toBeDefined();
-    expect(screen.queryByText("Módulos do departamento")).toBeNull();
+    expect(screen.queryByText("Gestão de Equipe")).toBeNull();
   });
 
-  it("renders feature flags and team management for coordinators", async () => {
+  it("renders team management for coordinators", async () => {
     useAuth.mockReturnValue(coordinatorAuth);
     render(<Configuracoes />);
     await waitFor(() => {
-      expect(screen.getByText("Módulo de Achados e Perdidos")).toBeDefined();
       expect(screen.getByText("Gestão de Equipe")).toBeDefined();
     });
   });
@@ -91,7 +87,7 @@ describe("Configuracoes", () => {
       ...coordinatorAuth,
       activeDepartment: {
         ...coordinatorAuth.activeDepartment,
-        department: { id: "dept-1", name: "Achados e Perdidos", features: { lostItems: true } },
+        department: { id: "dept-1", name: "Achados e Perdidos" },
       },
     });
     render(<Configuracoes />);
@@ -110,18 +106,6 @@ describe("Configuracoes", () => {
     await waitFor(() => {
       expect(screen.getByText("coord@example.com")).toBeDefined();
       expect(screen.getByText("assist@example.com")).toBeDefined();
-    });
-  });
-
-  it("toggles the lost items feature flag", async () => {
-    useAuth.mockReturnValue(coordinatorAuth);
-    updateDepartmentFeatures.mockResolvedValue({});
-    render(<Configuracoes />);
-    const toggle = screen.getByLabelText("Alternar módulo de achados e perdidos");
-    fireEvent.click(toggle);
-    await waitFor(() => {
-      expect(updateDepartmentFeatures).toHaveBeenCalledWith("dept-1", { lostItems: false });
-      expect(coordinatorAuth.refreshDepartments).toHaveBeenCalled();
     });
   });
 

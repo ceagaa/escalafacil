@@ -1,6 +1,5 @@
 import { supabase } from "./supabase.js";
 import { getVolunteers } from "./volunteersService.js";
-import { getLostItems } from "./itemsService.js";
 import { makeId } from "../utils/helpers.js";
 import { sanitizeError } from "../utils/errors.js";
 
@@ -204,17 +203,16 @@ export async function seedScheduleForDepartment(departmentId, initialSchedule) {
   }
 }
 
-export async function fetchDepartmentData(departmentId, initialSchedule, initialVolunteers, initialItems, mapDbItemToApp) {
+export async function fetchDepartmentData(departmentId, initialSchedule, initialVolunteers) {
   if (!departmentId) throw new Error("departmentId is required");
 
   await seedScheduleForDepartment(departmentId, initialSchedule);
 
-  const [blocks, shifts, assigned, volunteers, lostItems] = await Promise.all([
+  const [blocks, shifts, assigned, volunteers] = await Promise.all([
     getScheduleBlocks(departmentId),
     getAllShifts(departmentId),
     getShiftVolunteers(departmentId),
     getVolunteers(departmentId),
-    getLostItems(departmentId),
   ]);
 
   const groupedSchedule = (blocks || []).map((block) => ({
@@ -246,6 +244,5 @@ export async function fetchDepartmentData(departmentId, initialSchedule, initial
     volunteers: Array.isArray(volunteers)
       ? volunteers.filter((v) => !EXCLUDED_NAMES.includes(v.name))
       : initialVolunteers,
-    items: Array.isArray(lostItems) ? lostItems.map(mapDbItemToApp) : initialItems,
   };
 }

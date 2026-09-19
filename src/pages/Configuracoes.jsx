@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
-  updateDepartmentFeatures,
   findProfileByEmail,
   addDepartmentMember,
   listDepartmentMembers,
@@ -9,10 +8,9 @@ import {
 } from "../services/departmentService";
 
 export default function Configuracoes() {
-  const { activeDepartment, refreshDepartments, user } = useAuth();
+  const { activeDepartment, user } = useAuth();
   const departmentId = activeDepartment?.department?.id || activeDepartment?.id || null;
   const role = activeDepartment?.role;
-  const features = activeDepartment?.department?.features || {};
   const isCoordinator = role === "coordenador";
 
   const [members, setMembers] = useState([]);
@@ -20,8 +18,6 @@ export default function Configuracoes() {
   const [teamError, setTeamError] = useState("");
   const [teamNotice, setTeamNotice] = useState("");
   const [addingMember, setAddingMember] = useState(false);
-  const [savingFlag, setSavingFlag] = useState(false);
-  const [flagError, setFlagError] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
 
   const departmentSlug = activeDepartment?.department?.slug || "";
@@ -36,8 +32,6 @@ export default function Configuracoes() {
       .catch(() => setMembers([]));
   }, [departmentId, isCoordinator]);
 
-  const lostItemsEnabled = features.lostItems !== false;
-
   async function handleCopyScaleLink() {
     if (!publicScaleLink) return;
     try {
@@ -46,20 +40,6 @@ export default function Configuracoes() {
       window.setTimeout(() => setCopiedLink(false), 2200);
     } catch (error) {
       console.warn("Falha ao copiar link da escala.", error);
-    }
-  }
-
-  async function handleToggleLostItems() {
-    if (!departmentId) return;
-    setSavingFlag(true);
-    setFlagError("");
-    try {
-      await updateDepartmentFeatures(departmentId, { ...features, lostItems: !lostItemsEnabled });
-      await refreshDepartments();
-    } catch (err) {
-      setFlagError(err.message || "Erro ao atualizar configurações.");
-    } finally {
-      setSavingFlag(false);
     }
   }
 
@@ -163,43 +143,6 @@ export default function Configuracoes() {
       </section>
 
       <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
-        <h2 className="text-lg font-bold text-[#172233]">Módulos do departamento</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Ative ou desative os módulos disponíveis para a sua equipe.
-        </p>
-
-        <div className="mt-5 flex items-center justify-between gap-4 rounded-2xl border border-slate-100 p-4">
-          <div>
-            <p className="font-semibold text-[#172233]">Módulo de Achados e Perdidos</p>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Exibe a aba de Itens Perdidos na navegação do painel.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleToggleLostItems}
-            disabled={savingFlag}
-            aria-label="Alternar módulo de achados e perdidos"
-            className={`relative h-7 w-12 shrink-0 rounded-full transition ${
-              lostItemsEnabled ? "bg-[#42d27b]" : "bg-slate-300"
-            } disabled:opacity-50`}
-          >
-            <span
-              className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${
-                lostItemsEnabled ? "left-[22px]" : "left-0.5"
-              }`}
-            />
-          </button>
-        </div>
-
-        {flagError && (
-          <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {flagError}
-          </p>
-        )}
-      </section>
-
-      <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
         <h2 className="text-lg font-bold text-[#172233]">Gestão de Equipe</h2>
         <p className="mt-1 text-sm text-slate-500">
           Adicione assistentes pelo e-mail cadastrado no sistema.
@@ -211,7 +154,7 @@ export default function Configuracoes() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="email@exemplo.com"
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
           />
           <button
             type="submit"

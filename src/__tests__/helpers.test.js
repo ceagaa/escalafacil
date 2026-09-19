@@ -18,13 +18,11 @@ import {
   volunteerIsAvailable,
   buildAssignmentMessage,
   buildDaySummary,
-  getResponsibleNames,
   hexToRgba,
   buildOfflineSnapshot,
   formatCurrentDate,
   initialSchedule,
   emptyVolunteer,
-  emptyItem,
 } from "../utils/helpers";
 
 describe("sanitizeSchedule", () => {
@@ -302,16 +300,6 @@ describe("buildDaySummary", () => {
   });
 });
 
-describe("getResponsibleNames", () => {
-  it("splits multiple names", () => {
-    expect(getResponsibleNames("Carlos e David")).toEqual(["Carlos", "David"]);
-  });
-
-  it("normalizes Carlos Henrique to Carlos", () => {
-    expect(getResponsibleNames("Carlos Henrique")).toEqual(["Carlos"]);
-  });
-});
-
 describe("hexToRgba", () => {
   it("converts hex to rgba", () => {
     expect(hexToRgba("#000000", 0.5)).toBe("rgba(0, 0, 0, 0.5)");
@@ -342,14 +330,5 @@ describe("emptyVolunteer", () => {
     const v = emptyVolunteer();
     expect(v.name).toBe("");
     expect(v.active).toBe(true);
-  });
-});
-
-describe("emptyItem", () => {
-  it("returns empty item object with defaults", () => {
-    const i = emptyItem();
-    expect(i.item).toBe("");
-    expect(i.status).toBe("Guardado");
-    expect(i.day).toBe("Sexta-feira");
   });
 });

@@ -98,18 +98,8 @@ export const initialSchedule = [
 
 export const initialVolunteers = [];
 
-export const initialItems = [
-  { id: "i-1", person: "Maria S.", item: "Bolsa preta", day: "Sexta-feira", status: "Guardado", photo: "" },
-  { id: "i-2", person: "João P.", item: "Chaveiro", day: "Sábado", status: "Guardado", photo: "" },
-  { id: "i-3", person: "Ana L.", item: "Óculos", day: "Domingo", status: "Entregue", photo: "" },
-];
-
 export function emptyVolunteer() {
   return { id: "", name: "", congregation: "", phone: "", active: true };
-}
-
-export function emptyItem() {
-  return { id: "", person: "", item: "", day: "Sexta-feira", status: "Guardado", photo: "" };
 }
 
 export function sanitizeSchedule(schedule) {
@@ -162,16 +152,6 @@ export function mapAppVolunteerToDb(volunteer) {
     phone: volunteer.phone || "",
     active: volunteer.active !== false,
   };
-}
-
-export function getResponsibleNames(responsible) {
-  return String(responsible || "")
-    .replaceAll("Carlos Henrique", "Carlos")
-    .replaceAll(" e ", ",")
-    .replaceAll("/", ",")
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
 }
 
 export function createWhatsAppUrl(phone) {
@@ -345,7 +325,6 @@ export const navigationItems = [
   { path: "/", label: "Início", iconClass: "fi fi-rr-home" },
   { path: "/programacao", label: "Escala", iconClass: "fi fi-rr-calendar-lines" },
   { path: "/voluntarios", label: "Voluntários", iconClass: "fi fi-rr-users" },
-  { path: "/itens", label: "Itens Perdidos", iconClass: "fi fi-rr-ballot-check" },
   { path: "/configuracoes", label: "Configurações", iconClass: "fi fi-rr-settings" },
 ];
 
