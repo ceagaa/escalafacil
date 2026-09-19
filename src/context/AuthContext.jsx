@@ -159,10 +159,14 @@ export function AuthProvider({ children }) {
   }
 
   async function signUp(email, password, name) {
+    const redirectTo = typeof window !== "undefined" ? window.location.origin + "/login" : undefined;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name } },
+      options: {
+        data: { name },
+        emailRedirectTo: redirectTo,
+      },
     });
     if (error) throw error;
 

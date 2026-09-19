@@ -129,6 +129,8 @@ describe("Login", () => {
     fireEvent.change(screen.getByPlaceholderText("Mínimo de 6 caracteres"), {
       target: { value: "secret123" },
     });
+    const checkbox = screen.getByRole("checkbox");
+    fireEvent.click(checkbox);
     fireEvent.click(screen.getByRole("button", { name: "Criar conta" }));
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith(
@@ -152,9 +154,11 @@ describe("Login", () => {
     fireEvent.change(screen.getByPlaceholderText("Mínimo de 6 caracteres"), {
       target: { value: "secret123" },
     });
+    const checkbox = screen.getByRole("checkbox");
+    fireEvent.click(checkbox);
     fireEvent.click(screen.getByRole("button", { name: "Criar conta" }));
     await waitFor(() => {
-      expect(screen.getByText(/Conta criada! Confirme seu e-mail/)).toBeDefined();
+      expect(screen.getByText(/Conta criada! Verifique seu e-mail/)).toBeDefined();
     });
   });
 

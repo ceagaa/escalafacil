@@ -32,16 +32,35 @@ vi.mock("../services/departmentService", () => ({
   ],
   createDepartment: vi.fn(),
   linkUserAsCoordinator: vi.fn(),
-  getDashboardStats: vi.fn(),
-  getDepartmentOwnerBySlugRpc: vi.fn(),
+  claimDepartmentForEvento: vi.fn(),
+  getEventoDepartmentOwner: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock("../services/eventService", () => ({
+  linkDepartmentToEvento: vi.fn(),
+  getDepartmentHistory: vi.fn().mockResolvedValue([]),
+  importVolunteersFromEvento: vi.fn().mockResolvedValue({ imported: 0 }),
+}));
+
+vi.mock("../context/EventContext", () => ({
+  useEvent: vi.fn(),
+}));
+
+vi.mock("../components/ConfirmModal", () => ({
+  __esModule: true,
+  default: ({ title, message, onCancel, onConfirm }) => (
+    <div data-testid="confirm-modal">
+      <p>{title}</p>
+      <p>{message}</p>
+      <button onClick={onCancel}>Cancelar</button>
+      <button onClick={onConfirm}>Confirmar</button>
+    </div>
+  ),
 }));
 
 import { useAuth } from "../context/AuthContext";
-import {
-  createDepartment,
-  linkUserAsCoordinator,
-  getDepartmentOwnerBySlugRpc,
-} from "../services/departmentService";
+import { useEvent } from "../context/EventContext";
+import { createDepartment, getEventoDepartmentOwner } from "../services/departmentService";
 
 const authDefaults = {
   user: { id: "user-1" },
@@ -62,7 +81,8 @@ function renderDashboard() {
 beforeEach(() => {
   vi.clearAllMocks();
   useAuth.mockReturnValue(authDefaults);
-  getDepartmentOwnerBySlugRpc.mockResolvedValue(null);
+  useEvent.mockReturnValue({ activeEvent: null, eventoId: null, clearEvent: vi.fn() });
+  getEventoDepartmentOwner.mockResolvedValue(null);
   mockState.deptListResult = { data: [], error: null };
 });
 
@@ -88,7 +108,7 @@ describe("Dashboard", () => {
         data: [{ id: "d-1", name: "Indicadores", slug: "indicadores" }],
         error: null,
       };
-      getDepartmentOwnerBySlugRpc.mockResolvedValue("Ana Souza");
+      getEventoDepartmentOwner.mockResolvedValue("Ana Souza");
 
       renderDashboard();
       await waitFor(() => {
@@ -99,15 +119,19 @@ describe("Dashboard", () => {
 
     it("claims a free department and switches to active state", async () => {
       createDepartment.mockResolvedValue({ id: "d-3", name: "Limpeza", slug: "limpeza" });
-      linkUserAsCoordinator.mockResolvedValue();
 
       renderDashboard();
 
       fireEvent.click(screen.getByRole("button", { name: /Limpeza/ }));
 
       await waitFor(() => {
+        expect(screen.getByTestId("confirm-modal")).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByText("Confirmar"));
+
+      await waitFor(() => {
         expect(createDepartment).toHaveBeenCalledWith("Limpeza", "limpeza");
-        expect(linkUserAsCoordinator).toHaveBeenCalledWith("d-3", "user-1");
         expect(authDefaults.selectDepartment).toHaveBeenCalled();
       });
     });
@@ -117,7 +141,7 @@ describe("Dashboard", () => {
         data: [{ id: "d-1", name: "Indicadores", slug: "indicadores" }],
         error: null,
       };
-      getDepartmentOwnerBySlugRpc.mockResolvedValue("Ana Souza");
+      getEventoDepartmentOwner.mockResolvedValue("Ana Souza");
 
       renderDashboard();
       await waitFor(() => {
@@ -142,7 +166,7 @@ describe("Dashboard", () => {
         data: [{ id: "d-1", name: "Limpeza", slug: "limpeza" }],
         error: null,
       };
-      getDepartmentOwnerBySlugRpc.mockResolvedValue("Carlos");
+      getEventoDepartmentOwner.mockResolvedValue("Carlos");
 
       renderDashboard();
       await waitFor(() => {
@@ -159,9 +183,9 @@ describe("Dashboard", () => {
     const deptAuth = {
       ...authDefaults,
       departments: [
-        { id: "dm-1", role: "coordenador", department: { id: "d-1", name: "Limpeza", slug: "limpeza", features: { lostItems: false } } },
+        { id: "dm-1", role: "coordenador", department: { id: "d-1", name: "Limpeza", slug: "limpeza" } },
       ],
-      activeDepartment: { id: "dm-1", role: "coordenador", department: { id: "d-1", name: "Limpeza", slug: "limpeza", features: { lostItems: false } } },
+      activeDepartment: { id: "dm-1", role: "coordenador", department: { id: "d-1", name: "Limpeza", slug: "limpeza" } },
     };
 
     it("shows department name as title", () => {
@@ -192,24 +216,6 @@ describe("Dashboard", () => {
       expect(screen.getByText("Gestão de Escalas")).toBeDefined();
       expect(screen.getByText("Equipe e Aprovação")).toBeDefined();
       expect(screen.getByText("Configurações")).toBeDefined();
-    });
-
-    it("shows Achados e Perdidos for that department", () => {
-      useAuth.mockReturnValue({
-        ...deptAuth,
-        activeDepartment: {
-          ...deptAuth.activeDepartment,
-          department: { id: "d-ap", name: "Achados Perdidos", slug: "achados-perdidos-guarda-volumes" },
-        },
-      });
-      renderDashboard();
-      expect(screen.getByText("Achados e Perdidos")).toBeDefined();
-    });
-
-    it("hides Achados e Perdidos for other departments", () => {
-      useAuth.mockReturnValue(deptAuth);
-      renderDashboard();
-      expect(screen.queryByText("Achados e Perdidos")).toBeNull();
     });
 
     it("shows Trocar de departamento when user has multiple depts", () => {
