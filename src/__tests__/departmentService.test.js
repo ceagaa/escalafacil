@@ -54,9 +54,8 @@ beforeEach(() => {
 
 describe("departmentService", () => {
   describe("STANDARD_DEPARTMENTS", () => {
-    it("contains exactly the 3 standard departments", () => {
+    it("contains exactly the 2 standard departments", () => {
       expect(STANDARD_DEPARTMENTS).toEqual([
-        { name: "Achados Perdidos e Guarda Volumes", slug: "achados-perdidos-guarda-volumes" },
         { name: "Indicadores", slug: "indicadores" },
         { name: "Limpeza", slug: "limpeza" },
       ]);
@@ -66,21 +65,21 @@ describe("departmentService", () => {
   describe("createDepartment", () => {
     it("inserts a department with the provided slug", async () => {
       mockSingle.mockResolvedValue({
-        data: { id: "d-1", name: "Achados Perdidos e Guarda Volumes", slug: "achados-perdidos-guarda-volumes" },
+        data: { id: "d-1", name: "Indicadores", slug: "indicadores" },
         error: null,
       });
       const result = await createDepartment(
-        "Achados Perdidos e Guarda Volumes",
-        "achados-perdidos-guarda-volumes"
+        "Indicadores",
+        "indicadores"
       );
       expect(result).toEqual({
         id: "d-1",
-        name: "Achados Perdidos e Guarda Volumes",
-        slug: "achados-perdidos-guarda-volumes",
+        name: "Indicadores",
+        slug: "indicadores",
       });
       expect(mockInsert).toHaveBeenCalledWith({
-        name: "Achados Perdidos e Guarda Volumes",
-        slug: "achados-perdidos-guarda-volumes",
+        name: "Indicadores",
+        slug: "indicadores",
       });
     });
 
@@ -105,7 +104,7 @@ describe("departmentService", () => {
           error: null,
         });
       await expect(
-        createDepartment("Achados Perdidos e Guarda Volumes", "achados-perdidos-guarda-volumes")
+        createDepartment("Indicadores", "indicadores")
       ).rejects.toThrow("Departamento já criado. Responsável: Carlos Henrique");
     });
 
@@ -257,14 +256,14 @@ describe("departmentService", () => {
         eq: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
-              data: { id: "d-1", features: { lostItems: false } },
+              data: { id: "d-1", features: { showMap: true } },
               error: null,
             }),
           }),
         }),
       });
-      const result = await updateDepartmentFeatures("d-1", { lostItems: false });
-      expect(result).toEqual({ id: "d-1", features: { lostItems: false } });
+      const result = await updateDepartmentFeatures("d-1", { showMap: true });
+      expect(result).toEqual({ id: "d-1", features: { showMap: true } });
     });
 
     it("throws on update error", async () => {
@@ -275,7 +274,7 @@ describe("departmentService", () => {
           }),
         }),
       });
-      await expect(updateDepartmentFeatures("d-1", { lostItems: false })).rejects.toThrow("rls violation");
+      await expect(updateDepartmentFeatures("d-1", { showMap: true })).rejects.toThrow("rls violation");
     });
   });
 

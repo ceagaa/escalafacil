@@ -17,7 +17,6 @@ vi.mock("../context/EventContext", () => ({
 
 vi.mock("../services/departmentService", () => ({
   STANDARD_DEPARTMENTS: [
-    { name: "Achados Perdidos e Guarda Volumes", slug: "achados-perdidos-guarda-volumes" },
     { name: "Indicadores", slug: "indicadores" },
     { name: "Limpeza", slug: "limpeza" },
   ],
@@ -42,18 +41,15 @@ function selectOption(value) {
 }
 
 describe("GerenciarDepartamentos", () => {
-  it("renders the claim form with a strict select of the 3 standard departments", () => {
+  it("renders the claim form with a strict select of the 2 standard departments", () => {
     render(<GerenciarDepartamentos />);
     expect(
       screen.getByRole("heading", { name: "Reivindicar Departamento" })
     ).toBeDefined();
-    expect(
-      screen.getByRole("option", { name: "Achados Perdidos e Guarda Volumes" })
-    ).toBeDefined();
     expect(screen.getByRole("option", { name: "Indicadores" })).toBeDefined();
     expect(screen.getByRole("option", { name: "Limpeza" })).toBeDefined();
-    expect(screen.queryByPlaceholderText("Ex: Achados e Perdidos")).toBeNull();
-    expect(screen.getByRole("combobox").options).toHaveLength(4);
+    expect(screen.queryByPlaceholderText("Ex: Indicadores")).toBeNull();
+    expect(screen.getByRole("combobox").options).toHaveLength(3);
   });
 
   it("does not submit without a selected department", () => {

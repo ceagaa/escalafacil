@@ -124,27 +124,6 @@ export function sortShifts(shifts) {
   return [...shifts].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 }
 
-export function mapDbItemToApp(item) {
-  return {
-    id: item.id,
-    item: item.item || "",
-    person: item.person || "",
-    day: item.day || "Sexta-feira",
-    status: item.status || "Guardado",
-    photo: item.photo_url || "",
-  };
-}
-
-export function mapAppItemToDb(item) {
-  return {
-    item: item.item,
-    person: item.person,
-    day: item.day,
-    status: item.status,
-    photo_url: item.photo || "",
-  };
-}
-
 export function mapAppVolunteerToDb(volunteer) {
   return {
     name: volunteer.name,
@@ -230,11 +209,6 @@ export function buildDaySummary(schedule, day, volunteers, departmentName = "") 
 
 export function makeId(prefix) {
   return prefix + "-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-}
-
-export function statusClass(status) {
-  if (status === "Entregue") return "bg-emerald-50 text-emerald-700";
-  return "bg-slate-100 text-slate-600";
 }
 
 export function extractTimeMinutes(value) {

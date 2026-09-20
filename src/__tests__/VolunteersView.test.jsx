@@ -12,7 +12,7 @@ const baseProps = {
   onCancel: vi.fn(),
   onApprove: vi.fn(),
   onReject: vi.fn(),
-  departmentName: "Achados e Perdidos",
+  departmentName: "Indicadores",
 };
 
 beforeEach(() => {
@@ -93,7 +93,7 @@ describe("VolunteersView", () => {
       expect(waLink).toBeDefined();
       expect(waLink.href).toContain("wa.me/5583999991111");
       expect(decodeURIComponent(waLink.href)).toContain(
-        "seu cadastro no departamento Achados e Perdidos foi aprovado"
+        "seu cadastro no departamento Indicadores foi aprovado"
       );
     });
   });

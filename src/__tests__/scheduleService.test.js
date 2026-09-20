@@ -28,10 +28,6 @@ vi.mock("../services/volunteersService.js", () => ({
   getVolunteers: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../services/itemsService.js", () => ({
-  getLostItems: vi.fn().mockResolvedValue([]),
-}));
-
 import {
   getScheduleBlocks,
   getAllShifts,

@@ -7,8 +7,6 @@ import {
   getTodayScheduleDay,
   isCurrentShift,
   findActiveShiftId,
-  mapDbItemToApp,
-  mapAppItemToDb,
   mapAppVolunteerToDb,
   makeId,
   createWhatsAppUrl,
@@ -114,28 +112,6 @@ describe("findActiveShiftId", () => {
   });
 });
 
-describe("mapDbItemToApp", () => {
-  it("maps database fields to app fields", () => {
-    const dbItem = { id: "1", item: "Bolsa", person: "Maria", day: "Sexta", status: "Guardado", photo_url: "http://img.com" };
-    const app = mapDbItemToApp(dbItem);
-    expect(app).toEqual({ id: "1", item: "Bolsa", person: "Maria", day: "Sexta", status: "Guardado", photo: "http://img.com" });
-  });
-
-  it("handles missing fields gracefully", () => {
-    const app = mapDbItemToApp({});
-    expect(app.photo).toBe("");
-    expect(app.day).toBe("Sexta-feira");
-  });
-});
-
-describe("mapAppItemToDb", () => {
-  it("maps app fields to database fields", () => {
-    const appItem = { id: "1", item: "Chave", person: "João", day: "Sábado", status: "Entregue", photo: "http://img.com" };
-    const db = mapAppItemToDb(appItem);
-    expect(db).toEqual({ item: "Chave", person: "João", day: "Sábado", status: "Entregue", photo_url: "http://img.com" });
-  });
-});
-
 describe("mapAppVolunteerToDb", () => {
   it("maps volunteer fields correctly", () => {
     const vol = { id: "1", name: "Carlos", congregation: "Bancários", phone: "119999", active: true };
@@ -235,12 +211,12 @@ describe("buildAssignmentMessage", () => {
     const message = buildAssignmentMessage(
       { name: "Carlos" },
       { day: "Sexta-feira", period: "Manhã", start: "8:00", end: "9:30" },
-      "Achados e Perdidos"
+      "Indicadores"
     );
     expect(message).toContain("Olá Carlos");
     expect(message).toContain("Sexta-feira - Manhã");
     expect(message).toContain("8:00 até 9:30");
-    expect(message).toContain("Local: Achados e Perdidos");
+    expect(message).toContain("Local: Indicadores");
   });
 
   it("omits local when no department", () => {
@@ -268,8 +244,8 @@ describe("buildDaySummary", () => {
       { id: "sab-manha", day: "Sábado", period: "Manhã", shifts: [] },
     ];
     const volunteers = [{ id: "v-1", name: "Carlos" }];
-    const summary = buildDaySummary(schedule, "Sexta-feira", volunteers, "Achados e Perdidos");
-    expect(summary).toContain("*Escala Sexta-feira* — Achados e Perdidos");
+    const summary = buildDaySummary(schedule, "Sexta-feira", volunteers, "Indicadores");
+    expect(summary).toContain("*Escala Sexta-feira* — Indicadores");
     expect(summary).toContain("*Sexta-feira · Manhã* (Resp.: Eduardo)");
     expect(summary).toContain("• 8:00 às 9:30: Carlos");
     expect(summary).toContain("• 9:30 às 11:05: Aguardando escala");

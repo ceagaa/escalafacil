@@ -26,7 +26,6 @@ vi.mock("../context/AuthContext", () => ({
 
 vi.mock("../services/departmentService", () => ({
   STANDARD_DEPARTMENTS: [
-    { name: "Achados Perdidos e Guarda Volumes", slug: "achados-perdidos-guarda-volumes" },
     { name: "Indicadores", slug: "indicadores" },
     { name: "Limpeza", slug: "limpeza" },
   ],
@@ -92,7 +91,6 @@ describe("Dashboard", () => {
       renderDashboard();
       expect(screen.getByText("Bem-vindo!")).toBeDefined();
       expect(screen.getByText("Escolha o departamento da sua equipe para começar.")).toBeDefined();
-      expect(screen.getByText("Achados Perdidos e Guarda Volumes")).toBeDefined();
       expect(screen.getByText("Indicadores")).toBeDefined();
       expect(screen.getByText("Limpeza")).toBeDefined();
     });

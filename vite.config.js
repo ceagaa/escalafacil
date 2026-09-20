@@ -11,9 +11,9 @@ export default defineConfig(() => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg'],
         manifest: {
-          name: 'Achados & Perdidos - Guarda Volumes',
-          short_name: 'Achados',
-          description: 'App para gerenciamento de escala, voluntários e itens perdidos.',
+          name: 'EscalaFácil',
+          short_name: 'EscalaFácil',
+          description: 'Gerenciamento de escalas, voluntários e departamentos para eventos sazonais.',
           theme_color: '#172233',
           background_color: '#f6f6f6',
           display: 'standalone',

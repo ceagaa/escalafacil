@@ -19,7 +19,7 @@ vi.mock("../services/supabase.js", () => ({
   },
 }));
 
-function renderWithSlug(slug = "achados-e-perdidos") {
+function renderWithSlug(slug = "indicadores") {
   return render(
     <MemoryRouter initialEntries={[`/${slug}/cadastro`]}>
       <PublicCadastro />
@@ -50,13 +50,13 @@ describe("PublicCadastro", () => {
 
   it("renders form when department is found", async () => {
     mockSingle.mockResolvedValue({
-      data: { id: "d-1", name: "Achados e Perdidos" },
+      data: { id: "d-1", name: "Indicadores" },
       error: null,
     });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getByText("Seja um Voluntário")).toBeDefined();
-      expect(screen.getByText("Achados e Perdidos")).toBeDefined();
+      expect(screen.getByText("Indicadores")).toBeDefined();
       expect(screen.getByPlaceholderText("Seu nome")).toBeDefined();
       expect(screen.getByPlaceholderText("Nome da congregação")).toBeDefined();
       expect(screen.getByPlaceholderText("+55 99999-9999")).toBeDefined();
@@ -118,7 +118,7 @@ describe("PublicCadastro", () => {
 
   it("submits form and shows success screen", async () => {
     mockSingle.mockResolvedValue({
-      data: { id: "d-1", name: "Achados e Perdidos" },
+      data: { id: "d-1", name: "Indicadores" },
       error: null,
     });
     mockInsert.mockResolvedValue({ error: null });
@@ -144,7 +144,7 @@ describe("PublicCadastro", () => {
         active: false,
       });
       expect(screen.getByText("Cadastro recebido!")).toBeDefined();
-      expect(screen.getByText(/Achados e Perdidos/)).toBeDefined();
+      expect(screen.getByText(/Indicadores/)).toBeDefined();
     });
   });
 

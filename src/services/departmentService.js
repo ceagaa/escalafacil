@@ -2,7 +2,6 @@ import { supabase } from "./supabase";
 import { sanitizeError } from "../utils/errors.js";
 
 export const STANDARD_DEPARTMENTS = [
-  { name: "Achados Perdidos e Guarda Volumes", slug: "achados-perdidos-guarda-volumes" },
   { name: "Indicadores", slug: "indicadores" },
   { name: "Limpeza", slug: "limpeza" },
 ];

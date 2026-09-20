@@ -27,8 +27,8 @@ const coordinatorAuth = {
     role: "coordenador",
     department: {
       id: "dept-1",
-      name: "Achados e Perdidos",
-      slug: "achados-perdidos-guarda-volumes",
+      name: "Indicadores",
+      slug: "indicadores",
     },
   },
   refreshDepartments: vi.fn().mockResolvedValue([]),
@@ -66,7 +66,7 @@ describe("Configuracoes", () => {
     useAuth.mockReturnValue(coordinatorAuth);
     render(<Configuracoes />);
     expect(screen.getByText("Link público da escala")).toBeDefined();
-    expect(screen.getByText(/achados-perdidos-guarda-volumes\/escala/)).toBeDefined();
+    expect(screen.getByText(/indicadores\/escala/)).toBeDefined();
     expect(screen.getByText("Compartilhar no WhatsApp")).toBeDefined();
   });
 
@@ -76,7 +76,7 @@ describe("Configuracoes", () => {
     fireEvent.click(screen.getByText("Copiar"));
     await waitFor(() => {
       expect(window.navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining("/achados-perdidos-guarda-volumes/escala")
+        expect.stringContaining("/indicadores/escala")
       );
       expect(screen.getByText("Copiado!")).toBeDefined();
     });
@@ -87,7 +87,7 @@ describe("Configuracoes", () => {
       ...coordinatorAuth,
       activeDepartment: {
         ...coordinatorAuth.activeDepartment,
-        department: { id: "dept-1", name: "Achados e Perdidos" },
+        department: { id: "dept-1", name: "Indicadores", slug: null },
       },
     });
     render(<Configuracoes />);

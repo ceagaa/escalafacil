@@ -52,7 +52,7 @@ function renderAt(slug) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockState.tableData = {
-    departments: { data: { id: "d-1", name: "Achados Perdidos e Guarda Volumes" }, error: null },
+    departments: { data: { id: "d-1", name: "Indicadores" }, error: null },
     schedule_blocks: { data: scheduleBlocks, error: null },
     shifts: { data: shifts, error: null },
     shift_volunteers: { data: shiftVolunteers, error: null },
@@ -62,7 +62,7 @@ beforeEach(() => {
 
 describe("PublicEscala", () => {
   it("shows loading state initially", () => {
-    renderAt("achados-perdidos-guarda-volumes");
+    renderAt("indicadores");
     expect(screen.getByText("Carregando escala...")).toBeDefined();
   });
 
@@ -75,10 +75,10 @@ describe("PublicEscala", () => {
   });
 
   it("renders the schedule with assigned volunteers, excluding inactive", async () => {
-    renderAt("achados-perdidos-guarda-volumes");
+    renderAt("indicadores");
     await waitFor(() => {
       expect(screen.getByText("Escala Geral")).toBeDefined();
-      expect(screen.getByText("Achados Perdidos e Guarda Volumes")).toBeDefined();
+      expect(screen.getByText("Indicadores")).toBeDefined();
       expect(screen.getByText("Sexta-feira")).toBeDefined();
       expect(screen.getByText("Sábado")).toBeDefined();
       expect(screen.getByText("João")).toBeDefined();
@@ -89,7 +89,7 @@ describe("PublicEscala", () => {
 
   it("shows error message when schedule fails to load", async () => {
     mockState.tableData.schedule_blocks = { data: null, error: { message: "rls" } };
-    renderAt("achados-perdidos-guarda-volumes");
+    renderAt("indicadores");
     await waitFor(() => {
       expect(
         screen.getByText("Não foi possível carregar a escala deste departamento.")

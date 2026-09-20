@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from "../context/AuthContext";
 
 const mockUser = { id: "user-1", email: "test@example.com" };
 const mockProfile = { id: "user-1", name: "Test User", is_super_admin: false };
-const mockDepts = [{ id: "dm-1", user_id: "user-1", department: { id: "dept-1", name: "Achados" } }];
+const mockDepts = [{ id: "dm-1", user_id: "user-1", department: { id: "dept-1", name: "Indicadores" } }];
 
 vi.mock("../services/supabase.js", () => {
   const mockSignIn = vi.fn();
