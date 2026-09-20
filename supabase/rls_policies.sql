@@ -1,5 +1,5 @@
 -- =====================================================================
--- App Achados e Perdidos - Migração multi-tenant + RLS (v6)
+-- App EscalaFácil - Migração multi-tenant + RLS (v7)
 -- Execute no Supabase Dashboard > SQL Editor.
 -- Re-executável. Rode e cole QUALQUER erro que aparecer.
 -- =====================================================================
@@ -75,13 +75,6 @@ ALTER TABLE public.volunteers
   FOREIGN KEY (department_id) REFERENCES public.departments (id)
   ON DELETE CASCADE NOT VALID;
 
-ALTER TABLE public.lost_items
-  DROP CONSTRAINT IF EXISTS lost_items_department_id_fkey;
-ALTER TABLE public.lost_items
-  ADD CONSTRAINT lost_items_department_id_fkey
-  FOREIGN KEY (department_id) REFERENCES public.departments (id)
-  ON DELETE CASCADE NOT VALID;
-
 ALTER TABLE public.schedule_blocks
   DROP CONSTRAINT IF EXISTS schedule_blocks_department_id_fkey;
 ALTER TABLE public.schedule_blocks
@@ -138,23 +131,6 @@ SET email = u.email
 FROM auth.users u
 WHERE p.id = u.id
   AND (p.email IS NULL OR p.email <> u.email);
-
-DO $$
-DECLARE dept_id uuid;
-BEGIN
-  SELECT id INTO dept_id
-  FROM public.departments
-  WHERE slug = 'achados-perdidos-guarda-volumes'
-  LIMIT 1;
-
-  IF dept_id IS NOT NULL THEN
-    UPDATE public.volunteers SET department_id = dept_id WHERE department_id IS NULL;
-    UPDATE public.schedule_blocks SET department_id = dept_id WHERE department_id IS NULL;
-    UPDATE public.shifts SET department_id = dept_id WHERE department_id IS NULL;
-    UPDATE public.shift_volunteers SET department_id = dept_id WHERE department_id IS NULL;
-    UPDATE public.lost_items SET department_id = dept_id WHERE department_id IS NULL;
-  END IF;
-END $$;
 
 -- ---------------------------------------------------------------------
 -- 4. Trigger: cria a linha em profiles no cadastro
@@ -236,7 +212,6 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.department_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.volunteers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.lost_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.schedule_blocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shift_volunteers ENABLE ROW LEVEL SECURITY;
@@ -356,31 +331,7 @@ CREATE POLICY "volunteers_member_delete"
   USING (public.is_department_member(department_id));
 
 -- ---------------------------------------------------------------------
--- 11. lost_items
--- ---------------------------------------------------------------------
-DROP POLICY IF EXISTS "lost_items_member_select" ON public.lost_items;
-CREATE POLICY "lost_items_member_select"
-  ON public.lost_items FOR SELECT TO authenticated
-  USING (public.is_department_member(department_id));
-
-DROP POLICY IF EXISTS "lost_items_member_insert" ON public.lost_items;
-CREATE POLICY "lost_items_member_insert"
-  ON public.lost_items FOR INSERT TO authenticated
-  WITH CHECK (public.is_department_member(department_id));
-
-DROP POLICY IF EXISTS "lost_items_member_update" ON public.lost_items;
-CREATE POLICY "lost_items_member_update"
-  ON public.lost_items FOR UPDATE TO authenticated
-  USING (public.is_department_member(department_id))
-  WITH CHECK (public.is_department_member(department_id));
-
-DROP POLICY IF EXISTS "lost_items_member_delete" ON public.lost_items;
-CREATE POLICY "lost_items_member_delete"
-  ON public.lost_items FOR DELETE TO authenticated
-  USING (public.is_department_member(department_id));
-
--- ---------------------------------------------------------------------
--- 12. Escala
+-- 11. Escala
 -- ---------------------------------------------------------------------
 DROP POLICY IF EXISTS "schedule_blocks_public_select" ON public.schedule_blocks;
 CREATE POLICY "schedule_blocks_public_select"

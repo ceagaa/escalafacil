@@ -118,7 +118,7 @@ export function StatSvgIcon({ name }) {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d={STAT_ICON_PATHS[name] || STAT_ICON_PATHS.checklist} />
+      <path d={STAT_ICON_PATHS[name] || STAT_ICON_PATHS.clock} />
     </svg>
   );
 }

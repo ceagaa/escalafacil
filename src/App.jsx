@@ -152,7 +152,7 @@ function AppLayout() {
   }, [isOnline, hasLoadedRemoteData, departmentId, setSchedule, setVolunteers]);
 
   useEffect(() => {
-    const snapshot = buildOfflineSnapshot(schedule, volunteers, []);
+    const snapshot = buildOfflineSnapshot(schedule, volunteers);
     saveOfflineSnapshot(snapshot);
   }, [schedule, volunteers]);
 

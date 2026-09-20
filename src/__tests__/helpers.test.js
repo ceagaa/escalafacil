@@ -288,7 +288,7 @@ describe("hexToRgba", () => {
 
 describe("buildOfflineSnapshot", () => {
   it("creates snapshot with timestamp", () => {
-    const snap = buildOfflineSnapshot([], [], []);
+    const snap = buildOfflineSnapshot([], []);
     expect(snap).toHaveProperty("savedAt");
     expect(Array.isArray(snap.schedule)).toBe(true);
   });
