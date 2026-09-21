@@ -1,17 +1,15 @@
-# EscalaFácil - Achados e Perdidos
+# EscalaFácil
 
-> App para gerenciar escala de voluntários, controlar itens perdidos e guardar volumes em congregações.
+> App para gerenciar escala de voluntários em congregações.
 
 ## Sobre
 
-O EscalaFácil é uma aplicação web Progressiva (PWA) voltada para igrejas e congregações. Ele permite montar escalas de voluntários, registrar e acompanhar itens achados e perdidos, e controlar volumes guardados.
+O EscalaFácil é uma aplicação web Progressiva (PWA) voltada para igrejas e congregações. Ele permite montar escalas de voluntários e organizar a equipe por departamento.
 
 ## Funcionalidades
 
 - Escala de voluntários por turno (sexta, sábado e domingo)
 - Cadastro e aprovação de voluntários
-- Registro de itens achados e perdidos com foto
-- Controle de volumes guardados
 - Dashboard com visão geral e estatísticas
 - Funciona offline (PWA)
 

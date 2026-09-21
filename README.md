@@ -1,4 +1,4 @@
-# Achados & Perdidos
+# EscalaFácil
 
 App para gerenciar escala de voluntários dos departamentos.
 
