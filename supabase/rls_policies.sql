@@ -301,6 +301,13 @@ CREATE POLICY "department_members_delete_by_coordinator"
     AND role <> 'coordenador'
   );
 
+DROP POLICY IF EXISTS "department_members_delete_own" ON public.department_members;
+CREATE POLICY "department_members_delete_own"
+  ON public.department_members FOR DELETE TO authenticated
+  USING (
+    user_id = auth.uid()
+  );
+
 -- ---------------------------------------------------------------------
 -- 10. volunteers
 -- ---------------------------------------------------------------------
