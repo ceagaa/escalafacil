@@ -1,0 +1,29 @@
+- main [ref=e3]:
+  - generic [ref=e5]:
+    - paragraph [ref=e10]: Speed Racer / Operações
+    - heading [level=1] [ref=e11]:
+      - text: Decisões rápidas.
+      - emphasis [ref=e12]: Caixa sob controle.
+    - paragraph [ref=e13]: O cockpit financeiro para empresas que transformam movimento em resultado.
+    - generic [ref=e14]: Dados protegidos por tenant
+  - region [ref=e16]:
+    - generic [ref=e17]:
+      - paragraph [ref=e18]: Acesso ao cockpit
+      - heading "Bem-vindo de volta" [level=2] [ref=e19]
+      - paragraph [ref=e20]: Entre para acompanhar a operação da sua empresa.
+      - button "Entrar com Google" [ref=e21] [cursor=pointer]
+      - generic [ref=e27]: ou continue com e-mail
+      - generic [ref=e29]:
+        - generic [ref=e30]: E-mail corporativo
+        - textbox "E-mail corporativo" [ref=e35]:
+          - /placeholder: voce@empresa.com
+        - generic [ref=e36]: Senha
+        - generic [ref=e37]:
+          - textbox "Senha" [ref=e42]:
+            - /placeholder: Sua senha
+          - button "Mostrar senha" [ref=e43] [cursor=pointer]
+        - button "Entrar no sistema" [ref=e47] [cursor=pointer]
+      - paragraph [ref=e50]:
+        - text: Não tem conta?
+        - button "Cadastre-se" [ref=e51] [cursor=pointer]
+      - paragraph [ref=e52]: Acesso autenticado pelo Supabase Auth

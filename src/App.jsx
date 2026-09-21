@@ -12,8 +12,6 @@ import {
   saveOfflineSnapshot,
   loadOfflineSnapshot,
   navigationItems,
-  getEventoTipoLabel,
-  formatEventoSubtitle,
 } from "./utils/helpers";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useAuth } from "./context/AuthContext";
@@ -32,6 +30,7 @@ import {
 import { Stat } from "./components/UI";
 import ShiftEditorModal from "./components/ShiftEditorModal";
 import RequireAuth from "./components/RequireAuth";
+import EventBadge from "./components/EventBadge";
 
 const Login = lazy(() => import("./pages/Login"));
 const EventSelector = lazy(() => import("./pages/EventSelector"));
@@ -84,7 +83,7 @@ function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, activeDepartment, departments, selectDepartment } = useAuth();
-  const { activeEvent, eventoId, clearEvent } = useEvent();
+  const { activeEvent, eventoId } = useEvent();
 
   const [activeDay, setActiveDay] = useState("Sexta-feira");
   const [schedule, setSchedule] = useLocalStorage("ap_schedule_v4_validation", initialSchedule, sanitizeSchedule);
@@ -351,13 +350,7 @@ function AppLayout() {
       <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[#172233] bg-[#172233] p-5 backdrop-blur-xl lg:block">
         <div>
           <img src={logo} alt="" className="mx-auto mb-8 h-[120px] w-[120px] object-contain" />
-          {activeEvent && (
-            <div className="mb-4 rounded-xl bg-white/5 px-3 py-2">
-              <p className="text-xs font-semibold text-[#d8ff56]">{getEventoTipoLabel(activeEvent.tipo)}</p>
-              <p className="text-[10px] text-slate-400 truncate">{formatEventoSubtitle(activeEvent)}</p>
-              <button type="button" onClick={clearEvent} className="mt-1 text-[10px] font-semibold text-[#42d27b] transition hover:text-[#36b868]">Trocar evento</button>
-            </div>
-          )}
+          <EventBadge variant="desktop" />
           {hasMultipleDepts && departmentId ? (
             <div className="relative">
               <button type="button" onClick={() => setShowDeptSwitcher(!showDeptSwitcher)} className="flex w-full items-center gap-2 text-left transition hover:opacity-80">
@@ -409,18 +402,24 @@ function AppLayout() {
         {departmentId && (
           <div className="mobile-department-brand px-4 pb-2 pt-5 lg:hidden">
             <h1 className="font-semibold leading-tight text-[#42d27b]">{departmentName}</h1>
+            <div className="mt-2">
+              <EventBadge variant="mobile" />
+            </div>
           </div>
         )}
 
         <header className="ap-header">
           <div className="w-full bg-white px-5 py-5 shadow-sm md:px-8 md:py-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold tracking-tight text-[#172233] md:text-3xl">
+            <div className="flex items-center justify-between gap-3">
+              <h1 className="min-w-0 flex-1 text-xl font-bold tracking-tight text-[#172233] md:text-3xl">
                 {activeView === "/" ? (departmentName || "Dashboard") : routeTitle}
               </h1>
-              {user && (
-                <button onClick={() => logout()} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Sair</button>
-              )}
+              <div className="hidden items-center gap-3 md:flex">
+                <EventBadge variant="mobile" />
+                {user && (
+                  <button onClick={() => logout()} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Sair</button>
+                )}
+              </div>
             </div>
           </div>
         </header>

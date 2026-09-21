@@ -1,0 +1,29 @@
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - button "Login" [ref=e8] [cursor=pointer]
+      - button "Cadastro" [ref=e9] [cursor=pointer]
+    - button "Entrar com Google" [ref=e10] [cursor=pointer]
+    - generic [ref=e16]: ou
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - text: E-mail
+          - textbox "E-mail" [ref=e24]:
+            - /placeholder: seu@email.com
+            - text: carlosrafael112@outlook.com
+        - generic [ref=e25]:
+          - text: Senha
+          - textbox "Senha" [ref=e26]:
+            - /placeholder: Sua senha
+            - text: R@fael123
+      - paragraph [ref=e36]: Invalid login credentials
+      - button "Entrar" [ref=e27] [cursor=pointer]
+      - button "Esqueci minha senha" [ref=e28] [cursor=pointer]
+  - generic [ref=e30]:
+    - text: Organização simples
+    - heading "Tudo o que sua equipe precisa para cuidar do dia." [level=2] [ref=e31]
+    - paragraph [ref=e32]: Centralize a programação de escalas, acompanhe voluntários e mantenha a boa organização em um só lugar, com informações claras para todo o departamento.
+    - generic [ref=e33]:
+      - generic [ref=e34]: 
+      - text: Feito para organizar o trabalho dos departamentos
