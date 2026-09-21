@@ -12,6 +12,7 @@ import {
 import { linkDepartmentToEvento } from "../services/eventService";
 import { getEventoTipoLabel, formatEventoSubtitle } from "../utils/helpers";
 import ConfirmModal from "../components/ConfirmModal";
+import { Skeleton, SkeletonStat } from "../components/Skeleton";
 
 async function fetchDeptStats(departmentId) {
   const [volunteers, shifts] = await Promise.all([
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const [showNewDeptModal, setShowNewDeptModal] = useState(false);
   const [newDeptName, setNewDeptName] = useState("");
   const [creatingDept, setCreatingDept] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const departmentId = activeDepartment?.department?.id || activeDepartment?.id || null;
   const departmentSlug = activeDepartment?.department?.slug || "";
@@ -58,6 +60,7 @@ export default function Dashboard() {
         }))
       );
       if (!cancelled) setDeptRecords(rows);
+      if (!cancelled) setLoading(false);
 
       if (eventoId) {
         const { data: evDepts } = await supabase
@@ -247,7 +250,15 @@ export default function Dashboard() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
-          {STANDARD_DEPARTMENTS.map((dept) => {
+          {loading ? (
+            <>
+              <Skeleton className="h-40 rounded-2xl" />
+              <Skeleton className="h-40 rounded-2xl" />
+              <Skeleton className="h-40 rounded-2xl" />
+            </>
+          ) : (
+            <>
+              {STANDARD_DEPARTMENTS.map((dept) => {
             const record = deptRecords.find((item) => item.slug === dept.slug);
             const mine = record ? isMine(record) : false;
             const taken = record ? Boolean(record.ownerName) : false;
@@ -291,13 +302,15 @@ export default function Dashboard() {
             );
           })}
 
-          <button type="button" onClick={() => { setShowNewDeptModal(true); setNewDeptName(""); }} className="group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-[#42d27b]/40 hover:bg-[#42d27b]/5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 transition group-hover:bg-[#42d27b]/15">
+          <button type="button" onClick={() => { setShowNewDeptModal(true); setNewDeptName(""); }} className="group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-brand-400/40 hover:bg-brand-400/5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 transition group-hover:bg-brand-400/15">
               <i className="fi fi-rr-plus text-xl text-slate-400 transition group-hover:text-[#2a9d5c]" />
             </div>
-            <p className="mt-2 text-sm font-semibold text-slate-500 transition group-hover:text-[#172233]">Novo Departamento</p>
+            <p className="mt-2 text-sm font-semibold text-slate-500 transition group-hover:text-navy-800">Novo Departamento</p>
             <p className="text-xs text-slate-400">Criar departamento personalizado</p>
           </button>
+            </>
+          )}
         </div>
 
         {confirmModal && (
@@ -361,22 +374,32 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Voluntários</p>
-            <i className="fi fi-rr-users text-lg text-[#42d27b]" />
-          </div>
-          <p className="mt-2 text-2xl font-bold text-[#172233]">{deptStats?.volunteers ?? "—"}</p>
-          <p className="text-xs text-slate-400">ativos</p>
-        </div>
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Turnos</p>
-            <i className="fi fi-rr-calendar-lines text-lg text-[#42d27b]" />
-          </div>
-          <p className="mt-2 text-2xl font-bold text-[#172233]">{deptStats?.shifts ?? "—"}</p>
-          <p className="text-xs text-slate-400">na escala</p>
-        </div>
+        {loading ? (
+          <>
+            <SkeletonStat />
+            <SkeletonStat />
+            <SkeletonStat />
+          </>
+        ) : (
+          <>
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Voluntários</p>
+                <i className="fi fi-rr-users text-lg text-brand-400" />
+              </div>
+              <p className="mt-2 text-2xl font-bold text-navy-800">{deptStats?.volunteers ?? "—"}</p>
+              <p className="text-xs text-slate-400">ativos</p>
+            </div>
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Turnos</p>
+                <i className="fi fi-rr-calendar-lines text-lg text-brand-400" />
+              </div>
+              <p className="mt-2 text-2xl font-bold text-navy-800">{deptStats?.shifts ?? "—"}</p>
+              <p className="text-xs text-slate-400">na escala</p>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">

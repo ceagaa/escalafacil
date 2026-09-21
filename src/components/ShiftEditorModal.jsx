@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Modal, Button } from "./UI";
 import { getAvailabilitySlotId, parseAvailability } from "../utils/helpers";
+import { useBeforeUnload } from "../hooks/useBeforeUnload";
+import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 
 export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, onClose, onSave }) {
   const isEdit = Boolean(shiftEditor?.shiftId);
@@ -15,6 +17,9 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
   const [selectedIds, setSelectedIds] = useState(currentShift?.volunteerIds || []);
   const [manualMode, setManualMode] = useState(false);
   const [manualName, setManualName] = useState(currentShift?.manualNames?.[0] || "");
+
+  const hasChanges = startTime !== (currentShift?.start || "") || endTime !== (currentShift?.end || "") || description !== (currentShift?.description || "") || JSON.stringify(selectedIds) !== JSON.stringify(currentShift?.volunteerIds || []) || manualName !== (currentShift?.manualNames?.[0] || "");
+  useBeforeUnload(hasChanges);
 
   const currentBlock =
     schedule.find((block) => block.id === blockId) || schedule[0] || null;
@@ -49,7 +54,8 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
 
   const canSave = Boolean(startTime.trim() && endTime.trim());
 
-  function handleSave() {
+  const handleSave = useCallback(() => {
+    if (!canSave) return;
     onSave({
       blockId: currentBlock?.id || blockId,
       shiftId: isEdit ? shiftEditor.shiftId : null,
@@ -59,7 +65,9 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
       selectedIds: manualMode ? [] : selectedIds,
       manualName: manualMode ? manualName.trim() : "",
     });
-  }
+  }, [canSave, onSave, currentBlock, blockId, isEdit, shiftEditor, startTime, endTime, description, manualMode, selectedIds, manualName]);
+
+  useKeyboardShortcut("s", handleSave, { ctrl: true });
 
   return (
     <Modal title={isEdit ? "Editar turno" : "Criar turno"} onClose={onClose}>

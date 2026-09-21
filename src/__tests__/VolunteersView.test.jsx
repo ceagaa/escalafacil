@@ -121,7 +121,7 @@ describe("VolunteersView", () => {
     render(<VolunteersView {...baseProps} />);
     fireEvent.click(screen.getByText(/Fila de Aprovação \(0\)/));
     await waitFor(() => {
-      expect(screen.getByText("Nenhum cadastro aguardando aprovação.")).toBeDefined();
+      expect(screen.getByText("Nenhum cadastro aguardando aprovação")).toBeDefined();
     });
   });
 });

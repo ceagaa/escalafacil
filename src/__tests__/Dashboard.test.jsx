@@ -87,18 +87,22 @@ beforeEach(() => {
 
 describe("Dashboard", () => {
   describe("empty state (no department selected)", () => {
-    it("renders welcome message and selection cards", () => {
+    it("renders welcome message and selection cards", async () => {
       renderDashboard();
+      await waitFor(() => {
+        expect(screen.getByText("Indicadores")).toBeDefined();
+      });
       expect(screen.getByText("Bem-vindo!")).toBeDefined();
       expect(screen.getByText("Escolha o departamento da sua equipe para começar.")).toBeDefined();
-      expect(screen.getByText("Indicadores")).toBeDefined();
       expect(screen.getByText("Limpeza")).toBeDefined();
     });
 
-    it("shows claim hint for available departments", () => {
+    it("shows claim hint for available departments", async () => {
       renderDashboard();
+      await waitFor(() => {
+        expect(screen.getAllByText("Disponível").length).toBeGreaterThanOrEqual(1);
+      });
       expect(screen.getAllByText("Ao reivindicar, você será o coordenador deste departamento.").length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText("Disponível").length).toBeGreaterThanOrEqual(1);
     });
 
     it("shows owner name for taken departments", async () => {
@@ -119,6 +123,10 @@ describe("Dashboard", () => {
       createDepartment.mockResolvedValue({ id: "d-3", name: "Limpeza", slug: "limpeza" });
 
       renderDashboard();
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /Limpeza/ })).toBeDefined();
+      });
 
       fireEvent.click(screen.getByRole("button", { name: /Limpeza/ }));
 
@@ -202,10 +210,12 @@ describe("Dashboard", () => {
       expect(screen.getByText("Painel do coordenador")).toBeDefined();
     });
 
-    it("shows stat cards for the department", () => {
+    it("shows stat cards for the department", async () => {
       useAuth.mockReturnValue(deptAuth);
       renderDashboard();
-      expect(screen.getByText("Voluntários")).toBeDefined();
+      await waitFor(() => {
+        expect(screen.getByText("Voluntários")).toBeDefined();
+      });
       expect(screen.getByText("Turnos")).toBeDefined();
     });
 

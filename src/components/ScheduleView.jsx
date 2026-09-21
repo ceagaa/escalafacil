@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   dayTheme,
   UNASSIGNED_LABEL,
@@ -10,6 +10,7 @@ import {
 } from "../utils/helpers";
 import { Card, Button, DayBadge, LiveNowBadge } from "./UI";
 import { VolunteerWhatsAppName, ResponsibleNames } from "./WhatsApp";
+import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
 
 export default function ScheduleView({
   activeDay,
@@ -25,6 +26,12 @@ export default function ScheduleView({
   const currentMinutes = getCurrentMinutes(now);
   const todayDay = getTodayScheduleDay(now);
   const activeShiftId = findActiveShiftId(dayCards, activeDay, todayDay, currentMinutes);
+
+  const handleNewShift = useCallback(() => {
+    onCreateShift(dayCards[0]?.id);
+  }, [onCreateShift, dayCards]);
+
+  useKeyboardShortcut("n", handleNewShift, { ctrl: true });
 
   async function copyDaySummary() {
     const text = buildDaySummary(dayCards, activeDay, volunteers, departmentName);
