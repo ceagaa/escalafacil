@@ -302,6 +302,34 @@ export const navigationItems = [
   { path: "/configuracoes", label: "Configurações", iconClass: "fi fi-rr-settings" },
 ];
 
+export function getResponsibleNames(responsible) {
+  if (!responsible) return [];
+  return responsible.split(/\s+e\s+/).map((name) => name.trim()).filter(Boolean);
+}
+
+export const EVENT_TYPE_LABELS = {
+  assembleia_circuito: "Assembleia com o Superintendente de Circuito",
+  assembleia_representante: "Assembleia com o Representante de Betel",
+  congresso_regional: "Congresso Regional",
+};
+
+export function getEventoTipoLabel(tipo) {
+  return EVENT_TYPE_LABELS[tipo] || tipo;
+}
+
+export function formatEventoSubtitle(evento) {
+  if (!evento) return "";
+  const parts = [];
+  if (evento.cidade && evento.estado) {
+    parts.push(`${evento.cidade}/${evento.estado}`);
+  } else if (evento.estado) {
+    parts.push(evento.estado);
+  }
+  if (evento.circuito) parts.push(evento.circuito);
+  if (evento.ano) parts.push(evento.ano);
+  return parts.join(" — ");
+}
+
 export const STAT_ICON_PATHS = {
   clock: "M12 8v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
   users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75",

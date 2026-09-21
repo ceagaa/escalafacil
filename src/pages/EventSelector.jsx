@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useEvent } from "../context/EventContext";
 import { upsertEvento, listEventos } from "../services/eventService";
+import { getEventoTipoLabel, formatEventoSubtitle } from "../utils/helpers";
 import CityCombobox from "../components/CityCombobox";
 
 const EVENT_TYPES = [
@@ -77,6 +78,7 @@ export default function EventSelector() {
 
   useEffect(() => {
     fetchEstados().then(setEstados);
+    listEventos().then(setEventos).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -192,11 +194,10 @@ export default function EventSelector() {
                     <i className="fi fi-rr-calendar text-lg text-[#345C3F]" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-[#172233]">{evento.tipo}</p>
-                    <p className="truncate text-xs text-slate-400">
-                      {evento.cidade ? `${evento.cidade}/${evento.estado} — ` : ""}
-                      {evento.circuito} — {evento.ano}
-                    </p>
+                    <p className="truncate font-semibold text-[#172233]">{getEventoTipoLabel(evento.tipo)}</p>
+                      <p className="truncate text-xs text-slate-400">
+                        {formatEventoSubtitle(evento)}
+                      </p>
                   </div>
                   <i className="fi fi-rr-angle-right text-sm text-slate-300 transition group-hover:text-[#42d27b]" />
                 </button>

@@ -12,6 +12,8 @@ import {
   saveOfflineSnapshot,
   loadOfflineSnapshot,
   navigationItems,
+  getEventoTipoLabel,
+  formatEventoSubtitle,
 } from "./utils/helpers";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useAuth } from "./context/AuthContext";
@@ -351,8 +353,8 @@ function AppLayout() {
           <img src={logo} alt="" className="mx-auto mb-8 h-[120px] w-[120px] object-contain" />
           {activeEvent && (
             <div className="mb-4 rounded-xl bg-white/5 px-3 py-2">
-              <p className="text-xs font-semibold text-[#d8ff56]">{activeEvent.tipo}</p>
-              <p className="text-[10px] text-slate-400 truncate">{activeEvent.cidade}/{activeEvent.estado} — {activeEvent.circuito} — {activeEvent.ano}</p>
+              <p className="text-xs font-semibold text-[#d8ff56]">{getEventoTipoLabel(activeEvent.tipo)}</p>
+              <p className="text-[10px] text-slate-400 truncate">{formatEventoSubtitle(activeEvent)}</p>
               <button type="button" onClick={clearEvent} className="mt-1 text-[10px] font-semibold text-[#42d27b] transition hover:text-[#36b868]">Trocar evento</button>
             </div>
           )}

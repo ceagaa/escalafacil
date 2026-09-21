@@ -7,6 +7,7 @@ import {
   STANDARD_DEPARTMENTS,
 } from "../services/departmentService";
 import { linkDepartmentToEvento } from "../services/eventService";
+import { getEventoTipoLabel, formatEventoSubtitle } from "../utils/helpers";
 
 export default function GerenciarDepartamentos() {
   const { user, refreshSession, selectDepartment, departments } = useAuth();
@@ -52,7 +53,7 @@ export default function GerenciarDepartamentos() {
         <h2 className="text-lg font-bold text-[#172233]">Reivindicar Departamento</h2>
         {activeEvent && (
           <p className="mt-1 text-xs text-slate-400">
-            Evento: {activeEvent.tipo} — {activeEvent.cidade}/{activeEvent.estado}
+            Evento: {getEventoTipoLabel(activeEvent.tipo)} — {formatEventoSubtitle(activeEvent)}
           </p>
         )}
         <p className="mt-1 text-sm text-slate-500">
