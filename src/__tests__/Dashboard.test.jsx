@@ -153,7 +153,7 @@ describe("Dashboard", () => {
       });
     });
 
-    it("selects own department on click", async () => {
+    it("selects own department on click after confirmation", async () => {
       useAuth.mockReturnValue({
         ...authDefaults,
         departments: [
@@ -173,7 +173,16 @@ describe("Dashboard", () => {
 
       fireEvent.click(screen.getByRole("button", { name: /Limpeza/ }));
 
-      expect(authDefaults.selectDepartment).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(screen.getByTestId("confirm-modal")).toBeDefined();
+      });
+      expect(screen.getByText(/Você está selecionando o departamento/)).toBeDefined();
+
+      fireEvent.click(screen.getByText("Confirmar"));
+
+      await waitFor(() => {
+        expect(authDefaults.selectDepartment).toHaveBeenCalled();
+      });
     });
   });
 

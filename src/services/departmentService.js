@@ -111,21 +111,29 @@ export async function claimDepartmentForEvento(departmentId, userId, eventoId) {
     .select("id")
     .eq("department_id", departmentId)
     .eq("user_id", userId)
-    .eq("evento_id", eventoId)
     .maybeSingle();
 
   if (existing) return existing;
 
-  const { data, error } = await supabase
+  const payload = {
+    department_id: departmentId,
+    user_id: userId,
+    role: "coordenador",
+  };
+
+  let { data, error } = await supabase
     .from("department_members")
-    .insert({
-      department_id: departmentId,
-      user_id: userId,
-      role: "coordenador",
-      evento_id: eventoId,
-    })
+    .insert(eventoId ? { ...payload, evento_id: eventoId } : payload)
     .select()
     .single();
+
+  if (error && eventoId && error.message?.includes("evento_id")) {
+    ({ data, error } = await supabase
+      .from("department_members")
+      .insert(payload)
+      .select()
+      .single());
+  }
 
   if (error) {
     throw new Error(sanitizeError(error, "create"));

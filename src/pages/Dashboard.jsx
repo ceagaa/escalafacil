@@ -10,6 +10,7 @@ import {
   getEventoDepartmentOwner,
 } from "../services/departmentService";
 import { linkDepartmentToEvento } from "../services/eventService";
+import { getEventoTipoLabel, formatEventoSubtitle } from "../utils/helpers";
 import ConfirmModal from "../components/ConfirmModal";
 
 async function fetchDeptStats(departmentId) {
@@ -29,10 +30,16 @@ export default function Dashboard() {
   const { activeEvent, eventoId } = useEvent();
 
   const [deptRecords, setDeptRecords] = useState([]);
+  const [customDepts, setCustomDepts] = useState([]);
   const [toast, setToast] = useState("");
   const [claiming, setClaiming] = useState(false);
   const [deptStats, setDeptStats] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
+  const [revokeStep, setRevokeStep] = useState(0);
+  const [revokeInput, setRevokeInput] = useState("");
+  const [showNewDeptModal, setShowNewDeptModal] = useState(false);
+  const [newDeptName, setNewDeptName] = useState("");
+  const [creatingDept, setCreatingDept] = useState(false);
 
   const departmentId = activeDepartment?.department?.id || activeDepartment?.id || null;
   const departmentSlug = activeDepartment?.department?.slug || "";
@@ -51,6 +58,17 @@ export default function Dashboard() {
         }))
       );
       if (!cancelled) setDeptRecords(rows);
+
+      if (eventoId) {
+        const { data: evDepts } = await supabase
+          .from("evento_departamentos")
+          .select("department:departments(id, name, slug)")
+          .eq("evento_id", eventoId);
+        const custom = (evDepts || [])
+          .map((row) => row.department)
+          .filter((d) => d && !STANDARD_DEPARTMENTS.some((s) => s.slug === d.slug));
+        if (!cancelled) setCustomDepts(custom);
+      }
     }
     loadDepartments().catch(() => {});
     return () => { cancelled = true; };
@@ -76,8 +94,15 @@ export default function Dashboard() {
     const record = deptRecords.find((d) => d.slug === standardDept.slug);
 
     if (record && isMine(record)) {
-      const membership = departments.find((m) => m?.department?.id === record.id);
-      selectDepartment(membership || { id: record.id, department: record, role: "coordenador" });
+      setConfirmModal({
+        type: "select",
+        title: "Confirmar Departamento",
+        message: `Você está selecionando o departamento ${standardDept.name}. Você realmente é o coordenador desse departamento?`,
+        onConfirm: () => {
+          const membership = departments.find((m) => m?.department?.id === record.id);
+          selectDepartment(membership || { id: record.id, department: record, role: "coordenador" });
+        },
+      });
       return;
     }
 
@@ -100,7 +125,11 @@ export default function Dashboard() {
     try {
       const department = await createDepartment(standardDept.name, standardDept.slug);
       if (eventoId) {
-        await linkDepartmentToEvento(eventoId, department.id);
+        try {
+          await linkDepartmentToEvento(eventoId, department.id);
+        } catch (linkErr) {
+          console.error("Erro ao vincular departamento ao evento:", linkErr);
+        }
         await claimDepartmentForEvento(department.id, user.id, eventoId);
       } else {
         const { linkUserAsCoordinator } = await import("../services/departmentService");
@@ -128,16 +157,17 @@ export default function Dashboard() {
   }
 
   function handleRevoke() {
-    setConfirmModal({
-      type: "revoke",
-      title: "Revogar Coordenação",
-      message: `Tem certeza que deseja desistir da coordenação do departamento ${departmentName}? Você perderá acesso ao painel.`,
-      onConfirm: doRevoke,
-    });
+    setRevokeStep(1);
+    setRevokeInput("");
+  }
+
+  function confirmRevokeStep1() {
+    setRevokeStep(2);
+    setRevokeInput("");
   }
 
   async function doRevoke() {
-    setConfirmModal(null);
+    setRevokeStep(0);
     if (!activeDepartment?.id) return;
     try {
       await supabase.from("department_members").delete().eq("id", activeDepartment.id);
@@ -146,6 +176,44 @@ export default function Dashboard() {
       showToast("Coordenação revogada.");
     } catch (err) {
       showToast("Erro ao revogar coordenação.");
+    }
+  }
+
+  async function handleCreateDepartment() {
+    const name = newDeptName.trim();
+    if (!name) return;
+    setCreatingDept(true);
+    try {
+      const department = await createDepartment(name);
+      if (eventoId) {
+        try {
+          await linkDepartmentToEvento(eventoId, department.id);
+        } catch (linkErr) {
+          console.error("Erro ao vincular departamento ao evento:", linkErr);
+        }
+        await claimDepartmentForEvento(department.id, user.id, eventoId);
+      } else {
+        const { linkUserAsCoordinator } = await import("../services/departmentService");
+        await linkUserAsCoordinator(department.id, user.id);
+      }
+      const depts = await refreshSession();
+      const membership = depts.find((m) => m?.department?.id === department.id);
+      selectDepartment(
+        membership || {
+          id: department.id,
+          department: { id: department.id, name: department.name, slug: department.slug },
+          role: "coordenador",
+        }
+      );
+      setCustomDepts((prev) => [...prev, { id: department.id, name: department.name, slug: department.slug }]);
+      setShowNewDeptModal(false);
+      setNewDeptName("");
+      showToast("Departamento criado com sucesso!");
+    } catch (err) {
+      console.error("Erro ao criar departamento:", err);
+      showToast(err?.message || "Erro ao criar departamento.");
+    } finally {
+      setCreatingDept(false);
     }
   }
 
@@ -165,8 +233,8 @@ export default function Dashboard() {
           <div className="flex items-center gap-3 rounded-2xl border border-[#42d27b]/20 bg-[#42d27b]/5 px-4 py-3">
             <i className="fi fi-rr-calendar text-lg text-[#345C3F]" />
             <div>
-              <p className="text-sm font-semibold text-[#172233]">{activeEvent.tipo}</p>
-              <p className="text-xs text-slate-500">{activeEvent.cidade}/{activeEvent.estado} — {activeEvent.circuito} — {activeEvent.ano}</p>
+              <p className="text-sm font-semibold text-[#172233]">{getEventoTipoLabel(activeEvent.tipo)}</p>
+              <p className="text-xs text-slate-500">{formatEventoSubtitle(activeEvent)}</p>
             </div>
           </div>
         )}
@@ -174,7 +242,7 @@ export default function Dashboard() {
         <div>
           <h2 className="text-xl font-bold text-[#172233]">Bem-vindo!</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {activeEvent ? `Escolha o departamento para o evento: ${activeEvent.tipo}.` : "Escolha o departamento da sua equipe para começar."}
+            {activeEvent ? `Escolha o departamento para o evento: ${getEventoTipoLabel(activeEvent.tipo)}.` : "Escolha o departamento da sua equipe para começar."}
           </p>
         </div>
 
@@ -200,17 +268,81 @@ export default function Dashboard() {
               </button>
             );
           })}
+
+          {customDepts.map((dept) => {
+            const record = deptRecords.find((item) => item.id === dept.id);
+            const mine = record ? isMine(record) : false;
+            const taken = record ? Boolean(record.ownerName) : false;
+            return (
+              <button key={dept.id} type="button" onClick={() => handleCardClick({ name: dept.name, slug: dept.slug })} disabled={claiming} className="group rounded-2xl border-2 border-transparent bg-white p-6 text-left shadow-sm transition hover:border-[#42d27b]/40 hover:shadow-md disabled:opacity-60">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#345C3F]/10">
+                    <i className="fi fi-rr-building text-xl text-[#345C3F]" />
+                  </div>
+                  <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${mine ? "bg-[#42d27b]/15 text-[#2a9d5c]" : taken ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>
+                    {mine ? "Seu departamento" : taken ? "Ocupado" : "Disponível"}
+                  </span>
+                </div>
+                <p className="mt-4 font-semibold text-[#172233]">{dept.name}</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                  {mine ? "Clique para acessar o painel deste departamento." : taken ? `Responsável: ${record.ownerName}.` : "Ao reivindicar, você será o coordenador deste departamento."}
+                </p>
+              </button>
+            );
+          })}
+
+          <button type="button" onClick={() => { setShowNewDeptModal(true); setNewDeptName(""); }} className="group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-[#42d27b]/40 hover:bg-[#42d27b]/5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 transition group-hover:bg-[#42d27b]/15">
+              <i className="fi fi-rr-plus text-xl text-slate-400 transition group-hover:text-[#2a9d5c]" />
+            </div>
+            <p className="mt-2 text-sm font-semibold text-slate-500 transition group-hover:text-[#172233]">Novo Departamento</p>
+            <p className="text-xs text-slate-400">Criar departamento personalizado</p>
+          </button>
         </div>
 
         {confirmModal && (
           <ConfirmModal
             title={confirmModal.title}
             message={confirmModal.message}
-            confirmLabel={confirmModal.type === "revoke" ? "Revogar" : "Assumir"}
-            danger={confirmModal.type === "revoke"}
+            confirmLabel={confirmModal.type === "select" ? "Sim" : "Assumir"}
+            cancelLabel={confirmModal.type === "select" ? "Não" : "Cancelar"}
+            danger={false}
             onConfirm={confirmModal.onConfirm}
             onCancel={() => setConfirmModal(null)}
           />
+        )}
+
+        {showNewDeptModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
+            <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+              <h3 className="text-lg font-bold text-[#172233]">Novo Departamento</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-500">
+                Digite o nome do departamento que deseja criar:
+              </p>
+              <input
+                type="text"
+                value={newDeptName}
+                onChange={(e) => setNewDeptName(e.target.value)}
+                placeholder="Ex: Limpeza, Estacionamento..."
+                className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-300 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter" && newDeptName.trim()) handleCreateDepartment(); }}
+              />
+              <div className="mt-6 flex gap-3">
+                <button type="button" onClick={() => setShowNewDeptModal(false)} disabled={creatingDept} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateDepartment}
+                  disabled={!newDeptName.trim() || creatingDept}
+                  className="flex-1 rounded-xl bg-[#42d27b] px-4 py-3 text-sm font-semibold text-[#172233] transition hover:bg-[#36b868] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {creatingDept ? "Criando..." : "Criar e Assumir"}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     );
@@ -333,11 +465,63 @@ export default function Dashboard() {
         <ConfirmModal
           title={confirmModal.title}
           message={confirmModal.message}
-          confirmLabel={confirmModal.type === "revoke" ? "Revogar" : "Assumir"}
-          danger={confirmModal.type === "revoke"}
+          confirmLabel={confirmModal.type === "select" ? "Sim" : "Assumir"}
+          cancelLabel={confirmModal.type === "select" ? "Não" : "Cancelar"}
+          danger={false}
           onConfirm={confirmModal.onConfirm}
           onCancel={() => setConfirmModal(null)}
         />
+      )}
+
+      {revokeStep === 1 && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-[#172233]">Revogar Coordenação</h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              Tem certeza que deseja desistir da coordenação do departamento <strong>{departmentName}</strong>? Você perderá acesso ao painel.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button type="button" onClick={() => setRevokeStep(0)} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                Cancelar
+              </button>
+              <button type="button" onClick={confirmRevokeStep1} className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700">
+                Prosseguir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {revokeStep === 2 && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-[#172233]">Confirmação Final</h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              Digite o nome do departamento <strong>{departmentName}</strong> para confirmar a revogação:
+            </p>
+            <input
+              type="text"
+              value={revokeInput}
+              onChange={(e) => setRevokeInput(e.target.value)}
+              placeholder={departmentName}
+              className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              autoFocus
+            />
+            <div className="mt-6 flex gap-3">
+              <button type="button" onClick={() => setRevokeStep(0)} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={doRevoke}
+                disabled={revokeInput.trim() !== departmentName}
+                className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Revogar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

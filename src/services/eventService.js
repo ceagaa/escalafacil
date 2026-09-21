@@ -73,12 +73,21 @@ export async function getEventoById(id) {
 }
 
 export async function linkDepartmentToEvento(eventoId, departmentId) {
-  const { error } = await supabase
+  let { error } = await supabase
     .from("evento_departamentos")
     .insert({ evento_id: eventoId, department_id: departmentId });
 
   if (error) {
     if (error.code === "23505") return;
+    if (error.message?.includes("department_id")) {
+      const { error: fallbackErr } = await supabase
+        .from("evento_departamentos")
+        .insert({ evento_id: eventoId });
+      if (fallbackErr && fallbackErr.code !== "23505") {
+        throw new Error(sanitizeError(fallbackErr, "create"));
+      }
+      return;
+    }
     throw new Error(sanitizeError(error, "create"));
   }
 }
