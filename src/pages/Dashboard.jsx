@@ -208,7 +208,7 @@ export default function Dashboard() {
       setCustomDepts((prev) => [...prev, { id: department.id, name: department.name, slug: department.slug }]);
       setShowNewDeptModal(false);
       setNewDeptName("");
-      showToast("Departamento criado com sucesso!");
+      showToast("Departamento criado.");
     } catch (err) {
       console.error("Erro ao criar departamento:", err);
       showToast(err?.message || "Erro ao criar departamento.");
@@ -226,7 +226,7 @@ export default function Dashboard() {
     return (
       <div className="space-y-6">
         {toast && (
-          <div className="fixed left-1/2 top-6 z-[70] -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
+          <div role="alert" className="app-toast fixed left-1/2 top-6 -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
         )}
 
         {activeEvent && (
@@ -314,12 +314,13 @@ export default function Dashboard() {
 
         {showNewDeptModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
-            <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-              <h3 className="text-lg font-bold text-[#172233]">Novo Departamento</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-500">
+            <div role="dialog" aria-modal="true" aria-labelledby="new-dept-title" className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+              <h3 id="new-dept-title" className="text-lg font-bold text-[#172233]">Novo Departamento</h3>
+              <label htmlFor="new-dept-name" className="mt-2 block text-sm leading-relaxed text-slate-500">
                 Digite o nome do departamento que deseja criar:
-              </p>
+              </label>
               <input
+                id="new-dept-name"
                 type="text"
                 value={newDeptName}
                 onChange={(e) => setNewDeptName(e.target.value)}
@@ -350,9 +351,9 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {toast && (
-        <div className="fixed left-1/2 top-6 z-[70] -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
-      )}
+        {toast && (
+          <div role="alert" className="app-toast fixed left-1/2 top-6 -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
+        )}
 
       <div>
         <h2 className="text-xl font-bold text-[#172233]">{departmentName}</h2>
@@ -390,8 +391,8 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <input readOnly value={signupLink} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-500 outline-none" />
-            <a href={`https://wa.me/?text=${encodeURIComponent("Link de cadastro de voluntários — " + departmentName + ":\n" + signupLink)}`} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-1.5 rounded-xl bg-[#25d366] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1da855]">
+            <input readOnly value={signupLink} aria-label="Link de cadastro de voluntários" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-500 outline-none" />
+            <a href={`https://wa.me/?text=${encodeURIComponent("Link de cadastro de voluntários — " + departmentName + ":\n" + signupLink)}`} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-1.5 rounded-xl bg-whatsapp px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-whatsapp-dark">
               <i className="fi fi-brands-whatsapp text-sm" />
               WhatsApp
             </a>
@@ -409,8 +410,8 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <input readOnly value={scaleLink} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-500 outline-none" />
-            <a href={`https://wa.me/?text=${encodeURIComponent("Confira a escala — " + departmentName + ":\n" + scaleLink)}`} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-1.5 rounded-xl bg-[#25d366] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1da855]">
+            <input readOnly value={scaleLink} aria-label="Link da escala pública" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-500 outline-none" />
+            <a href={`https://wa.me/?text=${encodeURIComponent("Confira a escala — " + departmentName + ":\n" + scaleLink)}`} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-1.5 rounded-xl bg-whatsapp px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-whatsapp-dark">
               <i className="fi fi-brands-whatsapp text-sm" />
               WhatsApp
             </a>
@@ -475,8 +476,8 @@ export default function Dashboard() {
 
       {revokeStep === 1 && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-[#172233]">Revogar Coordenação</h3>
+          <div role="dialog" aria-modal="true" aria-labelledby="revoke-step1-title" className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 id="revoke-step1-title" className="text-lg font-bold text-[#172233]">Revogar Coordenação</h3>
             <p className="mt-2 text-sm leading-relaxed text-slate-500">
               Tem certeza que deseja desistir da coordenação do departamento <strong>{departmentName}</strong>? Você perderá acesso ao painel.
             </p>
@@ -494,12 +495,13 @@ export default function Dashboard() {
 
       {revokeStep === 2 && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-[#172233]">Confirmação Final</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+          <div role="dialog" aria-modal="true" aria-labelledby="revoke-step2-title" className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 id="revoke-step2-title" className="text-lg font-bold text-[#172233]">Confirmação Final</h3>
+            <label htmlFor="revoke-dept-name" className="mt-2 block text-sm leading-relaxed text-slate-500">
               Digite o nome do departamento <strong>{departmentName}</strong> para confirmar a revogação:
-            </p>
+            </label>
             <input
+              id="revoke-dept-name"
               type="text"
               value={revokeInput}
               onChange={(e) => setRevokeInput(e.target.value)}

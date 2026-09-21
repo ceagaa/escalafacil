@@ -21,10 +21,10 @@ export default function EventBadge({ variant = "desktop" }) {
         <button
           type="button"
           onClick={clearEvent}
+          aria-label="Trocar evento"
           className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1.5 text-[10px] font-medium text-slate-500 transition hover:bg-slate-200 hover:text-slate-700"
-          title="Trocar evento"
         >
-          <i className="fi fi-rr-refresh text-[9px]" />
+          <i className="fi fi-rr-refresh text-[9px]" aria-hidden="true" />
         </button>
       </div>
     );
@@ -43,10 +43,10 @@ export default function EventBadge({ variant = "desktop" }) {
         <button
           type="button"
           onClick={clearEvent}
+          aria-label="Trocar evento"
           className="shrink-0 rounded-lg bg-white/5 p-1 text-[10px] text-slate-400 transition hover:bg-white/10 hover:text-[#42d27b]"
-          title="Trocar evento"
         >
-          <i className="fi fi-rr-refresh block text-[10px]" />
+          <i className="fi fi-rr-refresh block text-[10px]" aria-hidden="true" />
         </button>
       </div>
     </div>

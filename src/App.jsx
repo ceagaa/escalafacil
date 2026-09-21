@@ -195,7 +195,7 @@ function AppLayout() {
     }
 
     setShiftEditor(null);
-    showToast(data.shiftId ? "Turno atualizado." : "Escala criada.");
+    showToast(data.shiftId ? "Turno atualizado." : "Turno criado.");
 
     if (!isOnline) {
       showToast("Salvo offline. Sincronize quando voltar a internet.");
@@ -290,7 +290,7 @@ function AppLayout() {
     try {
       await updateVolunteer(id, departmentId, { active: true });
       setVolunteers((current) => current.map((v) => (v.id === id ? { ...v, active: true } : v)));
-      showToast("Voluntário aprovado!");
+      showToast("Voluntário aprovado.");
     } catch (error) {
       console.warn("Falha ao aprovar voluntário.", error);
       showToast("Não foi possível aprovar o voluntário.");
@@ -341,15 +341,17 @@ function AppLayout() {
 
   return (
     <div className="ap-app min-h-screen bg-[#f6f6f6] text-slate-900">
+      <a href="#main" className="skip-link">Pular para o conteúdo</a>
+
       {toast && (
-        <div className="app-toast fixed left-1/2 -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">
+        <div role="alert" className="app-toast fixed left-1/2 -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">
           {toast}
         </div>
       )}
 
-      <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[#172233] bg-[#172233] p-5 backdrop-blur-xl lg:block">
+      <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[#172233] bg-[#172233] p-5 backdrop-blur-xl lg:block" aria-label="Menu principal">
         <div>
-          <img src={logo} alt="" className="mx-auto mb-8 h-[120px] w-[120px] object-contain" />
+          <img src={logo} alt="EscalaFácil" className="mx-auto mb-8 h-[120px] w-[120px] object-contain" />
           <EventBadge variant="desktop" />
           {hasMultipleDepts && departmentId ? (
             <div className="relative">
@@ -388,7 +390,7 @@ function AppLayout() {
           <span className="h-px flex-1 border-t border-dashed border-[#d8ff56]/35" />
         </div>
 
-        <nav className="mt-5 space-y-2">
+        <nav className="mt-5 space-y-2" aria-label="Navegação principal">
           {visibleNavigationItems.map((item) => (
             <button key={item.path} onClick={() => navTo(item.path)} className={`app-nav-button flex w-full items-center gap-3 text-sm transition ${activeView === item.path ? "is-active" : ""}`}>
               <i className={item.iconClass} />
@@ -398,7 +400,7 @@ function AppLayout() {
         </nav>
       </aside>
 
-      <main className="lg:pl-72">
+      <main id="main" tabIndex={-1} className="lg:pl-72">
         {departmentId && (
           <div className="mobile-department-brand px-4 pb-2 pt-5 lg:hidden">
             <h1 className="font-semibold leading-tight text-[#42d27b]">{departmentName}</h1>

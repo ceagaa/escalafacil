@@ -60,7 +60,7 @@ export default function VolunteersView({
           <form className="mt-5 space-y-3" onSubmit={onSave}>
             <Field
               label="Nome"
-              placeholder="Nome do voluntário"
+              placeholder="Nome completo"
               value={volunteerForm.name}
               onChange={(value) => setVolunteerForm({ ...volunteerForm, name: value })}
               required
@@ -120,7 +120,7 @@ export default function VolunteersView({
                         href={createWaMeLink(volunteer.phone, approveMessage(volunteer))}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/10 px-3 py-1 text-xs font-semibold text-[#128C4A] transition hover:bg-[#25D366]/20"
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-whatsapp/10 px-3 py-1 text-xs font-semibold text-whatsapp-dark transition hover:bg-whatsapp/20"
                       >
                         <WhatsAppIcon className="h-3.5 w-3.5" />
                         Avisar no WhatsApp
@@ -167,7 +167,7 @@ export default function VolunteersView({
                           href={createWaMeLink(volunteer.phone, approveMessage(volunteer))}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#25D366]/10 px-3 py-1 text-xs font-semibold text-[#128C4A] transition hover:bg-[#25D366]/20"
+                        className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-whatsapp/10 px-3 py-1 text-xs font-semibold text-whatsapp-dark transition hover:bg-whatsapp/20"
                         >
                           <WhatsAppIcon className="h-3.5 w-3.5" />
                           Avisar no WhatsApp

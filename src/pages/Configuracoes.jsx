@@ -130,7 +130,7 @@ export default function Configuracoes() {
               }
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#128C4A]"
+              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-whatsapp px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-whatsapp-dark"
             >
               Compartilhar no WhatsApp
             </a>
@@ -149,7 +149,9 @@ export default function Configuracoes() {
         </p>
 
         <form onSubmit={handleAddMember} className="mt-5 flex gap-2">
+          <label htmlFor="team-email" className="sr-only">Email do assistente</label>
           <input
+            id="team-email"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -166,12 +168,12 @@ export default function Configuracoes() {
         </form>
 
         {teamError && (
-          <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
             {teamError}
           </p>
         )}
         {teamNotice && (
-          <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          <p role="status" className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
             {teamNotice}
           </p>
         )}

@@ -23,7 +23,7 @@ export function WhatsAppIconLink({ phone, label = "WhatsApp", compact = false, t
       rel="noopener noreferrer"
       title={"Abrir WhatsApp de " + label}
       aria-label={"Abrir WhatsApp de " + label}
-      className={`inline-flex items-center justify-center rounded-full text-[#25D366] transition hover:scale-110 hover:text-[#128C4A] ${
+      className={`inline-flex items-center justify-center rounded-full text-whatsapp transition hover:scale-110 hover:text-whatsapp-dark ${
         compact ? "h-4 w-4" : "h-5 w-5"
       }`}
       onClick={(event) => event.stopPropagation()}

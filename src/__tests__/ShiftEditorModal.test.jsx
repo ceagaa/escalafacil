@@ -43,7 +43,7 @@ describe("ShiftEditorModal", () => {
         onSave={vi.fn()}
       />
     );
-    expect(screen.getByRole("heading", { name: "Criar escala" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Criar turno" })).toBeDefined();
     expect(screen.getByPlaceholderText("Ex: 8:00")).toBeDefined();
     expect(screen.getByPlaceholderText("Ex: 9:30")).toBeDefined();
     expect(screen.getByPlaceholderText("Ex: Guarda Volumes — Entrada principal")).toBeDefined();
@@ -83,7 +83,7 @@ describe("ShiftEditorModal", () => {
     fireEvent.change(screen.getByPlaceholderText("Ex: Irmão Joãozinho"), {
       target: { value: "Irmão Joãozinho" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Criar escala" }));
+    fireEvent.click(screen.getByRole("button", { name: "Criar turno" }));
 
     await waitFor(() => {
       expect(onSave).toHaveBeenCalledWith(

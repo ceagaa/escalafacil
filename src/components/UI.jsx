@@ -1,14 +1,15 @@
+import { useEffect, useRef } from "react";
 import { hexToRgba, STAT_ICON_PATHS, dayTheme } from "../utils/helpers";
 
 export function Card({ children, className = "" }) {
   return (
-    <div className={`ap-card rounded-[20px] border-0 bg-white shadow-sm ${className || "p-5"}`}>
+    <div className={`ap-card rounded-card bg-white shadow-card ${className || "p-5"}`}>
       {children}
     </div>
   );
 }
 
-export function Button({ children, variant = "primary", square = false, className = "", type = "button", onClick, disabled = false }) {
+export function Button({ children, variant = "primary", square = false, className = "", type = "button", onClick, disabled = false, ...rest }) {
   const base = "inline-flex items-center justify-center gap-2 text-sm font-semibold transition disabled:opacity-50";
   const size = square ? "h-10 w-10 rounded-full p-0" : "rounded-full px-8 py-4";
   const styles = {
@@ -23,6 +24,7 @@ export function Button({ children, variant = "primary", square = false, classNam
       onClick={onClick}
       disabled={disabled}
       className={`${base} ${size} ${styles[variant] || styles.primary} ${className}`}
+      {...rest}
     >
       {children}
     </button>
@@ -44,13 +46,40 @@ export function IconButton({ label, iconClass, onClick }) {
 }
 
 export function Modal({ title, children, onClose }) {
+  const titleId = useRef(`modal-title-${Math.random().toString(36).slice(2, 8)}`).current;
+  const dialogRef = useRef(null);
+  const previousFocus = useRef(null);
+
+  useEffect(() => {
+    previousFocus.current = document.activeElement;
+    dialogRef.current?.focus();
+    return () => { previousFocus.current?.focus(); };
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl outline-none"
+      >
         <div className="flex items-center justify-between gap-4">
-          <h3 className="text-xl font-bold">{title}</h3>
+          <h3 id={titleId} className="text-xl font-bold">{title}</h3>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Fechar"
             className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-500"
           >
             ×

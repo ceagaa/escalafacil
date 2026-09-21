@@ -62,7 +62,7 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
   }
 
   return (
-    <Modal title={isEdit ? "Editar turno" : "Criar escala"} onClose={onClose}>
+    <Modal title={isEdit ? "Editar turno" : "Criar turno"} onClose={onClose}>
       <div className="space-y-4">
         {!isEdit && (
           <label className="block">
@@ -186,7 +186,7 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
           Cancelar
         </Button>
         <Button onClick={handleSave} disabled={!canSave}>
-          {isEdit ? "Salvar alterações" : "Criar escala"}
+          {isEdit ? "Salvar alterações" : "Criar turno"}
         </Button>
       </div>
     </Modal>

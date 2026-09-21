@@ -181,9 +181,10 @@ export default function CityCombobox({
               onValidate?.(false);
               inputRef.current?.focus();
             }}
+            aria-label="Limpar busca"
             className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
           >
-            <i className="fi fi-rr-cross-small text-base" />
+            <i className="fi fi-rr-cross-small text-base" aria-hidden="true" />
           </button>
         )}
       </div>

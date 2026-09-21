@@ -129,7 +129,7 @@ export default function Login() {
       <section className="flex items-center justify-center bg-white px-6 py-12 sm:px-12 lg:px-16">
         <div className="w-full max-w-md">
           <div className="mb-8">
-            <img src={logo} alt="" className="mx-auto h-[120px] w-[120px] object-contain" />
+            <img src={logo} alt="EscalaFácil" className="mx-auto h-[120px] w-[120px] object-contain" />
           </div>
 
           <div className="flex rounded-2xl bg-slate-100 p-1">
@@ -161,15 +161,15 @@ export default function Login() {
               <div className="space-y-4">
                 <label className="block">
                   <span className="text-sm font-medium text-[#172233]">E-mail</span>
-                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-0" autoComplete="email" autoFocus />
+                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="email" autoFocus />
                 </label>
                 <label className="block">
                   <span className="text-sm font-medium text-[#172233]">Senha</span>
-                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Sua senha" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-0" autoComplete="current-password" />
+                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Sua senha" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="current-password" />
                 </label>
               </div>
 
-              {error && <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
+              {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
               {notice && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{notice}</p>}
 
               <button type="submit" disabled={submitting} className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#42d27b] px-4 py-3 text-sm font-semibold text-[#172233] transition hover:bg-[#36b868] disabled:opacity-50">
@@ -186,15 +186,15 @@ export default function Login() {
               <div className="space-y-4">
                 <label className="block">
                   <span className="text-sm font-medium text-[#172233]">Nome completo</span>
-                  <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-0" autoComplete="name" autoFocus />
+                  <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="name" autoFocus />
                 </label>
                 <label className="block">
                   <span className="text-sm font-medium text-[#172233]">E-mail</span>
-                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-0" autoComplete="email" />
+                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="email" />
                 </label>
                 <label className="block">
                   <span className="text-sm font-medium text-[#172233]">Senha</span>
-                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Mínimo de 6 caracteres" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-0" autoComplete="new-password" />
+                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Mínimo de 6 caracteres" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="new-password" />
                 </label>
               </div>
 
@@ -208,7 +208,7 @@ export default function Login() {
                 </span>
               </label>
 
-              {error && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
+              {error && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
               {notice && <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{notice}</p>}
 
               <button type="submit" disabled={submitting} className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#42d27b] px-4 py-3 text-sm font-semibold text-[#172233] transition hover:bg-[#36b868] disabled:opacity-50">

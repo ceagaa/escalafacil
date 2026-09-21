@@ -44,7 +44,7 @@ export default function ScheduleView({
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-bold text-[#172233]">Escala</h2>
             <Button onClick={() => onCreateShift(dayCards[0]?.id)} className="!px-5 !py-2.5">
-              <i className="fi fi-rr-plus" /> Criar Escala
+              <i className="fi fi-rr-plus" /> Criar Turno
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -130,8 +130,8 @@ export default function ScheduleView({
                             )}
                           </div>
 
-                          <Button variant="outline" square onClick={() => onEditShift({ blockId: block.id, shiftId: shift.id })}>
-                            <i className="fi fi-rr-pencil" />
+                          <Button variant="outline" square onClick={() => onEditShift({ blockId: block.id, shiftId: shift.id })} aria-label="Editar turno">
+                            <i className="fi fi-rr-pencil" aria-hidden="true" />
                           </Button>
                         </div>
 

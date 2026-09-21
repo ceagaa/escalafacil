@@ -1,11 +1,40 @@
+import { useEffect, useRef } from "react";
+
 export default function LGPDModal({ onClose }) {
+  const titleId = useRef(`lgpd-title-${Math.random().toString(36).slice(2, 8)}`).current;
+  const dialogRef = useRef(null);
+  const previousFocus = useRef(null);
+
+  useEffect(() => {
+    previousFocus.current = document.activeElement;
+    dialogRef.current?.focus();
+    return () => { previousFocus.current?.focus(); };
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
-      <div className="w-full max-w-lg max-h-[80vh] overflow-auto rounded-3xl bg-white p-6 shadow-2xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="w-full max-w-lg max-h-[80vh] overflow-auto rounded-3xl bg-white p-6 shadow-2xl outline-none"
+      >
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-[#172233]">Política de Privacidade e LGPD</h3>
+          <h3 id={titleId} className="text-lg font-bold text-[#172233]">Política de Privacidade e LGPD</h3>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Fechar"
             className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-500"
           >
             ×
