@@ -14,6 +14,8 @@ dist-ssr
 
 # Environment files
 .env
+.env.*
+!.env.example
 .env.local
 .env.*.local
 
@@ -62,3 +64,22 @@ diagram.*
 *.njsproj
 *.sln
 *.sw?
+
+# ==========================================
+# DevSecOps & Security Hardening
+# ==========================================
+
+# Environment variables & secrets
+*.pem
+*.key
+*.p12
+
+# AI Prompts, Agents & Internal Documentation
+.agents/
+prompts/
+docs/
+llms.txt
+
+# Database Schemas & Models
+/prisma/migrations/
+/db/schemas/
