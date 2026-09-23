@@ -22,7 +22,7 @@ beforeEach(() => {
 describe("VolunteersView", () => {
   it("renders the volunteer form and tabs", () => {
     render(<VolunteersView {...baseProps} />);
-    expect(screen.getByText("Novo voluntário")).toBeDefined();
+    expect(screen.getByText("Novo Voluntário")).toBeDefined();
     expect(screen.getByText(/Ativos \(0\)/)).toBeDefined();
     expect(screen.getByText(/Fila de Aprovação \(0\)/)).toBeDefined();
   });
