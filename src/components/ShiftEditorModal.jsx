@@ -14,11 +14,12 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
   const [startTime, setStartTime] = useState(currentShift?.start || "");
   const [endTime, setEndTime] = useState(currentShift?.end || "");
   const [description, setDescription] = useState(currentShift?.description || "");
+  const [vagas, setVagas] = useState(currentShift?.vagas || 0);
   const [selectedIds, setSelectedIds] = useState(currentShift?.volunteerIds || []);
   const [manualMode, setManualMode] = useState(false);
   const [manualName, setManualName] = useState(currentShift?.manualNames?.[0] || "");
 
-  const hasChanges = startTime !== (currentShift?.start || "") || endTime !== (currentShift?.end || "") || description !== (currentShift?.description || "") || JSON.stringify(selectedIds) !== JSON.stringify(currentShift?.volunteerIds || []) || manualName !== (currentShift?.manualNames?.[0] || "");
+  const hasChanges = startTime !== (currentShift?.start || "") || endTime !== (currentShift?.end || "") || description !== (currentShift?.description || "") || vagas !== (currentShift?.vagas || 0) || JSON.stringify(selectedIds) !== JSON.stringify(currentShift?.volunteerIds || []) || manualName !== (currentShift?.manualNames?.[0] || "");
   useBeforeUnload(hasChanges);
 
   const currentBlock =
@@ -62,10 +63,11 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
       startTime: startTime.trim(),
       endTime: endTime.trim(),
       description: description.trim(),
+      vagas: Math.max(0, Number(vagas) || 0),
       selectedIds: manualMode ? [] : selectedIds,
       manualName: manualMode ? manualName.trim() : "",
     });
-  }, [canSave, onSave, currentBlock, blockId, isEdit, shiftEditor, startTime, endTime, description, manualMode, selectedIds, manualName]);
+  }, [canSave, onSave, currentBlock, blockId, isEdit, shiftEditor, startTime, endTime, description, vagas, manualMode, selectedIds, manualName]);
 
   useKeyboardShortcut("s", handleSave, { ctrl: true });
 
@@ -116,6 +118,18 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Ex: Guarda Volumes — Entrada principal"
+            className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-sm font-medium text-slate-600">Vagas</span>
+          <input
+            type="number"
+            min="0"
+            value={vagas}
+            onChange={(event) => setVagas(event.target.value)}
+            placeholder="0"
             className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
           />
         </label>

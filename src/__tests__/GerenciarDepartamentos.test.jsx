@@ -17,8 +17,18 @@ vi.mock("../context/EventContext", () => ({
 
 vi.mock("../services/departmentService", () => ({
   STANDARD_DEPARTMENTS: [
+    { name: "Contas", slug: "contas" },
     { name: "Indicadores", slug: "indicadores" },
-    { name: "Limpeza", slug: "limpeza" },
+    { name: "Áudio e vídeo", slug: "audio-e-video" },
+    { name: "Batismo", slug: "batismo" },
+    { name: "Primeiros socorros", slug: "primeiros-socorros" },
+    { name: "Informações e serviço voluntário", slug: "informacoes-e-servico-voluntario" },
+    { name: "Achados/perdidos e guarda-volumes", slug: "achados-perdidos-e-guarda-volumes" },
+    { name: "Montagem", slug: "montagem" },
+    { name: "Estacionamento", slug: "estacionamento" },
+    { name: "Hospedagem", slug: "hospedagem" },
+    { name: "Segurança", slug: "seguranca" },
+    { name: "Transporte e equipamentos", slug: "transporte-e-equipamentos" },
   ],
   createDepartment: vi.fn(),
   linkUserAsCoordinator: vi.fn(),
@@ -41,15 +51,15 @@ function selectOption(value) {
 }
 
 describe("GerenciarDepartamentos", () => {
-  it("renders the claim form with a strict select of the 2 standard departments", () => {
+  it("renders the claim form with a strict select of the 12 standard departments", () => {
     render(<GerenciarDepartamentos />);
     expect(
       screen.getByRole("heading", { name: "Reivindicar Departamento" })
     ).toBeDefined();
     expect(screen.getByRole("option", { name: "Indicadores" })).toBeDefined();
-    expect(screen.getByRole("option", { name: "Limpeza" })).toBeDefined();
+    expect(screen.getByRole("option", { name: "Contas" })).toBeDefined();
     expect(screen.queryByPlaceholderText("Ex: Indicadores")).toBeNull();
-    expect(screen.getByRole("combobox").options).toHaveLength(3);
+    expect(screen.getByRole("combobox").options).toHaveLength(13);
   });
 
   it("does not submit without a selected department", () => {
@@ -82,7 +92,7 @@ describe("GerenciarDepartamentos", () => {
     );
 
     render(<GerenciarDepartamentos />);
-    selectOption("limpeza");
+    selectOption("batismo");
     fireEvent.click(screen.getByRole("button", { name: "Reivindicar Departamento" }));
 
     await waitFor(() => {

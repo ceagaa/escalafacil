@@ -1,14 +1,43 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../services/supabase";
+import { useEvent } from "./EventContext";
 
+const DEPT_STORAGE_KEY = "escalafacil_active_department_id";
 const AuthContext = createContext(null);
 
+function getStoredDeptId() {
+  try {
+    return localStorage.getItem(DEPT_STORAGE_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+function storeDeptId(id) {
+  try {
+    if (id) {
+      localStorage.setItem(DEPT_STORAGE_KEY, id);
+    } else {
+      localStorage.removeItem(DEPT_STORAGE_KEY);
+    }
+  } catch {
+    // localStorage unavailable
+  }
+}
+
 export function AuthProvider({ children }) {
+  const { eventoId, eventLoading } = useEvent();
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [activeDepartment, setActiveDepartment] = useState(null);
   const [loading, setLoading] = useState(true);
+  const deptRestoredRef = useRef(false);
+
+  const eventoIdRef = useRef(eventoId);
+  useEffect(() => {
+    eventoIdRef.current = eventoId;
+  }, [eventoId]);
 
   const fetchProfile = useCallback(async (userId) => {
     const { data, error } = await supabase
@@ -32,14 +61,32 @@ export function AuthProvider({ children }) {
       console.warn("Falha ao buscar departamentos:", error.message);
       return [];
     }
-    return Array.isArray(data) ? data : [];
+    const rows = Array.isArray(data) ? data : [];
+    const activeEventoId = eventoIdRef.current;
+    if (!activeEventoId) return rows;
+    return rows.filter((row) => !row?.evento_id || row.evento_id === activeEventoId);
   }, []);
 
   const reconcileActiveDepartment = useCallback((depts, prev) => {
-    if (!prev) return depts[0] || null;
+    if (!prev) return null;
     const prevDeptId = prev?.department?.id || prev?.id;
-    return depts.find((member) => member?.department?.id === prevDeptId) || depts[0] || null;
+    return depts.find(
+      (member) => member?.department?.id === prevDeptId
+    ) || null;
   }, []);
+
+  function restoreFromStorage(depts) {
+    if (deptRestoredRef.current) return;
+    deptRestoredRef.current = true;
+    const storedDeptId = getStoredDeptId();
+    if (!storedDeptId) return;
+    const match = depts.find((m) => m?.department?.id === storedDeptId);
+    if (match) {
+      setActiveDepartment(match);
+    } else {
+      storeDeptId(null);
+    }
+  }
 
   const refreshSession = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -53,7 +100,11 @@ export function AuthProvider({ children }) {
       ]);
       setProfile(profileData);
       setDepartments(depts);
-      setActiveDepartment((prev) => reconcileActiveDepartment(depts, prev));
+      setActiveDepartment((prev) => {
+        if (!prev) return null;
+        return reconcileActiveDepartment(depts, prev);
+      });
+      restoreFromStorage(depts);
       return depts;
     }
     setProfile(null);
@@ -66,9 +117,35 @@ export function AuthProvider({ children }) {
     if (!user) return [];
     const depts = await fetchDepartments(user.id);
     setDepartments(depts);
-    setActiveDepartment((prev) => reconcileActiveDepartment(depts, prev));
+    setActiveDepartment((prev) => {
+      if (!prev) return null;
+      return reconcileActiveDepartment(depts, prev);
+    });
     return depts;
   }, [user, fetchDepartments, reconcileActiveDepartment]);
+
+  useEffect(() => {
+    if (eventLoading) return;
+    let cancelled = false;
+
+    if (!eventoId) {
+      setDepartments([]);
+      setActiveDepartment(null);
+      return;
+    }
+
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user ?? null;
+      if (!currentUser || cancelled) return;
+      const depts = await fetchDepartments(currentUser.id);
+      if (cancelled) return;
+      setDepartments(depts);
+      setActiveDepartment((prev) => (prev ? reconcileActiveDepartment(depts, prev) : prev));
+    })();
+
+    return () => { cancelled = true; };
+  }, [eventoId, eventLoading, fetchDepartments, reconcileActiveDepartment]);
 
   useEffect(() => {
     let mounted = true;
@@ -102,9 +179,7 @@ export function AuthProvider({ children }) {
             if (!mounted) return;
             setProfile(profileData);
             setDepartments(depts);
-            if (depts.length > 0) {
-              setActiveDepartment(depts[0]);
-            }
+            restoreFromStorage(depts);
           } catch (err) {
             console.warn("Erro ao buscar dados do usuário:", err);
           }
@@ -130,13 +205,11 @@ export function AuthProvider({ children }) {
             ]);
             setProfile(profileData);
             setDepartments(depts);
-            if (depts.length > 0) {
-              setActiveDepartment((prev) => prev ?? depts[0]);
-            }
           } else {
             setProfile(null);
             setDepartments([]);
             setActiveDepartment(null);
+            storeDeptId(null);
           }
         } catch (err) {
           console.warn("Erro no onAuthStateChange:", err);
@@ -195,10 +268,12 @@ export function AuthProvider({ children }) {
     setProfile(null);
     setDepartments([]);
     setActiveDepartment(null);
+    storeDeptId(null);
   }
 
   function selectDepartment(dept) {
     setActiveDepartment(dept);
+    storeDeptId(dept?.department?.id || dept?.id || null);
   }
 
   const isSuperAdmin = profile?.is_super_admin === true;

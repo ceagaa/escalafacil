@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, render, act } from "@testing-library/react";
+import { renderHook, render, act, waitFor } from "@testing-library/react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { EventProvider, useEvent } from "../context/EventContext";
 
 const mockUser = { id: "user-1", email: "test@example.com" };
 const mockProfile = { id: "user-1", name: "Test User", is_super_admin: false };
@@ -37,7 +38,11 @@ import { supabase } from "../services/supabase";
 
 function createWrapper() {
   return function Wrapper({ children }) {
-    return <AuthProvider>{children}</AuthProvider>;
+    return (
+      <EventProvider>
+        <AuthProvider>{children}</AuthProvider>
+      </EventProvider>
+    );
   };
 }
 
@@ -70,6 +75,40 @@ describe("AuthContext", () => {
     const wrapper = createWrapper();
     const { result } = renderHook(() => useAuth(), { wrapper });
     expect(typeof result.current.selectDepartment).toBe("function");
+  });
+
+  it("purges departments and active department when the active event is cleared", async () => {
+    const wrapper = createWrapper();
+    const { result } = renderHook(
+      () => ({ auth: useAuth(), event: useEvent() }),
+      { wrapper }
+    );
+
+    act(() => {
+      result.current.auth.selectDepartment({
+        id: "dm-1",
+        user_id: "user-1",
+        evento_id: "ev-1",
+        department: { id: "dept-1", name: "Indicadores" },
+      });
+    });
+    expect(result.current.auth.activeDepartment).not.toBeNull();
+
+    act(() => {
+      result.current.event.selectEvent({ id: "ev-1", tipo: "assembleia" });
+    });
+    expect(result.current.auth.activeDepartment).not.toBeNull();
+
+    act(() => {
+      result.current.event.clearEvent();
+    });
+
+    await waitFor(() => {
+      expect(result.current.auth.activeDepartment).toBeNull();
+      expect(result.current.auth.departments).toEqual([]);
+    });
+
+    localStorage.removeItem("escalafacil_active_evento_id");
   });
 
   it("throws when useAuth is used outside AuthProvider", () => {

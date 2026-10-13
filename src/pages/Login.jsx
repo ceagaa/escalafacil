@@ -50,6 +50,7 @@ export default function Login() {
       });
       if (oauthError) throw oauthError;
     } catch (err) {
+      console.error("Erro no login com Google:", err?.message);
       setError(err?.message || "Falha ao autenticar com Google.");
       setSubmitting(false);
     }

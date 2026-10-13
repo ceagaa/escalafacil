@@ -17,6 +17,14 @@ export const dayTheme = {
   "Sexta-feira": { key: "sexta", color: "#D65A00", soft: "rgba(214, 90, 0, 0.10)", border: "rgba(214, 90, 0, 0.18)" },
   Sábado: { key: "sabado", color: "#345C3F", soft: "rgba(52, 92, 63, 0.10)", border: "rgba(52, 92, 63, 0.18)" },
   Domingo: { key: "domingo", color: "#0A5883", soft: "rgba(10, 88, 131, 0.10)", border: "rgba(10, 88, 131, 0.18)" },
+  "Dia do Evento": { key: "evento", color: "#6D28D9", soft: "rgba(109, 40, 217, 0.10)", border: "rgba(109, 40, 217, 0.18)" },
+  segunda: { key: "segunda", color: "#6D28D9", soft: "rgba(109, 40, 217, 0.10)", border: "rgba(109, 40, 217, 0.18)" },
+  terça: { key: "terca", color: "#6D28D9", soft: "rgba(109, 40, 217, 0.10)", border: "rgba(109, 40, 217, 0.18)" },
+  quarta: { key: "quarta", color: "#6D28D9", soft: "rgba(109, 40, 217, 0.10)", border: "rgba(109, 40, 217, 0.18)" },
+  quinta: { key: "quinta", color: "#6D28D9", soft: "rgba(109, 40, 217, 0.10)", border: "rgba(109, 40, 217, 0.18)" },
+  sexta: { key: "sexta2", color: "#D65A00", soft: "rgba(214, 90, 0, 0.10)", border: "rgba(214, 90, 0, 0.18)" },
+  sábado: { key: "sabado2", color: "#345C3F", soft: "rgba(52, 92, 63, 0.10)", border: "rgba(52, 92, 63, 0.18)" },
+  domingo: { key: "domingo2", color: "#0A5883", soft: "rgba(10, 88, 131, 0.10)", border: "rgba(10, 88, 131, 0.18)" },
 };
 
 export const UNASSIGNED_LABEL = "Aguardando escala";
@@ -157,6 +165,30 @@ export const AVAILABILITY_SLOT_LABELS = {
   "domingo-tarde": "Domingo · Tarde",
 };
 
+export const ASSEMBLEIA_SLOTS = [
+  { id: "manha", label: "Manhã" },
+  { id: "tarde", label: "Tarde" },
+];
+
+export const CONGRESSO_SLOTS = [
+  { id: "sexta-manha", day: "Sexta-feira", period: "Manhã" },
+  { id: "sexta-tarde", day: "Sexta-feira", period: "Tarde" },
+  { id: "sabado-manha", day: "Sábado", period: "Manhã" },
+  { id: "sabado-tarde", day: "Sábado", period: "Tarde" },
+  { id: "domingo-manha", day: "Domingo", period: "Manhã" },
+  { id: "domingo-tarde", day: "Domingo", period: "Tarde" },
+];
+
+const ASSEMBLEIA_TYPES = ["assembleia_circuito", "assembleia_representante"];
+
+export function getAvailabilitySlots(eventoTipo) {
+  return ASSEMBLEIA_TYPES.includes(eventoTipo) ? ASSEMBLEIA_SLOTS : CONGRESSO_SLOTS;
+}
+
+export function isAssembleiaType(eventoTipo) {
+  return ASSEMBLEIA_TYPES.includes(eventoTipo);
+}
+
 export function parseAvailability(value) {
   if (Array.isArray(value)) return value.filter((item) => typeof item === "string");
   if (typeof value === "string") {
@@ -296,10 +328,10 @@ export function formatCurrentDate(date = new Date()) {
 }
 
 export const navigationItems = [
-  { path: "/", label: "Início", iconClass: "fi fi-rr-home" },
-  { path: "/programacao", label: "Escala", iconClass: "fi fi-rr-calendar-lines" },
-  { path: "/voluntarios", label: "Voluntários", iconClass: "fi fi-rr-users" },
-  { path: "/configuracoes", label: "Configurações", iconClass: "fi fi-rr-settings" },
+  { path: "/", label: "Dashboard", iconClass: "fi fi-rr-home" },
+  { path: "/programacao", label: "Escala", iconClass: "fi fi-rr-calendar-lines", requiresDepartment: true },
+  { path: "/voluntarios", label: "Voluntários", iconClass: "fi fi-rr-users", requiresDepartment: true },
+  { path: "/configuracoes", label: "Configurações", iconClass: "fi fi-rr-settings", requiresDepartment: true },
 ];
 
 export function getResponsibleNames(responsible) {
@@ -317,6 +349,52 @@ export function getEventoTipoLabel(tipo) {
   return EVENT_TYPE_LABELS[tipo] || tipo;
 }
 
+function extractYearFromDate(data_evento) {
+  if (!data_evento) return new Date().getFullYear();
+  return new Date(data_evento + "T12:00:00").getFullYear();
+}
+
+function parseCircuitos(circuito) {
+  if (!circuito) return [];
+  return circuito.split(" / ").map((s) => s.trim()).filter(Boolean);
+}
+
+const ASSEMBLEIA_NOMENCLATURE = {
+  assembleia_circuito: "Assembleia de circuito com o superintendente de circuito",
+  assembleia_representante: "Assembleia de circuito com o representante de betel",
+};
+
+export function formatEventoNome(evento) {
+  if (!evento) return "";
+  const tipo = evento.tipo;
+  const label = getEventoTipoLabel(tipo);
+
+  if (ASSEMBLEIA_TYPES.includes(tipo)) {
+    const nomeBase = ASSEMBLEIA_NOMENCLATURE[tipo] || label;
+    const circuitos = parseCircuitos(evento.circuito);
+    return circuitos.length > 0
+      ? `${nomeBase} - ${circuitos.join(", ")}`
+      : nomeBase;
+  }
+
+  const parts = [label];
+  if (evento.cidade) parts.push(evento.cidade);
+  if (evento.estado) parts.push(evento.estado);
+  if (evento.circuito) parts.push(`(${evento.circuito})`);
+  const ano = extractYearFromDate(evento.data_evento);
+  if (ano) parts.push(String(ano));
+  return parts.join(" ");
+}
+
+export function formatEventoDate(evento) {
+  if (!evento?.data_evento) return "";
+  return new Date(evento.data_evento + "T12:00:00").toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 export function formatEventoSubtitle(evento) {
   if (!evento) return "";
   const parts = [];
@@ -326,8 +404,14 @@ export function formatEventoSubtitle(evento) {
     parts.push(evento.estado);
   }
   if (evento.circuito) parts.push(evento.circuito);
-  if (evento.ano) parts.push(evento.ano);
-  return parts.join(" — ");
+  return parts.join(" - ");
+}
+
+export function formatEventoFull(evento) {
+  if (!evento) return "";
+  const nome = formatEventoNome(evento);
+  const dateStr = formatEventoDate(evento);
+  return dateStr ? `${nome} - ${dateStr}` : nome;
 }
 
 export const STAT_ICON_PATHS = {

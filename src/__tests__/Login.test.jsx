@@ -19,6 +19,12 @@ vi.mock("../context/AuthContext", () => ({
 
 import { useAuth } from "../context/AuthContext";
 
+vi.mock("../services/supabase", () => ({
+  supabase: { auth: { signInWithOAuth: vi.fn() } },
+}));
+
+import { supabase } from "../services/supabase";
+
 function renderLogin() {
   return render(
     <MemoryRouter initialEntries={["/login"]}>
@@ -170,6 +176,29 @@ describe("Login", () => {
       expect(screen.getByText("Preencha nome, e-mail e senha.")).toBeDefined();
     });
     expect(mockSignUp).not.toHaveBeenCalled();
+  });
+
+  it("calls Supabase Google OAuth when clicking the Google button", async () => {
+    supabase.auth.signInWithOAuth.mockResolvedValue({ error: null });
+    renderLogin();
+    fireEvent.click(screen.getByRole("button", { name: /Entrar com Google/ }));
+    await waitFor(() => {
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: "google",
+        options: { redirectTo: window.location.origin + "/" },
+      });
+    });
+  });
+
+  it("shows error when Google OAuth fails", async () => {
+    supabase.auth.signInWithOAuth.mockResolvedValue({
+      error: new Error("OAuth provider error"),
+    });
+    renderLogin();
+    fireEvent.click(screen.getByRole("button", { name: /Entrar com Google/ }));
+    await waitFor(() => {
+      expect(screen.getByText("OAuth provider error")).toBeDefined();
+    });
   });
 
   it("redirects to / when already authenticated", () => {

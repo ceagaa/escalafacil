@@ -21,6 +21,11 @@ function normalizeIdentificacoes(identificacoes) {
 
 const ASSEMBLEIA_TYPES = ["assembleia_circuito", "assembleia_representante"];
 
+export function extractYearFromDate(data_evento) {
+  if (!data_evento) return new Date().getFullYear();
+  return new Date(data_evento + "T12:00:00").getFullYear();
+}
+
 export function generateEventSlug(tipo, estado, cidade, circuito, ano, identificacoes) {
   const t = normalizeSlugPart(tipo);
   const ids = normalizeIdentificacoes(identificacoes) || normalizeSlugPart(circuito);
@@ -34,13 +39,14 @@ export function generateEventSlug(tipo, estado, cidade, circuito, ano, identific
   return `${t}-${uf}-${c}-${ids}-${ano}`;
 }
 
-export async function upsertEvento({ tipo, estado, cidade, circuito, ano, identificacoes }) {
+export async function upsertEvento({ tipo, estado, cidade, circuito, identificacoes, data_evento, userId }) {
+  const ano = extractYearFromDate(data_evento);
   const slug = generateEventSlug(tipo, estado, cidade, circuito, ano, identificacoes);
 
   const { data, error } = await supabase
     .from("eventos")
     .upsert(
-      { slug, tipo, estado, cidade, circuito, ano },
+      { slug, tipo, estado, cidade, circuito, ano, data_evento: data_evento || null, criado_por: userId || null },
       { onConflict: "slug" }
     )
     .select()
@@ -48,6 +54,28 @@ export async function upsertEvento({ tipo, estado, cidade, circuito, ano, identi
 
   if (error) throw new Error(sanitizeError(error, "create"));
   return data;
+}
+
+export async function updateEvento(id, { tipo, estado, cidade, circuito, data_evento }) {
+  const ano = extractYearFromDate(data_evento);
+  const { data, error } = await supabase
+    .from("eventos")
+    .update({ tipo, estado, cidade, circuito, ano, data_evento: data_evento || null })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw new Error(sanitizeError(error, "update"));
+  return data;
+}
+
+export async function deleteEvento(id) {
+  const { error } = await supabase
+    .from("eventos")
+    .delete()
+    .eq("id", id);
+
+  if (error) throw new Error(sanitizeError(error, "delete"));
 }
 
 export async function listEventos() {

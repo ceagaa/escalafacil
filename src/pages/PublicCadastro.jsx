@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../services/supabase";
-
-const SLOTS = [
-  { id: "sexta-manha", day: "Sexta-feira", period: "Manhã" },
-  { id: "sexta-tarde", day: "Sexta-feira", period: "Tarde" },
-  { id: "sabado-manha", day: "Sábado", period: "Manhã" },
-  { id: "sabado-tarde", day: "Sábado", period: "Tarde" },
-  { id: "domingo-manha", day: "Domingo", period: "Manhã" },
-  { id: "domingo-tarde", day: "Domingo", period: "Tarde" },
-];
+import { getAvailabilitySlots, isAssembleiaType } from "../utils/helpers";
 
 function formatPhone(value) {
   const digits = value.replace(/\D/g, "").slice(0, 14);
@@ -43,6 +35,7 @@ function setMetaTag(property, content) {
 export default function PublicCadastro() {
   const { slug } = useParams();
   const [department, setDepartment] = useState(null);
+  const [eventoTipo, setEventoTipo] = useState(null);
   const [loadingDept, setLoadingDept] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -54,24 +47,47 @@ export default function PublicCadastro() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
+  const slots = getAvailabilitySlots(eventoTipo);
+  const assembleia = isAssembleiaType(eventoTipo);
+
   useEffect(() => {
     async function fetchDept() {
       const { data, error } = await supabase
         .from("departments")
         .select("id, name")
         .eq("slug", slug)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         setNotFound(true);
-      } else {
-        setDepartment(data);
-        document.title = `Seja Voluntário — ${data.name}`;
-        setMetaTag("og:title", `Seja Voluntário — ${data.name}`);
-        setMetaTag("og:description", `Cadastre-se como voluntário no departamento ${data.name}. Participação em escalas de eventos sazonais.`);
-        setMetaTag("og:image", window.location.origin + "/favicon.png");
-        setMetaTag("og:url", window.location.href);
+        setLoadingDept(false);
+        return;
       }
+
+      setDepartment(data);
+      document.title = `Seja Voluntário — ${data.name}`;
+      setMetaTag("og:title", `Seja Voluntário — ${data.name}`);
+      setMetaTag("og:description", `Cadastre-se como voluntário no departamento ${data.name}. Participação em escalas de eventos sazonais.`);
+      setMetaTag("og:image", window.location.origin + "/favicon.png");
+      setMetaTag("og:url", window.location.href);
+
+      const { data: evDepts } = await supabase
+        .from("evento_departamentos")
+        .select("evento_id")
+        .eq("department_id", data.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (evDepts?.evento_id) {
+        const { data: evento } = await supabase
+          .from("eventos")
+          .select("tipo")
+          .eq("id", evDepts.evento_id)
+          .maybeSingle();
+        if (evento?.tipo) setEventoTipo(evento.tipo);
+      }
+
       setLoadingDept(false);
     }
     fetchDept();
@@ -241,30 +257,52 @@ export default function PublicCadastro() {
                 Disponibilidade
               </label>
               <p className="mt-1 text-xs text-slate-400">
-                Selecione os turnos em que você pode ajudar
+                Selecione {assembleia ? "Manhã e/ou Tarde" : "os turnos em que você pode ajudar"}
               </p>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {SLOTS.map((slot) => {
-                  const isSelected = selectedSlots.includes(slot.id);
-                  return (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      onClick={() => toggleSlot(slot.id)}
-                      className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
-                        isSelected
-                          ? "border-[#42d27b] bg-[#42d27b]/10 font-medium text-[#1a7a42]"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                      }`}
-                    >
-                      <span className="block text-xs font-semibold uppercase tracking-wide opacity-60">
-                        {slot.day}
-                      </span>
-                      <span className="mt-0.5 block">{slot.period}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              {assembleia ? (
+                <div className="mt-3 flex gap-3">
+                  {slots.map((slot) => {
+                    const isSelected = selectedSlots.includes(slot.id);
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => toggleSlot(slot.id)}
+                        className={`flex-1 rounded-xl border px-4 py-4 text-center text-sm font-medium transition ${
+                          isSelected
+                            ? "border-[#42d27b] bg-[#42d27b]/10 text-[#1a7a42]"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                        }`}
+                      >
+                        {slot.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {slots.map((slot) => {
+                    const isSelected = selectedSlots.includes(slot.id);
+                    return (
+                      <button
+                        key={slot.id}
+                        type="button"
+                        onClick={() => toggleSlot(slot.id)}
+                        className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
+                          isSelected
+                            ? "border-[#42d27b] bg-[#42d27b]/10 font-medium text-[#1a7a42]"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                        }`}
+                      >
+                        <span className="block text-xs font-semibold uppercase tracking-wide opacity-60">
+                          {slot.day}
+                        </span>
+                        <span className="mt-0.5 block">{slot.period}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

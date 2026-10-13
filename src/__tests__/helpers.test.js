@@ -21,6 +21,8 @@ import {
   formatCurrentDate,
   initialSchedule,
   emptyVolunteer,
+  getAvailabilitySlots,
+  isAssembleiaType,
 } from "../utils/helpers";
 
 describe("sanitizeSchedule", () => {
@@ -306,5 +308,51 @@ describe("emptyVolunteer", () => {
     const v = emptyVolunteer();
     expect(v.name).toBe("");
     expect(v.active).toBe(true);
+  });
+});
+
+describe("getAvailabilitySlots", () => {
+  it("returns 2 simple slots for assembleia_circuito", () => {
+    const slots = getAvailabilitySlots("assembleia_circuito");
+    expect(slots).toEqual([
+      { id: "manha", label: "Manhã" },
+      { id: "tarde", label: "Tarde" },
+    ]);
+  });
+
+  it("returns 2 simple slots for assembleia_representante", () => {
+    const slots = getAvailabilitySlots("assembleia_representante");
+    expect(slots).toHaveLength(2);
+    expect(slots[0].id).toBe("manha");
+  });
+
+  it("returns 6 day-grouped slots for congresso_regional", () => {
+    const slots = getAvailabilitySlots("congresso_regional");
+    expect(slots).toHaveLength(6);
+    expect(slots[0]).toEqual({ id: "sexta-manha", day: "Sexta-feira", period: "Manhã" });
+    expect(slots[5]).toEqual({ id: "domingo-tarde", day: "Domingo", period: "Tarde" });
+  });
+
+  it("returns 6 slots for unknown tipo (default)", () => {
+    const slots = getAvailabilitySlots(null);
+    expect(slots).toHaveLength(6);
+  });
+});
+
+describe("isAssembleiaType", () => {
+  it("returns true for assembleia_circuito", () => {
+    expect(isAssembleiaType("assembleia_circuito")).toBe(true);
+  });
+
+  it("returns true for assembleia_representante", () => {
+    expect(isAssembleiaType("assembleia_representante")).toBe(true);
+  });
+
+  it("returns false for congresso_regional", () => {
+    expect(isAssembleiaType("congresso_regional")).toBe(false);
+  });
+
+  it("returns false for null", () => {
+    expect(isAssembleiaType(null)).toBe(false);
   });
 });

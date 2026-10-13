@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
@@ -8,9 +8,10 @@ import {
   createDepartment,
   claimDepartmentForEvento,
   getEventoDepartmentOwner,
+  revokeDepartmentCoordinator,
 } from "../services/departmentService";
 import { linkDepartmentToEvento } from "../services/eventService";
-import { getEventoTipoLabel, formatEventoSubtitle } from "../utils/helpers";
+import { getEventoTipoLabel, formatEventoNome, formatEventoDate } from "../utils/helpers";
 import ConfirmModal from "../components/ConfirmModal";
 import { Skeleton, SkeletonStat } from "../components/Skeleton";
 
@@ -23,6 +24,33 @@ async function fetchDeptStats(departmentId) {
     volunteers: volunteers.count ?? 0,
     shifts: shifts.count ?? 0,
   };
+}
+
+async function fetchOwnersMap(eventoId) {
+  if (!eventoId) return new Map();
+  try {
+    let query = supabase
+      .from("department_members")
+      .select("department_id, user_id, profiles:user_id(name)")
+      .eq("role", "coordenador");
+    query = eventoId ? query.eq("evento_id", eventoId) : query.is("evento_id", null);
+    const { data } = await query;
+    const map = new Map();
+    (Array.isArray(data) ? data : []).forEach((row) => {
+      if (!row?.department_id) return;
+      map.set(row.department_id, { userId: row.user_id || null, name: row.profiles?.name || null });
+    });
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+function applyEventOwner(dept, owners) {
+  const owner = owners.get(dept.id);
+  const ownerId = owner?.userId ?? dept.coordenador_id ?? null;
+  const ownerName = owner?.name ?? dept.coordenador?.name ?? null;
+  return { ...dept, coordenador_id: ownerId, ownerName, ownerId };
 }
 
 export default function Dashboard() {
@@ -48,33 +76,99 @@ export default function Dashboard() {
   const departmentName = activeDepartment?.department?.name || "";
   const isCoordinator = activeDepartment?.role === "coordenador";
 
+  const activeDepartmentRef = useRef(activeDepartment);
+  const userRef = useRef(user);
+  const selectDepartmentRef = useRef(selectDepartment);
   useEffect(() => {
+    activeDepartmentRef.current = activeDepartment;
+    userRef.current = user;
+    selectDepartmentRef.current = selectDepartment;
+  }, [activeDepartment, user, selectDepartment]);
+
+  useEffect(() => {
+    if (!eventoId) {
+      setDeptRecords([]);
+      setCustomDepts([]);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     async function loadDepartments() {
-      const { data } = await supabase.from("departments").select("id, name, slug");
-      const list = Array.isArray(data) ? data : [];
-      const rows = await Promise.all(
-        list.map(async (dept) => ({
-          ...dept,
-          ownerName: await getEventoDepartmentOwner(dept.id, eventoId || null),
-        }))
-      );
-      if (!cancelled) setDeptRecords(rows);
-      if (!cancelled) setLoading(false);
+      let list = [];
+      const ownersPromise = fetchOwnersMap(eventoId);
 
       if (eventoId) {
         const { data: evDepts } = await supabase
           .from("evento_departamentos")
-          .select("department:departments(id, name, slug)")
+          .select("department:departments(id, name, slug, coordenador_id, coordenador:coordenador_id(name))")
           .eq("evento_id", eventoId);
-        const custom = (evDepts || [])
-          .map((row) => row.department)
-          .filter((d) => d && !STANDARD_DEPARTMENTS.some((s) => s.slug === d.slug));
+        list = (evDepts || []).map((row) => row.department).filter(Boolean);
+      } else {
+        const { data } = await supabase
+          .from("departments")
+          .select("id, name, slug, coordenador_id, coordenador:coordenador_id(name)");
+        list = Array.isArray(data) ? data : [];
+      }
+
+      const owners = await ownersPromise;
+      list = list.map((dept) => applyEventOwner(dept, owners));
+
+      if (!cancelled) setDeptRecords(list);
+      if (!cancelled) setLoading(false);
+
+      // Auto-Restore do Departamento na Navbar
+      const atualUser = userRef.current;
+      const meuDepartamento = list.find((d) => d?.coordenador_id === atualUser?.id);
+      if (!cancelled && atualUser?.id && meuDepartamento) {
+        const autoMembership = {
+          department_id: meuDepartamento.id || meuDepartamento.department_id,
+          evento_id: eventoId,
+          user_id: atualUser.id,
+          role: "coordenador",
+          departments: meuDepartamento,
+          department: meuDepartamento,
+          id: meuDepartamento.id || meuDepartamento.department_id,
+        };
+        // Previne loopings: só chama se não houver um departamento ativo ou se for diferente
+        const atual = activeDepartmentRef.current;
+        if (!atual || atual.department_id !== autoMembership.department_id) {
+          selectDepartmentRef.current(autoMembership);
+        }
+      }
+
+      if (eventoId) {
+        const custom = list.filter(
+          (d) => d && !STANDARD_DEPARTMENTS.some((s) => s.slug === d.slug)
+        );
         if (!cancelled) setCustomDepts(custom);
       }
     }
     loadDepartments().catch(() => {});
     return () => { cancelled = true; };
+  }, [eventoId]);
+
+  const refreshDeptRecords = useCallback(async () => {
+    if (!eventoId) return;
+    let list = [];
+    const ownersPromise = fetchOwnersMap(eventoId);
+    if (eventoId) {
+      const { data: evDepts } = await supabase
+        .from("evento_departamentos")
+        .select("department:departments(id, name, slug, coordenador_id, coordenador:coordenador_id(name))")
+        .eq("evento_id", eventoId);
+      list = (evDepts || []).map((row) => row.department).filter(Boolean);
+    } else {
+      const { data } = await supabase
+        .from("departments")
+        .select("id, name, slug, coordenador_id, coordenador:coordenador_id(name)");
+      list = Array.isArray(data) ? data : [];
+    }
+    const owners = await ownersPromise;
+    list = list.map((dept) => applyEventOwner(dept, owners));
+    setDeptRecords(list);
+    if (eventoId) {
+      setCustomDepts(list.filter((d) => d && !STANDARD_DEPARTMENTS.some((s) => s.slug === d.slug)));
+    }
   }, [eventoId]);
 
   useEffect(() => {
@@ -90,30 +184,36 @@ export default function Dashboard() {
   }
 
   function isMine(record) {
-    return record ? departments.some((m) => m?.department?.id === record.id) : false;
+    if (!record || !user) return false;
+    return record.ownerId === user.id;
   }
 
   function handleCardClick(standardDept) {
     const record = deptRecords.find((d) => d.slug === standardDept.slug);
 
-    if (record && isMine(record)) {
-      setConfirmModal({
-        type: "select",
-        title: "Confirmar Departamento",
-        message: `Você está selecionando o departamento ${standardDept.name}. Você realmente é o coordenador desse departamento?`,
-        onConfirm: () => {
-          const membership = departments.find((m) => m?.department?.id === record.id);
-          selectDepartment(membership || { id: record.id, department: record, role: "coordenador" });
-        },
-      });
+    // Guard rígido de duplo claim: quem já assumiu nunca abre o modal de "Assumir"
+    if (record?.coordenador_id) {
+      if (record.coordenador_id === user?.id) {
+        // É o meu departamento: entra direto no painel, sem perguntar.
+        // (Não existe rota /dashboard/departamento/:id — o "painel" é o activeDepartment.)
+        const membership = departments.find(
+          (m) => m?.department?.id === record.id && m?.user_id === user?.id
+        );
+        selectDepartment(membership || {
+          id: record.id,
+          department_id: record.id,
+          evento_id: eventoId,
+          user_id: user.id,
+          department: record,
+          role: "coordenador",
+        });
+        return;
+      }
+      showToast("Este departamento já possui um coordenador." + (record.ownerName ? " " + record.ownerName : "") + ".");
       return;
     }
 
-    if (record && record.ownerName) {
-      showToast("Departamento já criado. Responsável: " + record.ownerName);
-      return;
-    }
-
+    // Daqui para baixo: lógica normal de abrir o modal de assumir
     setConfirmModal({
       type: "claim",
       title: "Assumir Departamento",
@@ -126,33 +226,72 @@ export default function Dashboard() {
     setConfirmModal(null);
     setClaiming(true);
     try {
-      const department = await createDepartment(standardDept.name, standardDept.slug);
+      const dept = (await supabase.from("departments").select("id, name, slug").eq("slug", standardDept.slug).maybeSingle()).data;
+      if (!dept) {
+        showToast("Departamento não encontrado no banco de dados.");
+        return;
+      }
+
+      const existingOwner = await getEventoDepartmentOwner(dept.id, eventoId || null);
+      if (existingOwner) {
+        if (existingOwner.userId === user.id) {
+          const depts = await refreshSession();
+          const membership = depts.find((m) => m?.department?.id === dept?.id && m?.user_id === user?.id);
+          selectDepartment(membership || { id: dept.id, department: dept, role: "coordenador" });
+        } else {
+          showToast("Departamento já possui coordenador para este evento: " + existingOwner.name);
+        }
+        return;
+      }
+
+      const department = await createDepartment(standardDept.name, standardDept.slug, eventoId || null);
       if (eventoId) {
         try {
           await linkDepartmentToEvento(eventoId, department.id);
         } catch (linkErr) {
           console.error("Erro ao vincular departamento ao evento:", linkErr);
         }
-        await claimDepartmentForEvento(department.id, user.id, eventoId);
+      }
+
+      // Registro do grid correspondente (pode ainda não existir se o dept acabou de ser criado)
+      const record = deptRecords.find((d) => d.slug === standardDept.slug) || department;
+
+      // 1. Persiste a relação event-scoped
+      if (eventoId) {
+        await claimDepartmentForEvento(record.id, eventoId, user.id);
       } else {
         const { linkUserAsCoordinator } = await import("../services/departmentService");
-        await linkUserAsCoordinator(department.id, user.id);
+        await linkUserAsCoordinator(record.id, user.id, null);
       }
-      const depts = await refreshSession();
-      const membership = depts.find((m) => m?.department?.id === department.id);
-      selectDepartment(
-        membership || {
-          id: department.id,
-          department: { id: department.id, name: department.name, slug: standardDept.slug },
-          role: "coordenador",
-        }
-      );
-      setDeptRecords((prev) =>
-        prev.some((d) => d.slug === standardDept.slug)
-          ? prev.map((d) => d.slug === standardDept.slug ? { ...d, id: department.id } : d)
-          : [...prev, { ...department, slug: standardDept.slug }]
-      );
+
+      // 2. OPTIMISTIC UPDATE: Injeta na Navbar IMEDIATAMENTE
+      const optimisicMembership = {
+        department_id: record.id,
+        evento_id: eventoId,
+        user_id: user.id,
+        role: 'coordenador',
+        departments: record, // Essencial para a Navbar ler nome/ícone do departamento
+        department: record, // chave lida de fato pela Navbar/App (activeDepartment?.department.*)
+        id: record.id,
+      };
+
+      // Envia direto pro AuthContext
+      selectDepartment(optimisicMembership);
+
+      // 3. OPTIMISTIC UPDATE: Atualiza o Grid IMEDIATAMENTE
+      if (typeof setDeptRecords === 'function') {
+        setDeptRecords(prev => prev.map(dept =>
+          (dept.id === record.id)
+            ? { ...dept, coordenador_id: user.id, ownerId: user.id }
+            : dept
+        ));
+      }
+
+      // 4. Sincroniza em background silenciosamente
+      refreshDeptRecords();
+      if (typeof refreshSession === 'function') refreshSession();
     } catch (err) {
+      console.error("Erro no doClaim:", err);
       showToast(err?.message || "Erro ao reivindicar departamento.");
     } finally {
       setClaiming(false);
@@ -171,12 +310,13 @@ export default function Dashboard() {
 
   async function doRevoke() {
     setRevokeStep(0);
-    if (!activeDepartment?.id) return;
+    if (!departmentId) return;
     try {
-      await supabase.from("department_members").delete().eq("id", activeDepartment.id);
+      await revokeDepartmentCoordinator(departmentId, user.id);
       selectDepartment(null);
       await refreshSession();
-      showToast("Coordenação revogada.");
+      await refreshDeptRecords();
+      showToast("Coordenação revogada. Voltando ao Dashboard...");
     } catch (err) {
       showToast("Erro ao revogar coordenação.");
     }
@@ -187,20 +327,23 @@ export default function Dashboard() {
     if (!name) return;
     setCreatingDept(true);
     try {
-      const department = await createDepartment(name);
+      const department = await createDepartment(name, undefined, eventoId || null);
       if (eventoId) {
         try {
           await linkDepartmentToEvento(eventoId, department.id);
         } catch (linkErr) {
           console.error("Erro ao vincular departamento ao evento:", linkErr);
         }
-        await claimDepartmentForEvento(department.id, user.id, eventoId);
+        await claimDepartmentForEvento(department.id, eventoId, user.id);
       } else {
         const { linkUserAsCoordinator } = await import("../services/departmentService");
-        await linkUserAsCoordinator(department.id, user.id);
+        await linkUserAsCoordinator(department.id, user.id, null);
       }
       const depts = await refreshSession();
-      const membership = depts.find((m) => m?.department?.id === department.id);
+      await refreshDeptRecords();
+      const membership = depts.find(
+        (m) => m?.department?.id === department.id && m?.user_id === user?.id
+      );
       selectDepartment(
         membership || {
           id: department.id,
@@ -223,7 +366,8 @@ export default function Dashboard() {
   const shareBase = window.location.origin;
   const signupLink = departmentSlug ? `${shareBase}/${departmentSlug}/cadastro` : "";
   const scaleLink = departmentSlug ? `${shareBase}/${departmentSlug}/escala` : "";
-  const hasMultipleDepts = departments.length > 1;
+  const eventLabel = activeEvent ? formatEventoNome(activeEvent) : "";
+  const eventDate = activeEvent ? formatEventoDate(activeEvent) : "";
 
   if (!departmentId) {
     return (
@@ -232,21 +376,19 @@ export default function Dashboard() {
           <div role="alert" className="app-toast fixed left-1/2 top-6 -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
         )}
 
-        {activeEvent && (
-          <div className="flex items-center gap-3 rounded-2xl border border-[#42d27b]/20 bg-[#42d27b]/5 px-4 py-3">
-            <i className="fi fi-rr-calendar text-lg text-[#345C3F]" />
-            <div>
-              <p className="text-sm font-semibold text-[#172233]">{getEventoTipoLabel(activeEvent.tipo)}</p>
-              <p className="text-xs text-slate-500">{formatEventoSubtitle(activeEvent)}</p>
-            </div>
-          </div>
-        )}
-
         <div>
-          <h2 className="text-xl font-bold text-[#172233]">Bem-vindo!</h2>
+          <h2 className="text-xl font-bold text-navy-800">Bem-vindo!</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {activeEvent ? `Escolha o departamento para o evento: ${getEventoTipoLabel(activeEvent.tipo)}.` : "Escolha o departamento da sua equipe para começar."}
+            {activeEvent
+              ? `Escolha o departamento para o evento: ${getEventoTipoLabel(activeEvent.tipo)}.`
+              : "Escolha o departamento da sua equipe para começar."}
           </p>
+          {eventLabel && (
+            <>
+              <p className="mt-0.5 text-xs font-medium text-slate-500">{eventLabel}</p>
+              {eventDate && <p className="mt-0.5 text-xs text-slate-400">{eventDate}</p>}
+            </>
+          )}
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -259,56 +401,56 @@ export default function Dashboard() {
           ) : (
             <>
               {STANDARD_DEPARTMENTS.map((dept) => {
-            const record = deptRecords.find((item) => item.slug === dept.slug);
-            const mine = record ? isMine(record) : false;
-            const taken = record ? Boolean(record.ownerName) : false;
-            return (
-              <button key={dept.slug} type="button" onClick={() => handleCardClick(dept)} disabled={claiming} className="group rounded-2xl border-2 border-transparent bg-white p-6 text-left shadow-sm transition hover:border-[#42d27b]/40 hover:shadow-md disabled:opacity-60">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#345C3F]/10">
-                    <i className="fi fi-rr-building text-xl text-[#345C3F]" />
-                  </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${mine ? "bg-[#42d27b]/15 text-[#2a9d5c]" : taken ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>
-                    {mine ? "Seu departamento" : taken ? "Ocupado" : "Disponível"}
-                  </span>
-                </div>
-                <p className="mt-4 font-semibold text-[#172233]">{dept.name}</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                  {mine ? "Clique para acessar o painel deste departamento." : taken ? `Responsável: ${record.ownerName}.` : "Ao reivindicar, você será o coordenador deste departamento."}
-                </p>
-              </button>
-            );
-          })}
+                const record = deptRecords.find((item) => item.slug === dept.slug);
+                const mine = record && user ? record.coordenador_id === user.id : false;
+                const taken = record ? Boolean(record.coordenador_id) : false;
+                return (
+                  <button key={dept.slug} type="button" onClick={() => handleCardClick(dept)} disabled={claiming} className="group rounded-2xl border-2 border-transparent bg-white p-6 text-left shadow-card transition hover:border-brand-400/40 hover:shadow-md disabled:opacity-60">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-400/10">
+                        <i className="fi fi-rr-building text-xl text-brand-400" />
+                      </div>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${mine ? "bg-brand-400/15 text-brand-400" : taken ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>
+                        {mine ? "Seu departamento" : taken ? "Ocupado" : "Disponível"}
+                      </span>
+                    </div>
+                    <p className="mt-4 font-semibold text-navy-800">{dept.name}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                      {mine ? "Clique para acessar o painel deste departamento." : taken ? `Responsável: ${record.ownerName || "Coordenador"}.` : "Ao reivindicar, você será o coordenador deste departamento."}
+                    </p>
+                  </button>
+                );
+              })}
 
-          {customDepts.map((dept) => {
-            const record = deptRecords.find((item) => item.id === dept.id);
-            const mine = record ? isMine(record) : false;
-            const taken = record ? Boolean(record.ownerName) : false;
-            return (
-              <button key={dept.id} type="button" onClick={() => handleCardClick({ name: dept.name, slug: dept.slug })} disabled={claiming} className="group rounded-2xl border-2 border-transparent bg-white p-6 text-left shadow-sm transition hover:border-[#42d27b]/40 hover:shadow-md disabled:opacity-60">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#345C3F]/10">
-                    <i className="fi fi-rr-building text-xl text-[#345C3F]" />
-                  </div>
-                  <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${mine ? "bg-[#42d27b]/15 text-[#2a9d5c]" : taken ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>
-                    {mine ? "Seu departamento" : taken ? "Ocupado" : "Disponível"}
-                  </span>
-                </div>
-                <p className="mt-4 font-semibold text-[#172233]">{dept.name}</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                  {mine ? "Clique para acessar o painel deste departamento." : taken ? `Responsável: ${record.ownerName}.` : "Ao reivindicar, você será o coordenador deste departamento."}
-                </p>
-              </button>
-            );
-          })}
+              {customDepts.map((dept) => {
+                const record = deptRecords.find((item) => item.id === dept.id);
+                const mine = record && user ? record.coordenador_id === user.id : false;
+                const taken = record ? Boolean(record.coordenador_id) : false;
+                return (
+                  <button key={dept.id} type="button" onClick={() => handleCardClick({ name: dept.name, slug: dept.slug })} disabled={claiming} className="group rounded-2xl border-2 border-transparent bg-white p-6 text-left shadow-card transition hover:border-brand-400/40 hover:shadow-md disabled:opacity-60">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-400/10">
+                        <i className="fi fi-rr-building text-xl text-brand-400" />
+                      </div>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${mine ? "bg-brand-400/15 text-brand-400" : taken ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>
+                        {mine ? "Seu departamento" : taken ? "Ocupado" : "Disponível"}
+                      </span>
+                    </div>
+                    <p className="mt-4 font-semibold text-navy-800">{dept.name}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                      {mine ? "Clique para acessar o painel deste departamento." : taken ? `Responsável: ${record.ownerName || "Coordenador"}.` : "Ao reivindicar, você será o coordenador deste departamento."}
+                    </p>
+                  </button>
+                );
+              })}
 
-          <button type="button" onClick={() => { setShowNewDeptModal(true); setNewDeptName(""); }} className="group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-brand-400/40 hover:bg-brand-400/5">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 transition group-hover:bg-brand-400/15">
-              <i className="fi fi-rr-plus text-xl text-slate-400 transition group-hover:text-[#2a9d5c]" />
-            </div>
-            <p className="mt-2 text-sm font-semibold text-slate-500 transition group-hover:text-navy-800">Novo Departamento</p>
-            <p className="text-xs text-slate-400">Criar departamento personalizado</p>
-          </button>
+              <button type="button" onClick={() => { setShowNewDeptModal(true); setNewDeptName(""); }} className="group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-left shadow-card transition hover:border-brand-400/40 hover:bg-brand-400/5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 transition group-hover:bg-brand-400/15">
+                  <i className="fi fi-rr-plus text-xl text-slate-400 transition group-hover:text-brand-400" />
+                </div>
+                <p className="mt-2 text-sm font-semibold text-slate-500 transition group-hover:text-navy-800">Novo Departamento</p>
+                <p className="text-xs text-slate-400">Criar departamento personalizado</p>
+              </button>
             </>
           )}
         </div>
@@ -328,7 +470,7 @@ export default function Dashboard() {
         {showNewDeptModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
             <div role="dialog" aria-modal="true" aria-labelledby="new-dept-title" className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-              <h3 id="new-dept-title" className="text-lg font-bold text-[#172233]">Novo Departamento</h3>
+              <h3 id="new-dept-title" className="text-lg font-bold text-navy-800">Novo Departamento</h3>
               <label htmlFor="new-dept-name" className="mt-2 block text-sm leading-relaxed text-slate-500">
                 Digite o nome do departamento que deseja criar:
               </label>
@@ -338,7 +480,7 @@ export default function Dashboard() {
                 value={newDeptName}
                 onChange={(e) => setNewDeptName(e.target.value)}
                 placeholder="Ex: Limpeza, Estacionamento..."
-                className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-300 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+                className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
                 autoFocus
                 onKeyDown={(e) => { if (e.key === "Enter" && newDeptName.trim()) handleCreateDepartment(); }}
               />
@@ -350,7 +492,7 @@ export default function Dashboard() {
                   type="button"
                   onClick={handleCreateDepartment}
                   disabled={!newDeptName.trim() || creatingDept}
-                  className="flex-1 rounded-xl bg-[#42d27b] px-4 py-3 text-sm font-semibold text-[#172233] transition hover:bg-[#36b868] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex-1 rounded-xl bg-brand-400 px-4 py-3 text-sm font-semibold text-navy-800 transition hover:bg-brand-400/80 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {creatingDept ? "Criando..." : "Criar e Assumir"}
                 </button>
@@ -364,25 +506,24 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-        {toast && (
-          <div role="alert" className="app-toast fixed left-1/2 top-6 -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
-        )}
+      {toast && (
+        <div role="alert" className="app-toast fixed left-1/2 top-6 -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
+      )}
 
       <div>
-        <h2 className="text-xl font-bold text-[#172233]">{departmentName}</h2>
-        <p className="mt-1 text-sm text-slate-500">{isCoordinator ? "Painel do coordenador" : "Painel do voluntário"}</p>
+        <h2 className="text-xl font-bold text-navy-800">Painel do Coordenador</h2>
+        <p className="mt-1 text-sm text-slate-500">{departmentName}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
         {loading ? (
           <>
-            <SkeletonStat />
             <SkeletonStat />
             <SkeletonStat />
           </>
         ) : (
           <>
-            <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <div className="rounded-2xl bg-white p-5 shadow-card">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Voluntários</p>
                 <i className="fi fi-rr-users text-lg text-brand-400" />
@@ -390,7 +531,7 @@ export default function Dashboard() {
               <p className="mt-2 text-2xl font-bold text-navy-800">{deptStats?.volunteers ?? "—"}</p>
               <p className="text-xs text-slate-400">ativos</p>
             </div>
-            <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <div className="rounded-2xl bg-white p-5 shadow-card">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Turnos</p>
                 <i className="fi fi-rr-calendar-lines text-lg text-brand-400" />
@@ -403,13 +544,13 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-[#42d27b]/5 to-white p-5">
+        <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-brand-400/5 to-white p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#42d27b]/15">
-              <i className="fi fi-rr-user-add text-lg text-[#2a9d5c]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-400/15">
+              <i className="fi fi-rr-user-add text-lg text-brand-400" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#172233]">Cadastro de Voluntários</p>
+              <p className="text-sm font-bold text-navy-800">Cadastro de Voluntários</p>
               <p className="text-xs text-slate-400">Link público para novos voluntários</p>
             </div>
           </div>
@@ -422,13 +563,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-[#345C3F]/5 to-white p-5">
+        <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-brand-400/5 to-white p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#345C3F]/15">
-              <i className="fi fi-rr-calendar text-lg text-[#345C3F]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-400/15">
+              <i className="fi fi-rr-calendar text-lg text-brand-400" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#172233]">Escala Pública</p>
+              <p className="text-sm font-bold text-navy-800">Escala Pública</p>
               <p className="text-xs text-slate-400">Acesso somente leitura da escala</p>
             </div>
           </div>
@@ -444,26 +585,26 @@ export default function Dashboard() {
 
       <div className="grid gap-3 md:grid-cols-2">
         <button type="button" onClick={() => navigate("/programacao")} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-left transition hover:border-slate-200 hover:bg-white">
-          <i className="fi fi-rr-calendar-lines text-2xl text-[#345C3F]" />
+          <i className="fi fi-rr-calendar-lines text-2xl text-brand-400" />
           <span>
-            <span className="block font-semibold text-[#172233]">Gestão de Escalas</span>
+            <span className="block font-semibold text-navy-800">Gestão de Escalas</span>
             <span className="block text-xs text-slate-400">Criar e editar turnos da escala</span>
           </span>
         </button>
 
         <button type="button" onClick={() => navigate("/voluntarios")} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-left transition hover:border-slate-200 hover:bg-white">
-          <i className="fi fi-rr-users text-2xl text-[#345C3F]" />
+          <i className="fi fi-rr-users text-2xl text-brand-400" />
           <span>
-            <span className="block font-semibold text-[#172233]">Equipe e Aprovação</span>
+            <span className="block font-semibold text-navy-800">Equipe e Aprovação</span>
             <span className="block text-xs text-slate-400">Aprovar cadastros de voluntários</span>
           </span>
         </button>
 
         {isCoordinator && (
           <button type="button" onClick={() => navigate("/configuracoes")} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-left transition hover:border-slate-200 hover:bg-white">
-            <i className="fi fi-rr-settings text-2xl text-[#345C3F]" />
+            <i className="fi fi-rr-settings text-2xl text-brand-400" />
             <span>
-              <span className="block font-semibold text-[#172233]">Configurações</span>
+              <span className="block font-semibold text-navy-800">Configurações</span>
               <span className="block text-xs text-slate-400">Módulos e gestão de equipe</span>
             </span>
           </button>
@@ -471,17 +612,16 @@ export default function Dashboard() {
       </div>
 
       {isCoordinator && (
-        <div className="rounded-2xl border border-dashed border-red-200 bg-red-50/50 p-4 text-center">
-          <button type="button" onClick={handleRevoke} className="text-sm font-semibold text-red-600 transition hover:text-red-700">
-            Revogar coordenação deste departamento
-          </button>
-        </div>
-      )}
-
-      {hasMultipleDepts && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-center">
-          <p className="text-sm text-slate-500">Você coordena {departments.length} departamentos.</p>
-          <button type="button" onClick={() => selectDepartment(null)} className="mt-2 text-sm font-semibold text-[#2a9d5c] transition hover:text-[#1f7a44]">Trocar de departamento</button>
+        <div className="rounded-2xl border border-dashed border-red-200 bg-red-50/50 p-5">
+          <div className="text-center">
+            <h3 className="text-sm font-semibold text-red-600">Revogar coordenação deste departamento</h3>
+            <p className="mt-1 text-xs text-red-500/70">
+              Você não é o coordenador desse departamento ou não está mais responsável? Clique aqui e revogue o acesso.
+            </p>
+            <button type="button" onClick={handleRevoke} className="mt-3 text-sm font-semibold text-red-600 transition hover:text-red-700 hover:underline">
+              Revogar Acesso
+            </button>
+          </div>
         </div>
       )}
 
@@ -500,7 +640,7 @@ export default function Dashboard() {
       {revokeStep === 1 && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
           <div role="dialog" aria-modal="true" aria-labelledby="revoke-step1-title" className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-            <h3 id="revoke-step1-title" className="text-lg font-bold text-[#172233]">Revogar Coordenação</h3>
+            <h3 id="revoke-step1-title" className="text-lg font-bold text-navy-800">Revogar Coordenação</h3>
             <p className="mt-2 text-sm leading-relaxed text-slate-500">
               Tem certeza que deseja desistir da coordenação do departamento <strong>{departmentName}</strong>? Você perderá acesso ao painel.
             </p>
@@ -519,7 +659,7 @@ export default function Dashboard() {
       {revokeStep === 2 && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
           <div role="dialog" aria-modal="true" aria-labelledby="revoke-step2-title" className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-            <h3 id="revoke-step2-title" className="text-lg font-bold text-[#172233]">Confirmação Final</h3>
+            <h3 id="revoke-step2-title" className="text-lg font-bold text-navy-800">Confirmação Final</h3>
             <label htmlFor="revoke-dept-name" className="mt-2 block text-sm leading-relaxed text-slate-500">
               Digite o nome do departamento <strong>{departmentName}</strong> para confirmar a revogação:
             </label>

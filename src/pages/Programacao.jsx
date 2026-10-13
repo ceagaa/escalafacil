@@ -8,7 +8,11 @@ export default function Programacao({
   now,
   onEditShift,
   onCreateShift,
+  onDeleteShift,
+  onAllocateVolunteers,
   departmentName,
+  eventType,
+  dataEvento,
 }) {
   return (
     <ScheduleView
@@ -19,7 +23,11 @@ export default function Programacao({
       now={now}
       onEditShift={onEditShift}
       onCreateShift={onCreateShift}
+      onDeleteShift={onDeleteShift}
+      onAllocateVolunteers={onAllocateVolunteers}
       departmentName={departmentName}
+      eventType={eventType}
+      dataEvento={dataEvento}
     />
   );
 }

@@ -37,7 +37,6 @@ import {
   createShift,
   updateShift,
   deleteShift,
-  seedScheduleForDepartment,
 } from "../services/scheduleService";
 
 const DEPT_ID = "dept-test-1";
@@ -112,31 +111,6 @@ describe("scheduleService", () => {
 
       expect(mockDelete).toHaveBeenCalled();
       expect(mockInsert).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("seedScheduleForDepartment", () => {
-    it("throws when departmentId is missing", async () => {
-      await expect(seedScheduleForDepartment(null, [])).rejects.toThrow("departmentId is required");
-    });
-
-    it("skips seeding when blocks already exist", async () => {
-      const mockFrom = vi.fn(() => ({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: [{ id: "existing" }], error: null }),
-        upsert: vi.fn().mockResolvedValue({ error: null }),
-      }));
-      const { supabase } = await import("../services/supabase.js");
-      const originalFrom = supabase.from;
-      supabase.from = mockFrom;
-
-      try {
-        await seedScheduleForDepartment(DEPT_ID, [{ id: "test", shifts: [] }]);
-      } finally {
-        supabase.from = originalFrom;
-      }
-
-      expect(mockUpsert).not.toHaveBeenCalled();
     });
   });
 

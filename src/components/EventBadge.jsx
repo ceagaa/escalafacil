@@ -1,22 +1,26 @@
 import { useEvent } from "../context/EventContext";
-import { getEventoTipoLabel, formatEventoSubtitle } from "../utils/helpers";
+import { formatEventoNome, formatEventoDate } from "../utils/helpers";
 
 export default function EventBadge({ variant = "desktop" }) {
   const { activeEvent, clearEvent } = useEvent();
 
   if (!activeEvent) return null;
 
-  const tipoLabel = getEventoTipoLabel(activeEvent.tipo);
-  const subtitle = formatEventoSubtitle(activeEvent);
+  const nomeLabel = formatEventoNome(activeEvent);
+  const dateLabel = formatEventoDate(activeEvent);
 
   if (variant === "mobile") {
     return (
       <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#172233]/5 px-3 py-1.5 text-xs font-semibold text-[#172233]">
-          <i className="fi fi-rr-calendar text-[10px] text-[#345C3F]" />
-          <span className="max-w-[140px] truncate">{tipoLabel}</span>
-          <span className="text-slate-400">·</span>
-          <span className="text-slate-500">{activeEvent.ano}</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-navy-800/5 px-3 py-1.5 text-xs font-semibold text-navy-800">
+          <i className="fi fi-rr-calendar text-[10px] text-brand-400" />
+          <span className="max-w-[180px] truncate">{nomeLabel}</span>
+          {dateLabel && (
+            <>
+              <span className="text-slate-400">·</span>
+              <span className="text-slate-500">{dateLabel}</span>
+            </>
+          )}
         </span>
         <button
           type="button"
@@ -36,15 +40,20 @@ export default function EventBadge({ variant = "desktop" }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <i className="fi fi-rr-calendar text-xs text-[#d8ff56]" />
-            <p className="text-xs font-semibold text-[#d8ff56] truncate">{tipoLabel}</p>
+            <p className="text-xs font-semibold text-[#d8ff56] truncate">{nomeLabel}</p>
           </div>
-          <p className="mt-0.5 text-[10px] text-slate-400 truncate">{subtitle}</p>
+          {dateLabel && (
+            <p className="mt-0.5 text-[10px] text-brand-400">
+              <i className="fi fi-rr-calendar mr-1 text-[8px]" />
+              {dateLabel}
+            </p>
+          )}
         </div>
         <button
           type="button"
           onClick={clearEvent}
           aria-label="Trocar evento"
-          className="shrink-0 rounded-lg bg-white/5 p-1 text-[10px] text-slate-400 transition hover:bg-white/10 hover:text-[#42d27b]"
+          className="shrink-0 rounded-lg bg-white/5 p-1 text-[10px] text-slate-400 transition hover:bg-white/10 hover:text-brand-400"
         >
           <i className="fi fi-rr-refresh block text-[10px]" aria-hidden="true" />
         </button>

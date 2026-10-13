@@ -1,17 +1,76 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
+import { supabase } from "../services/supabase";
 
+const EVENT_STORAGE_KEY = "escalafacil_active_evento_id";
 const EventContext = createContext(null);
+
+function getStoredEventoId() {
+  try {
+    return localStorage.getItem(EVENT_STORAGE_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+function storeEventoId(id) {
+  try {
+    if (id) {
+      localStorage.setItem(EVENT_STORAGE_KEY, id);
+    } else {
+      localStorage.removeItem(EVENT_STORAGE_KEY);
+    }
+  } catch {
+    // localStorage unavailable
+  }
+}
 
 export function EventProvider({ children }) {
   const [activeEvent, setActiveEvent] = useState(null);
-  const [eventLoading, setEventLoading] = useState(false);
+  const [eventLoading, setEventLoading] = useState(true);
+  const restoredRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreEvent() {
+      const storedId = getStoredEventoId();
+      if (!storedId) {
+        if (!cancelled) setEventLoading(false);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from("eventos")
+          .select("*")
+          .eq("id", storedId)
+          .maybeSingle();
+
+        if (!cancelled && data) {
+          setActiveEvent(data);
+        } else if (!cancelled) {
+          storeEventoId(null);
+        }
+      } catch {
+        if (!cancelled) storeEventoId(null);
+      } finally {
+        restoredRef.current = true;
+        if (!cancelled) setEventLoading(false);
+      }
+    }
+
+    restoreEvent();
+    return () => { cancelled = true; };
+  }, []);
 
   const selectEvent = useCallback((evento) => {
     setActiveEvent(evento);
+    storeEventoId(evento?.id || null);
   }, []);
 
   const clearEvent = useCallback(() => {
     setActiveEvent(null);
+    storeEventoId(null);
   }, []);
 
   const eventoId = activeEvent?.id || null;

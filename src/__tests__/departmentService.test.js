@@ -5,9 +5,13 @@ const mockSelect = vi.fn().mockReturnThis();
 const mockSingle = vi.fn();
 const mockUpdate = vi.fn().mockReturnThis();
 const mockEq = vi.fn().mockReturnThis();
+const mockNot = vi.fn().mockReturnThis();
 const mockIlike = vi.fn().mockReturnThis();
 const mockMaybeSingle = vi.fn();
 const mockDelete = vi.fn().mockReturnThis();
+const mockUpsert = vi.fn().mockReturnThis();
+const mockOrder = vi.fn().mockReturnThis();
+const mockLimit = vi.fn().mockReturnThis();
 
 const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }));
 
@@ -19,9 +23,13 @@ vi.mock("../services/supabase.js", () => ({
       single: mockSingle,
       update: mockUpdate,
       eq: mockEq,
+      not: mockNot,
       ilike: mockIlike,
       maybeSingle: mockMaybeSingle,
       delete: mockDelete,
+      upsert: mockUpsert,
+      order: mockOrder,
+      limit: mockLimit,
     })),
     rpc: mockRpc,
   },
@@ -39,6 +47,7 @@ import {
   getDepartmentOwner,
   getDashboardStats,
   getDepartmentOwnerBySlugRpc,
+  createStandardDepartmentsForEvento,
   STANDARD_DEPARTMENTS,
 } from "../services/departmentService";
 
@@ -48,17 +57,34 @@ beforeEach(() => {
   mockSelect.mockReturnThis();
   mockUpdate.mockReturnThis();
   mockEq.mockReturnThis();
+  mockNot.mockReturnThis();
   mockIlike.mockReturnThis();
   mockDelete.mockReturnThis();
+  mockUpsert.mockReturnThis();
+  mockOrder.mockReturnThis();
+  mockLimit.mockReturnThis();
+  mockSingle.mockReset();
+  mockMaybeSingle.mockReset();
 });
 
 describe("departmentService", () => {
   describe("STANDARD_DEPARTMENTS", () => {
-    it("contains exactly the 2 standard departments", () => {
+    it("contains exactly the 12 standard departments", () => {
       expect(STANDARD_DEPARTMENTS).toEqual([
+        { name: "Contas", slug: "contas" },
         { name: "Indicadores", slug: "indicadores" },
-        { name: "Limpeza", slug: "limpeza" },
+        { name: "Áudio e vídeo", slug: "audio-e-video" },
+        { name: "Batismo", slug: "batismo" },
+        { name: "Primeiros socorros", slug: "primeiros-socorros" },
+        { name: "Informações e serviço voluntário", slug: "informacoes-e-servico-voluntario" },
+        { name: "Achados/perdidos e guarda-volumes", slug: "achados-perdidos-e-guarda-volumes" },
+        { name: "Montagem", slug: "montagem" },
+        { name: "Estacionamento", slug: "estacionamento" },
+        { name: "Hospedagem", slug: "hospedagem" },
+        { name: "Segurança", slug: "seguranca" },
+        { name: "Transporte e equipamentos", slug: "transporte-e-equipamentos" },
       ]);
+      expect(STANDARD_DEPARTMENTS.length).toBe(12);
     });
   });
 
@@ -92,7 +118,7 @@ describe("departmentService", () => {
       expect(result).toEqual({ id: "d-1", name: "Indicadores", slug: "indicadores" });
     });
 
-    it("throws message with owner name on 23505 unique constraint violation", async () => {
+    it("throws message with owner name on 23505 when eventoId provided", async () => {
       mockSingle.mockResolvedValue({
         data: null,
         error: { code: "23505", message: "duplicate key value" },
@@ -100,12 +126,12 @@ describe("departmentService", () => {
       mockMaybeSingle
         .mockResolvedValueOnce({ data: { id: "d-1" }, error: null })
         .mockResolvedValueOnce({
-          data: { role: "coordenador", profiles: { name: "Carlos Henrique" } },
+          data: { coordenador_id: "other", profiles: { name: "Carlos Henrique" } },
           error: null,
         });
       await expect(
-        createDepartment("Indicadores", "indicadores")
-      ).rejects.toThrow("Departamento já criado. Responsável: Carlos Henrique");
+        createDepartment("Indicadores", "indicadores", "ev-1")
+      ).rejects.toThrow("Departamento já possui coordenador para este evento: Carlos Henrique");
     });
 
     it("falls back to generic message on 23505 when department lookup fails", async () => {
@@ -145,7 +171,7 @@ describe("departmentService", () => {
       mockMaybeSingle
         .mockResolvedValueOnce({ data: { id: "d-1" }, error: null })
         .mockResolvedValueOnce({
-          data: { role: "coordenador", profiles: { name: "Ana Souza" } },
+          data: { coordenador_id: "u-1", profiles: { name: "Ana Souza" } },
           error: null,
         });
       const owner = await getDepartmentOwnerBySlug("indicadores");
@@ -215,7 +241,7 @@ describe("departmentService", () => {
   describe("getDepartmentOwner", () => {
     it("returns the coordinator profile name by department id", async () => {
       mockMaybeSingle.mockResolvedValueOnce({
-        data: { role: "coordenador", profiles: { name: "João Passos" } },
+        data: { coordenador_id: "u-1", profiles: { name: "João Passos" } },
         error: null,
       });
       const owner = await getDepartmentOwner("d-1");
@@ -336,6 +362,35 @@ describe("departmentService", () => {
     it("throws on delete error", async () => {
       mockDelete.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: { message: "boom" } }) });
       await expect(removeDepartmentMember("dm-2")).rejects.toThrow("boom");
+    });
+  });
+
+  describe("createStandardDepartmentsForEvento", () => {
+    it("returns empty array when no eventoId", async () => {
+      const result = await createStandardDepartmentsForEvento(null);
+      expect(result).toEqual([]);
+    });
+
+    it("upserts departments and links them to evento", async () => {
+      const depts = [
+        { id: "d-1", name: "Contas", slug: "contas" },
+        { id: "d-2", name: "Indicadores", slug: "indicadores" },
+      ];
+      mockUpsert.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          then: (resolve) => resolve({ data: depts, error: null }),
+        }),
+      });
+
+      const result = await createStandardDepartmentsForEvento("ev-1");
+      expect(result).toEqual(depts);
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ name: "Contas", slug: "contas" }),
+          expect.objectContaining({ name: "Indicadores", slug: "indicadores" }),
+        ]),
+        { onConflict: "slug" }
+      );
     });
   });
 });

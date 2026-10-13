@@ -118,6 +118,7 @@ export async function createShift(departmentId, blockId, payload) {
         start_time: payload.start_time,
         end_time: payload.end_time,
         description: payload.description || "",
+        vagas: payload.vagas || 0,
         department_id: departmentId,
       },
     ])
@@ -137,6 +138,7 @@ export async function updateShift(departmentId, shiftId, payload) {
       start_time: payload.start_time,
       end_time: payload.end_time,
       description: payload.description || "",
+      vagas: payload.vagas || 0,
     })
     .eq("id", shiftId)
     .eq("department_id", departmentId)
@@ -160,53 +162,8 @@ export async function deleteShift(departmentId, shiftId) {
   }
 }
 
-export async function seedScheduleForDepartment(departmentId, initialSchedule) {
+export async function fetchDepartmentData(departmentId, initialVolunteers) {
   if (!departmentId) throw new Error("departmentId is required");
-
-  const { data: existingBlocks } = await supabase
-    .from("schedule_blocks")
-    .select("id")
-    .eq("department_id", departmentId);
-
-  const shouldSeed = !Array.isArray(existingBlocks) || existingBlocks.length < 6;
-  if (!shouldSeed) return;
-
-  const blocks = initialSchedule.map((block) => ({
-    id: block.id,
-    day: block.day,
-    period: block.period,
-    responsible: block.responsible,
-    accent: block.accent,
-    department_id: departmentId,
-  }));
-
-  const shifts = initialSchedule.flatMap((block) =>
-    block.shifts.map((shift) => ({
-      id: shift.id,
-      block_id: block.id,
-      start_time: shift.start,
-      end_time: shift.end,
-      department_id: departmentId,
-    }))
-  );
-
-  if (blocks.length > 0) {
-    await supabase
-      .from("schedule_blocks")
-      .upsert(blocks, { onConflict: "id" });
-  }
-
-  if (shifts.length > 0) {
-    await supabase
-      .from("shifts")
-      .upsert(shifts, { onConflict: "id" });
-  }
-}
-
-export async function fetchDepartmentData(departmentId, initialSchedule, initialVolunteers) {
-  if (!departmentId) throw new Error("departmentId is required");
-
-  await seedScheduleForDepartment(departmentId, initialSchedule);
 
   const [blocks, shifts, assigned, volunteers] = await Promise.all([
     getScheduleBlocks(departmentId),

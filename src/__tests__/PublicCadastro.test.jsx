@@ -4,16 +4,16 @@ import { MemoryRouter } from "react-router-dom";
 import PublicCadastro from "../pages/PublicCadastro";
 
 const mockInsert = vi.fn();
-const mockSelect = vi.fn().mockReturnThis();
-const mockEq = vi.fn().mockReturnThis();
-const mockSingle = vi.fn();
+const mockMaybeSingle = vi.fn();
 
 vi.mock("../services/supabase.js", () => ({
   supabase: {
     from: vi.fn(() => ({
-      select: mockSelect,
-      eq: mockEq,
-      single: mockSingle,
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: mockMaybeSingle,
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
       insert: mockInsert,
     })),
   },
@@ -29,19 +29,18 @@ function renderWithSlug(slug = "indicadores") {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockSelect.mockReturnThis();
-  mockEq.mockReturnThis();
+  mockMaybeSingle.mockReset();
 });
 
 describe("PublicCadastro", () => {
   it("shows loading state initially", () => {
-    mockSingle.mockResolvedValue({ data: null, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
     renderWithSlug();
     expect(screen.getByText("Carregando...")).toBeDefined();
   });
 
   it("shows not found when slug is invalid", async () => {
-    mockSingle.mockResolvedValue({ data: null, error: { message: "not found" } });
+    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: "not found" } });
     renderWithSlug("invalid-slug");
     await waitFor(() => {
       expect(screen.getByText("Departamento não encontrado")).toBeDefined();
@@ -49,10 +48,9 @@ describe("PublicCadastro", () => {
   });
 
   it("renders form when department is found", async () => {
-    mockSingle.mockResolvedValue({
-      data: { id: "d-1", name: "Indicadores" },
-      error: null,
-    });
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { id: "d-1", name: "Indicadores" }, error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getByText("Seja um Voluntário")).toBeDefined();
@@ -63,11 +61,10 @@ describe("PublicCadastro", () => {
     });
   });
 
-  it("renders all 6 availability slots", async () => {
-    mockSingle.mockResolvedValue({
-      data: { id: "d-1", name: "Test Dept" },
-      error: null,
-    });
+  it("renders all 6 availability slots for congresso (default)", async () => {
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { id: "d-1", name: "Test Dept" }, error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getAllByText("Sexta-feira").length).toBeGreaterThanOrEqual(1);
@@ -81,10 +78,9 @@ describe("PublicCadastro", () => {
   });
 
   it("toggles availability slot on click", async () => {
-    mockSingle.mockResolvedValue({
-      data: { id: "d-1", name: "Test Dept" },
-      error: null,
-    });
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { id: "d-1", name: "Test Dept" }, error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getAllByText("Sexta-feira").length).toBeGreaterThanOrEqual(1);
@@ -99,10 +95,9 @@ describe("PublicCadastro", () => {
   });
 
   it("shows validation error when submitting empty fields", async () => {
-    mockSingle.mockResolvedValue({
-      data: { id: "d-1", name: "Test Dept" },
-      error: null,
-    });
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { id: "d-1", name: "Test Dept" }, error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getByText("Cadastrar")).toBeDefined();
@@ -117,10 +112,9 @@ describe("PublicCadastro", () => {
   });
 
   it("submits form and shows success screen", async () => {
-    mockSingle.mockResolvedValue({
-      data: { id: "d-1", name: "Indicadores" },
-      error: null,
-    });
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { id: "d-1", name: "Indicadores" }, error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
     mockInsert.mockResolvedValue({ error: null });
 
     renderWithSlug();
@@ -149,10 +143,9 @@ describe("PublicCadastro", () => {
   });
 
   it("formats phone with DDI mask", async () => {
-    mockSingle.mockResolvedValue({
-      data: { id: "d-1", name: "Test" },
-      error: null,
-    });
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { id: "d-1", name: "Test" }, error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getByPlaceholderText("+55 99999-9999")).toBeDefined();

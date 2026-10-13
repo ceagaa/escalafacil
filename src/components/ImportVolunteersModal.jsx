@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Modal } from "./UI";
 import { getDepartmentHistory, importVolunteersFromEvento } from "../services/eventService";
-import { getEventoTipoLabel } from "../utils/helpers";
+import { formatEventoNome } from "../utils/helpers";
 
 export default function ImportVolunteersModal({ departmentId, departmentName, eventoId, onClose }) {
   const [history, setHistory] = useState([]);
@@ -84,7 +84,7 @@ export default function ImportVolunteersModal({ departmentId, departmentName, ev
                 >
                   <div>
                     <p className="text-sm font-semibold text-[#172233]">
-                      {getEventoTipoLabel(ev.tipo)} — {ev.ano}
+                      {formatEventoNome(ev)}
                     </p>
                     <p className="text-xs text-slate-400">
                       {ev.cidade}/{ev.estado}
