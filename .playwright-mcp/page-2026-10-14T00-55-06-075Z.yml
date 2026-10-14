@@ -1,0 +1,49 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e3]:
+    - generic [ref=f2e4]:
+      - generic [aria-hidden] [ref=f2e6]:
+        - generic [ref=f2e7]: Carregando
+        - progressbar [aria-hidden] [ref=f2e8]
+      - main [ref=f2e15]:
+        - generic [ref=f2e16]:
+          - generic [ref=f2e17]: Fazer Login com o Google
+          - generic [ref=f2e23]:
+            - heading "Faça login" [level=1] [ref=f2e24]
+            - generic [ref=f2e26]:
+              - text: Prosseguir para
+              - button "ufyyhvsnrobhrjsrnqpq.supabase.co" [ref=f2e27] [cursor=pointer]
+        - generic [ref=f2e30]:
+          - generic [ref=f2e35]:
+            - generic [ref=f2e40]:
+              - textbox "E-mail ou telefone" [active] [ref=f2e41]
+              - generic [aria-hidden]: E-mail ou telefone
+            - button "Esqueceu o e-mail?" [ref=f2e45] [cursor=pointer]
+          - generic [ref=f2e48]:
+            - text: Consulte a
+            - link "Política de Privacidade" [ref=f2e49] [cursor=pointer]:
+              - /url: https://escalafacil.2swebtech.com.br/privacidade
+            - text: e os
+            - link "Termos de Serviço" [ref=f2e50] [cursor=pointer]:
+              - /url: https://escalafacil.2swebtech.com.br/termos
+            - text: do app ufyyhvsnrobhrjsrnqpq.supabase.co antes de usá-lo.
+        - generic [ref=f2e52]:
+          - button "Avançar" [ref=f2e56]
+          - button "Criar conta" [ref=f2e64]
+    - contentinfo [ref=f2e71]:
+      - combobox "Alterar idioma Português (Brasil)" [ref=f2e75] [cursor=pointer]:
+        - generic [aria-hidden]:
+          - generic: Português (Brasil)
+      - list [ref=f2e77]:
+        - listitem [ref=f2e78]:
+          - link "Abrir a Central de Ajuda da Conta do Google (link externo, abre em uma nova janela)" [ref=f2e79] [cursor=pointer]:
+            - /url: https://support.google.com/accounts?hl=pt-BR&p=account_iph
+            - text: Ajuda
+        - listitem [ref=f2e80]:
+          - link "Política de Privacidade (link externo, abre em uma nova janela)" [ref=f2e81] [cursor=pointer]:
+            - /url: https://accounts.google.com/TOS?loc=BR&hl=pt-BR&privacy=true
+            - text: Privacidade
+        - listitem [ref=f2e82]:
+          - link "Termos de Serviço do Google (link externo, abre em uma nova janela)" [ref=f2e83] [cursor=pointer]:
+            - /url: https://accounts.google.com/TOS?loc=BR&hl=pt-BR
+            - text: Termos
+  - iframe [ref=f2e84]
