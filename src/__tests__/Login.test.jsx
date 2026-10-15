@@ -20,10 +20,29 @@ vi.mock("../context/AuthContext", () => ({
 import { useAuth } from "../context/AuthContext";
 
 vi.mock("../services/supabase", () => ({
-  supabase: { auth: { signInWithOAuth: vi.fn() } },
+  supabase: { auth: { signInWithIdToken: vi.fn() } },
 }));
 
 import { supabase } from "../services/supabase";
+
+function setupGoogleGisMock() {
+  const state = { callback: null };
+  window.google = {
+    accounts: {
+      id: {
+        initialize: vi.fn((config) => {
+          state.callback = config.callback;
+        }),
+        renderButton: vi.fn(),
+      },
+    },
+  };
+  return {
+    async triggerCallback(response) {
+      await state.callback(response);
+    },
+  };
+}
 
 function renderLogin() {
   return render(
@@ -35,6 +54,7 @@ function renderLogin() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  delete window.google;
   useAuth.mockReturnValue({
     user: null,
     loading: false,
@@ -178,27 +198,55 @@ describe("Login", () => {
     expect(mockSignUp).not.toHaveBeenCalled();
   });
 
-  it("calls Supabase Google OAuth when clicking the Google button", async () => {
-    supabase.auth.signInWithOAuth.mockResolvedValue({ error: null });
+  it("signs in with Supabase using the Google ID token from GIS", async () => {
+    const gis = setupGoogleGisMock();
+    supabase.auth.signInWithIdToken.mockResolvedValue({ data: { user: { id: "u-1" } }, error: null });
     renderLogin();
-    fireEvent.click(screen.getByRole("button", { name: /Entrar com Google/ }));
     await waitFor(() => {
-      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      expect(window.google.accounts.id.initialize).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client_id: expect.stringContaining("apps.googleusercontent.com"),
+          callback: expect.any(Function),
+        })
+      );
+      expect(window.google.accounts.id.renderButton).toHaveBeenCalled();
+    });
+    await gis.triggerCallback({ credential: "fake-google-jwt" });
+    await waitFor(() => {
+      expect(supabase.auth.signInWithIdToken).toHaveBeenCalledWith({
         provider: "google",
-        options: { redirectTo: window.location.origin + "/" },
+        token: "fake-google-jwt",
       });
     });
   });
 
-  it("shows error when Google OAuth fails", async () => {
-    supabase.auth.signInWithOAuth.mockResolvedValue({
-      error: new Error("OAuth provider error"),
+  it("shows error when Google ID token sign-in fails", async () => {
+    const gis = setupGoogleGisMock();
+    supabase.auth.signInWithIdToken.mockResolvedValue({
+      data: null,
+      error: { message: "Token inválido" },
     });
     renderLogin();
-    fireEvent.click(screen.getByRole("button", { name: /Entrar com Google/ }));
     await waitFor(() => {
-      expect(screen.getByText("OAuth provider error")).toBeDefined();
+      expect(window.google.accounts.id.initialize).toHaveBeenCalled();
     });
+    await gis.triggerCallback({ credential: "bad-jwt" });
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent("Token inválido");
+    });
+  });
+
+  it("shows error when GIS returns no credential", async () => {
+    const gis = setupGoogleGisMock();
+    renderLogin();
+    await waitFor(() => {
+      expect(window.google.accounts.id.initialize).toHaveBeenCalled();
+    });
+    await gis.triggerCallback({});
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(/Não foi possível concluir o login com Google/);
+    });
+    expect(supabase.auth.signInWithIdToken).not.toHaveBeenCalled();
   });
 
   it("redirects to / when already authenticated", () => {
