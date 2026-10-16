@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /sb/
 
-Sitemap: https://escalafacil.pages.dev/sitemap.xml
+Sitemap: https://escalafacil.2swebtech.com.br/sitemap.xml
