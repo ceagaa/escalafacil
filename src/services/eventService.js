@@ -70,12 +70,16 @@ export async function updateEvento(id, { tipo, estado, cidade, circuito, data_ev
 }
 
 export async function deleteEvento(id) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("eventos")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
 
   if (error) throw new Error(sanitizeError(error, "delete"));
+  if (!data || data.length === 0) {
+    throw new Error("Não foi possível excluir: você não é criador nem coordenador deste evento, ou ele já foi removido.");
+  }
 }
 
 export async function listEventos() {
@@ -87,6 +91,50 @@ export async function listEventos() {
 
   if (error) throw new Error(sanitizeError(error, "fetch"));
   return Array.isArray(data) ? data : [];
+}
+
+export async function getCoordinatedEventoIds(userId) {
+  if (!userId) throw new Error("userId is required");
+
+  const { data: memberships, error: membershipError } = await supabase
+    .from("department_members")
+    .select("evento_id, department_id")
+    .eq("user_id", userId)
+    .eq("role", "coordenador");
+
+  if (membershipError) throw new Error(sanitizeError(membershipError, "fetch"));
+
+  const eventoIds = new Set((memberships || []).map((membership) => membership.evento_id).filter(Boolean));
+  const departmentIds = new Set(
+    (memberships || [])
+      .filter((membership) => !membership.evento_id)
+      .map((membership) => membership.department_id)
+      .filter(Boolean)
+  );
+
+  const { data: ownedDepartments, error: departmentsError } = await supabase
+    .from("departments")
+    .select("id")
+    .eq("coordenador_id", userId);
+
+  if (departmentsError) throw new Error(sanitizeError(departmentsError, "fetch"));
+  (ownedDepartments || []).forEach((department) => {
+    if (department.id) departmentIds.add(department.id);
+  });
+
+  if (departmentIds.size === 0) return [...eventoIds];
+
+  const { data: eventDepartments, error: eventDepartmentsError } = await supabase
+    .from("evento_departamentos")
+    .select("evento_id")
+    .in("department_id", [...departmentIds]);
+
+  if (eventDepartmentsError) throw new Error(sanitizeError(eventDepartmentsError, "fetch"));
+  (eventDepartments || []).forEach((link) => {
+    if (link.evento_id) eventoIds.add(link.evento_id);
+  });
+
+  return [...eventoIds];
 }
 
 export async function getEventoById(id) {

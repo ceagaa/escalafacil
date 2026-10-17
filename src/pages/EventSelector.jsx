@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
-import { upsertEvento, updateEvento, deleteEvento, listEventos } from "../services/eventService";
+import {
+  upsertEvento,
+  updateEvento,
+  deleteEvento,
+  getCoordinatedEventoIds,
+  listEventos,
+} from "../services/eventService";
 import { createStandardDepartmentsForEvento } from "../services/departmentService";
 import { getEventoTipoLabel, formatEventoNome, formatEventoDate } from "../utils/helpers";
 import CityCombobox from "../components/CityCombobox";
@@ -66,8 +72,10 @@ export default function EventSelector() {
 
   const [activeTab, setActiveTab] = useState("upcoming");
   const [eventos, setEventos] = useState([]);
+  const [coordinatedEventoIds, setCoordinatedEventoIds] = useState(() => new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [eventLoadError, setEventLoadError] = useState("");
   const [estados, setEstados] = useState([]);
   const [cidades, setCidades] = useState([]);
   const [loadingCidades, setLoadingCidades] = useState(false);
@@ -83,6 +91,7 @@ export default function EventSelector() {
   const [editLoading, setEditLoading] = useState(false);
 
   const [deleteModal, setDeleteModal] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
 
   const [form, setForm] = useState({
     tipo: "",
@@ -108,8 +117,36 @@ export default function EventSelector() {
 
   useEffect(() => {
     fetchEstados().then(setEstados);
-    listEventos().then(setEventos).catch(() => {});
-  }, []);
+    let cancelled = false;
+
+    async function loadEventos() {
+      try {
+        const eventosData = await listEventos();
+        if (!cancelled) setEventos(eventosData);
+      } catch (loadError) {
+        if (!cancelled) {
+          setEventLoadError(loadError?.message || "Não foi possível carregar os eventos.");
+        }
+      }
+
+      if (!user?.id) {
+        if (!cancelled) setCoordinatedEventoIds(new Set());
+        return;
+      }
+
+      try {
+        const eventoIds = await getCoordinatedEventoIds(user.id);
+        if (!cancelled) setCoordinatedEventoIds(new Set(eventoIds));
+      } catch (loadError) {
+        if (!cancelled) {
+          setEventLoadError((current) => current || loadError?.message || "Não foi possível verificar suas permissões nos eventos.");
+        }
+      }
+    }
+
+    loadEventos();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!form.estado) {
@@ -234,6 +271,14 @@ export default function EventSelector() {
     return user?.id && evento.criado_por === user.id;
   }
 
+  function isCoordinator(evento) {
+    return coordinatedEventoIds.has(evento.id);
+  }
+
+  function canDeleteEvento(evento) {
+    return isCreator(evento) || isCoordinator(evento);
+  }
+
   function openEditModal(e, evento) {
     e.stopPropagation();
     setContextMenu(null);
@@ -282,11 +327,14 @@ export default function EventSelector() {
 
   async function handleDeleteConfirm() {
     if (!deleteModal) return;
+    setDeleteError("");
     try {
       await deleteEvento(deleteModal.id);
       setEventos((prev) => prev.filter((ev) => ev.id !== deleteModal.id));
       setDeleteModal(null);
-    } catch {
+    } catch (err) {
+      setDeleteModal(null);
+      setDeleteError(err?.message || "Não foi possível excluir o evento.");
     }
   }
 
@@ -455,6 +503,17 @@ export default function EventSelector() {
         </p>
       </div>
 
+      {deleteError && (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          {deleteError}
+        </div>
+      )}
+      {eventLoadError && (
+        <div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          {eventLoadError}
+        </div>
+      )}
+
       <div className="rounded-2xl bg-white p-6 shadow-card md:p-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -538,11 +597,11 @@ export default function EventSelector() {
             </div>
           ) : (
             displayedEventos.map((evento) => (
-              <div key={evento.id} className="group relative">
+              <div key={evento.id} className="group relative flex items-center gap-2 rounded-xl border border-slate-100 bg-white p-2 transition hover:border-brand-400/40 hover:shadow-card">
                 <button
                   type="button"
                   onClick={() => handleSelectExisting(evento)}
-                  className="flex w-full items-center gap-4 rounded-xl border border-slate-100 bg-white p-4 text-left transition hover:border-brand-400/40 hover:shadow-card"
+                  className="flex min-w-0 flex-1 items-center gap-4 rounded-lg p-2 text-left"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-400/10">
                     <i className="fi fi-rr-calendar text-lg text-brand-400" />
@@ -556,7 +615,26 @@ export default function EventSelector() {
                       </p>
                     )}
                   </div>
-                  {isCreator(evento) && (
+                  {!canDeleteEvento(evento) && (
+                    <i className="fi fi-rr-angle-right text-sm text-slate-300 transition group-hover:text-brand-400" />
+                  )}
+                </button>
+                {canDeleteEvento(evento) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteError("");
+                      setDeleteModal(evento);
+                    }}
+                    className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300"
+                    aria-label={`Excluir evento ${formatEventoNome(evento)}`}
+                    title="Excluir evento"
+                  >
+                    <i className="fi fi-rr-trash text-sm" />
+                    <span>Excluir</span>
+                  </button>
+                )}
+                {isCreator(evento) && (
                     <div className="relative" ref={contextMenuRef}>
                       <button
                         type="button"
@@ -579,22 +657,10 @@ export default function EventSelector() {
                             <i className="fi fi-rr-edit text-xs text-slate-400" />
                             Editar Evento
                           </button>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setContextMenu(null); setDeleteModal(evento); }}
-                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50"
-                          >
-                            <i className="fi fi-rr-trash text-xs" />
-                            Excluir Evento
-                          </button>
                         </div>
                       )}
                     </div>
-                  )}
-                  {!isCreator(evento) && (
-                    <i className="fi fi-rr-angle-right text-sm text-slate-300 transition group-hover:text-brand-400" />
-                  )}
-                </button>
+                )}
               </div>
             ))
           )}
@@ -767,6 +833,7 @@ export default function EventSelector() {
         <ConfirmModal
           title="Excluir evento"
           message={`Tem certeza? Isso apagará permanentemente o evento "${getEventoTipoLabel(deleteModal.tipo)}" e todos os departamentos, voluntários e escalas vinculados a ele.`}
+          confirmationText={ASSEMBLEIA_TYPES.includes(deleteModal.tipo) ? "Assembleia" : "Congresso"}
           confirmLabel="Excluir Evento"
           cancelLabel="Manter"
           danger

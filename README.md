@@ -124,6 +124,8 @@ Pra corrigir (o dashboard não deixa salvar o deploy command vazio, então use a
 
 Os scripts SQL ficam em `supabase/`. Não são commitados por segurança (contêm schema e políticas de acesso). Roda eles direto no SQL Editor do Supabase Dashboard.
 
+Para habilitar a exclusão de eventos por coordenadores, aplique a política de DELETE atualizada em `supabase/event_lifecycle.sql` (seção 4) ou `supabase/migration_eventos_complete.sql` (seção 4). Ela permite excluir ao criador ou a um coordenador vinculado ao mesmo evento; a edição continua restrita ao criador.
+
 ## Testes
 
 ```bash

@@ -111,7 +111,7 @@ export default function Login() {
 
   return (
     <div className="grid min-h-screen bg-white lg:grid-cols-2">
-      <section className="flex items-center justify-center bg-white px-6 py-12 sm:px-12 lg:px-16">
+      <section className="order-2 flex items-center justify-center bg-white px-6 py-12 sm:px-12 lg:order-1 lg:px-16">
         <div className="w-full max-w-md">
           <div className="mb-8">
             <img src={logo} alt="EscalaFácil" className="mx-auto h-[120px] w-[120px] object-contain" />
@@ -197,7 +197,7 @@ export default function Login() {
         </div>
       </section>
 
-      <section className="flex items-center bg-[#172233] px-6 py-12 sm:px-12 lg:px-20">
+      <section className="order-1 flex items-center bg-[#172233] px-6 py-12 sm:px-12 lg:order-2 lg:px-20">
         <div className="max-w-lg">
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#42d27b]">Organização simples</span>
           <h2 className="mt-4 text-3xl font-bold leading-tight text-white sm:text-4xl">

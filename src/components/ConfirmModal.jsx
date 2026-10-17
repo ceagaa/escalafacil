@@ -1,9 +1,21 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-export default function ConfirmModal({ title, message, confirmLabel = "Confirmar", cancelLabel = "Cancelar", onConfirm, onCancel, danger = false }) {
+export default function ConfirmModal({
+  title,
+  message,
+  confirmLabel = "Confirmar",
+  cancelLabel = "Cancelar",
+  onConfirm,
+  onCancel,
+  danger = false,
+  confirmationText,
+}) {
   const titleId = useRef(`confirm-title-${Math.random().toString(36).slice(2, 8)}`).current;
   const dialogRef = useRef(null);
   const previousFocus = useRef(null);
+  const [confirmationValue, setConfirmationValue] = useState("");
+  const confirmationMatches = !confirmationText
+    || confirmationValue.trim().toLocaleLowerCase() === confirmationText.toLocaleLowerCase();
 
   useEffect(() => {
     previousFocus.current = document.activeElement;
@@ -31,6 +43,19 @@ export default function ConfirmModal({ title, message, confirmLabel = "Confirmar
       >
         <h3 id={titleId} className="text-lg font-bold text-[#172233]">{title}</h3>
         <p className="mt-2 text-sm leading-relaxed text-slate-500">{message}</p>
+        {confirmationText && (
+          <label className="mt-4 block text-sm font-medium text-slate-700">
+            Digite <span className="font-bold">{confirmationText}</span> para confirmar:
+            <input
+              type="text"
+              value={confirmationValue}
+              onChange={(event) => setConfirmationValue(event.target.value)}
+              autoComplete="off"
+              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-base outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+              aria-label={`Digite ${confirmationText}`}
+            />
+          </label>
+        )}
         <div className="mt-6 flex gap-3">
           <button
             type="button"
@@ -42,9 +67,10 @@ export default function ConfirmModal({ title, message, confirmLabel = "Confirmar
           <button
             type="button"
             onClick={onConfirm}
+            disabled={!confirmationMatches}
             className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white transition ${
               danger
-                ? "bg-red-600 hover:bg-red-700"
+                ? "bg-red-600 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                 : "bg-[#42d27b] text-[#172233] hover:bg-[#36b868]"
             }`}
           >
