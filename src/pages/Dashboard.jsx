@@ -1,10 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import { supabase } from "../services/supabase";
 import {
-  STANDARD_DEPARTMENTS,
   createDepartment,
   claimDepartmentForEvento,
   getEventoDepartmentOwner,
@@ -14,6 +13,11 @@ import { linkDepartmentToEvento } from "../services/eventService";
 import { getEventoTipoLabel, formatEventoNome, formatEventoDate } from "../utils/helpers";
 import ConfirmModal from "../components/ConfirmModal";
 import { Skeleton, SkeletonStat } from "../components/Skeleton";
+import {
+  fetchEventDepartments,
+  groupDepartments,
+  ownerLabel,
+} from "../services/dashboardDepartments";
 
 async function fetchDeptStats(departmentId) {
   const [volunteers, shifts] = await Promise.all([
@@ -26,40 +30,133 @@ async function fetchDeptStats(departmentId) {
   };
 }
 
-async function fetchOwnersMap(eventoId) {
-  if (!eventoId) return new Map();
-  try {
-    let query = supabase
-      .from("department_members")
-      .select("department_id, user_id, profiles:user_id(name)")
-      .eq("role", "coordenador");
-    query = eventoId ? query.eq("evento_id", eventoId) : query.is("evento_id", null);
-    const { data } = await query;
-    const map = new Map();
-    (Array.isArray(data) ? data : []).forEach((row) => {
-      if (!row?.department_id) return;
-      map.set(row.department_id, { userId: row.user_id || null, name: row.profiles?.name || null });
-    });
-    return map;
-  } catch {
-    return new Map();
+
+/** Monta a membership otimista que a Navbar lê (`activeDepartment.department.*`). */
+function buildOptimisticMembership(dept, eventoId, userId) {
+  const departmentId = dept.id || dept.department_id;
+  return {
+    id: departmentId,
+    department_id: departmentId,
+    evento_id: eventoId,
+    user_id: userId,
+    role: "coordenador",
+    departments: dept,
+    department: dept,
+  };
+}
+
+
+/**
+ * Garante que os departamentos coordenados pelo usuário estejam na lista,
+ * marcando-os mesmo quando a consulta principal não os trouxe (ou não trouxe
+ * o coordenador). Preserva os registros já existentes.
+ */
+export function mergeCoordinated(list, coordinatedIds, userId) {
+  if (!coordinatedIds || coordinatedIds.length === 0) return list;
+  const byId = new Map(list.map((dept) => [dept.id, dept]));
+  for (const id of coordinatedIds) {
+    const existing = byId.get(id);
+    if (existing) {
+      byId.set(id, { ...existing, coordenador_id: existing.coordenador_id || userId, ownerId: existing.ownerId || userId });
+    } else {
+      byId.set(id, { id, name: "Departamento", slug: "", coordenador_id: userId, ownerId: userId, ownerName: null });
+    }
   }
+  return [...byId.values()];
 }
 
-function applyEventOwner(dept, owners) {
-  const owner = owners.get(dept.id);
-  const ownerId = owner?.userId ?? dept.coordenador_id ?? null;
-  const ownerName = owner?.name ?? dept.coordenador?.name ?? null;
-  return { ...dept, coordenador_id: ownerId, ownerName, ownerId };
+const CARD_BADGE_CLASS = {
+  mine: "bg-brand-400/15 text-brand-400",
+  taken: "bg-amber-50 text-amber-700",
+  available: "bg-slate-100 text-slate-500",
+};
+
+const CARD_BADGE_LABEL = {
+  mine: "Coordenando",
+  taken: "Ocupado",
+  available: "Disponível",
+};
+
+const CARD_ICON_CLASS = {
+  mine: "bg-brand-400/10 text-brand-400",
+  taken: "bg-amber-50 text-amber-600",
+  available: "bg-brand-400/10 text-brand-400",
+};
+
+/**
+ * Card de departamento na tela de escolha.
+ *
+ * - mine      -> entra no painel direto, sem confirmação.
+ * - available -> abre a confirmação de assumir.
+ * - taken     -> fica inerte e mostra QUEM coordena, para o usuário não
+ *                descobrir a ocupação só depois de tentar assumir.
+ */
+function DepartmentCard({ name, variant, ownerName, disabled, onSelect }) {
+  const interactive = variant !== "taken";
+  const hasOwnerName = ownerName && ownerName !== "Coordenador";
+  const hint = {
+    mine: "Você já está coordenando este departamento.",
+    taken: hasOwnerName ? "Coordenador: " + ownerName + "." : "Já possui um coordenador neste evento.",
+    available: "Ao assumir, você será o coordenador deste departamento.",
+  }[variant];
+  const cardClass = interactive
+    ? "border-transparent hover:border-brand-400/40 hover:shadow-md"
+    : "cursor-not-allowed border-transparent opacity-80";
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={disabled || !interactive}
+      aria-label={name}
+      title={variant === "taken" ? "Já coordenado por " + ownerName : undefined}
+      className={"group rounded-2xl border-2 bg-white p-6 text-left shadow-card transition disabled:opacity-60 " + cardClass}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className={"flex h-12 w-12 items-center justify-center rounded-2xl " + CARD_ICON_CLASS[variant]}>
+          <i className="fi fi-rr-building text-xl" />
+        </div>
+        <span className={"rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + CARD_BADGE_CLASS[variant]}>
+          {CARD_BADGE_LABEL[variant]}
+        </span>
+      </div>
+      <p className="mt-4 font-semibold text-navy-800">{name}</p>
+      <p className="mt-1 text-xs leading-relaxed text-slate-400">{hint}</p>
+    </button>
+  );
 }
 
-export default function Dashboard() {
+function DepartmentSection({ title, description, departments, variant, disabled, onSelect }) {
+  if (departments.length === 0) return null;
+  return (
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
+          {title} <span className="ml-1 font-semibold text-slate-400">({departments.length})</span>
+        </h3>
+        {description && <p className="mt-0.5 text-xs text-slate-400">{description}</p>}
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {departments.map((dept) => (
+          <DepartmentCard
+            key={dept.id}
+            name={dept.name}
+            variant={variant}
+            ownerName={ownerLabel(dept)}
+            disabled={disabled}
+            onSelect={() => onSelect(dept)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+export default function Dashboard({ forcePicker = false }) {
   const navigate = useNavigate();
-  const { user, departments, activeDepartment, selectDepartment, refreshSession } = useAuth();
+  const { user, profile, departments, activeDepartment, selectDepartment, refreshSession, fetchCoordinatedDepartmentIds } = useAuth();
   const { activeEvent, eventoId } = useEvent();
 
   const [deptRecords, setDeptRecords] = useState([]);
-  const [customDepts, setCustomDepts] = useState([]);
   const [toast, setToast] = useState("");
   const [claiming, setClaiming] = useState(false);
   const [deptStats, setDeptStats] = useState(null);
@@ -72,6 +169,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   const departmentId = activeDepartment?.department?.id || activeDepartment?.id || null;
+  const grouped = useMemo(() => groupDepartments(deptRecords, user?.id), [deptRecords, user?.id]);
   const departmentSlug = activeDepartment?.department?.slug || "";
   const departmentName = activeDepartment?.department?.name || "";
   const isCoordinator = activeDepartment?.role === "coordenador";
@@ -88,88 +186,76 @@ export default function Dashboard() {
   useEffect(() => {
     if (!eventoId) {
       setDeptRecords([]);
-      setCustomDepts([]);
       setLoading(false);
       return;
     }
     let cancelled = false;
     async function loadDepartments() {
       let list = [];
-      const ownersPromise = fetchOwnersMap(eventoId);
-
-      if (eventoId) {
-        const { data: evDepts } = await supabase
-          .from("evento_departamentos")
-          .select("department:departments(id, name, slug, coordenador_id, coordenador:coordenador_id(name))")
-          .eq("evento_id", eventoId);
-        list = (evDepts || []).map((row) => row.department).filter(Boolean);
-      } else {
-        const { data } = await supabase
-          .from("departments")
-          .select("id, name, slug, coordenador_id, coordenador:coordenador_id(name)");
-        list = Array.isArray(data) ? data : [];
+      try {
+        list = await fetchEventDepartments(eventoId);
+      } catch (error) {
+        console.warn("Falha ao carregar os departamentos do evento:", error);
       }
 
-      const owners = await ownersPromise;
-      list = list.map((dept) => applyEventOwner(dept, owners));
+      if (cancelled) return;
 
-      if (!cancelled) setDeptRecords(list);
-      if (!cancelled) setLoading(false);
-
-      // Auto-Restore do Departamento na Navbar
+      // Rede de segurança: lê direto de department_members quem o usuário
+      // coordena neste evento. Se o join de departments falhar (RLS/cache de
+      // schema), o departamento ainda é reconhecido — sem isso a tela e a
+      // navbar ficavam vazias.
       const atualUser = userRef.current;
-      const meuDepartamento = list.find((d) => d?.coordenador_id === atualUser?.id);
-      if (!cancelled && atualUser?.id && meuDepartamento) {
-        const autoMembership = {
-          department_id: meuDepartamento.id || meuDepartamento.department_id,
-          evento_id: eventoId,
-          user_id: atualUser.id,
-          role: "coordenador",
-          departments: meuDepartamento,
-          department: meuDepartamento,
-          id: meuDepartamento.id || meuDepartamento.department_id,
-        };
-        // Previne loopings: só chama se não houver um departamento ativo ou se for diferente
-        const atual = activeDepartmentRef.current;
-        if (!atual || atual.department_id !== autoMembership.department_id) {
-          selectDepartmentRef.current(autoMembership);
+      if (atualUser?.id) {
+        try {
+          const coordenados = await fetchCoordinatedDepartmentIds(atualUser.id, eventoId);
+          if (cancelled) return;
+          list = mergeCoordinated(list, coordenados, atualUser.id);
+        } catch (error) {
+          console.warn("Falha ao verificar os departamentos coordenados:", error);
         }
       }
 
-      if (eventoId) {
-        const custom = list.filter(
-          (d) => d && !STANDARD_DEPARTMENTS.some((s) => s.slug === d.slug)
-        );
-        if (!cancelled) setCustomDepts(custom);
+      if (cancelled) return;
+      setDeptRecords(list);
+      setLoading(false);
+
+      // Auto-restore do departamento ativo, derivado do banco (department_members).
+      // É o que garante que voltar ao MESMO evento caia direto no painel.
+      // Na grade forçada (/departamentos) o auto-restore fica de fora para não
+      // trocar o departamento ativo enquanto o usuário está só navegando.
+      if (!atualUser?.id || forcePicker) return;
+      const { mine } = groupDepartments(list, atualUser.id);
+      const atual = activeDepartmentRef.current;
+      const atualId = atual?.department?.id || atual?.department_id || atual?.id || null;
+      if (mine.length === 1 && atualId !== mine[0].id) {
+        selectDepartmentRef.current(buildOptimisticMembership(mine[0], eventoId, atualUser.id));
       }
     }
     loadDepartments().catch(() => {});
     return () => { cancelled = true; };
-  }, [eventoId]);
+  }, [eventoId, forcePicker, fetchCoordinatedDepartmentIds]);
 
   const refreshDeptRecords = useCallback(async () => {
     if (!eventoId) return;
-    let list = [];
-    const ownersPromise = fetchOwnersMap(eventoId);
-    if (eventoId) {
-      const { data: evDepts } = await supabase
-        .from("evento_departamentos")
-        .select("department:departments(id, name, slug, coordenador_id, coordenador:coordenador_id(name))")
-        .eq("evento_id", eventoId);
-      list = (evDepts || []).map((row) => row.department).filter(Boolean);
-    } else {
-      const { data } = await supabase
-        .from("departments")
-        .select("id, name, slug, coordenador_id, coordenador:coordenador_id(name)");
-      list = Array.isArray(data) ? data : [];
+    try {
+      let list = await fetchEventDepartments(eventoId);
+      // O refresh em background precisa reaplicar o "meu departamento":
+      // sem isto, um refresh posterior apagava o status "Coordenando" e o
+      // card voltava a mostrar "Disponível" (bug de reabrir o mesmo evento).
+      const atualUser = userRef.current;
+      if (atualUser?.id) {
+        try {
+          const coordenados = await fetchCoordinatedDepartmentIds(atualUser.id, eventoId);
+          list = mergeCoordinated(list, coordenados, atualUser.id);
+        } catch (error) {
+          console.warn("Falha ao verificar os departamentos coordenados:", error);
+        }
+      }
+      setDeptRecords(list);
+    } catch (error) {
+      console.warn("Falha ao recarregar os departamentos do evento:", error);
     }
-    const owners = await ownersPromise;
-    list = list.map((dept) => applyEventOwner(dept, owners));
-    setDeptRecords(list);
-    if (eventoId) {
-      setCustomDepts(list.filter((d) => d && !STANDARD_DEPARTMENTS.some((s) => s.slug === d.slug)));
-    }
-  }, [eventoId]);
+  }, [eventoId, fetchCoordinatedDepartmentIds]);
 
   useEffect(() => {
     if (!departmentId) { setDeptStats(null); return; }
@@ -178,55 +264,58 @@ export default function Dashboard() {
     return () => { cancelled = true; };
   }, [departmentId]);
 
+  // Sem evento ativo a tela de cards não existe: limpa o estado para não
+  // reaproveitar registros do evento anterior ao trocar de evento.
+  useEffect(() => {
+    if (eventoId) return;
+    setDeptRecords([]);
+    setDeptStats(null);
+    setLoading(false);
+  }, [eventoId]);
+
   function showToast(message) {
     setToast(message);
     window.setTimeout(() => setToast(""), 3500);
   }
 
-  function isMine(record) {
-    if (!record || !user) return false;
-    return record.ownerId === user.id;
-  }
+  function handleCardClick(record) {
+    if (!record) return;
 
-  function handleCardClick(standardDept) {
-    const record = deptRecords.find((d) => d.slug === standardDept.slug);
+    // Já é meu: entra direto no painel, sem perguntar.
+    // (Não existe rota /dashboard/departamento/:id — o "painel" é o activeDepartment.)
+    if (record.coordenador_id === user?.id) {
+      const membership = departments.find(
+        (m) => m?.department?.id === record.id && m?.user_id === user?.id
+      );
+      selectDepartment(membership || buildOptimisticMembership(record, eventoId, user.id));
+      if (forcePicker) navigate("/");
+      return;
+    }
 
-    // Guard rígido de duplo claim: quem já assumiu nunca abre o modal de "Assumir"
-    if (record?.coordenador_id) {
-      if (record.coordenador_id === user?.id) {
-        // É o meu departamento: entra direto no painel, sem perguntar.
-        // (Não existe rota /dashboard/departamento/:id — o "painel" é o activeDepartment.)
-        const membership = departments.find(
-          (m) => m?.department?.id === record.id && m?.user_id === user?.id
-        );
-        selectDepartment(membership || {
-          id: record.id,
-          department_id: record.id,
-          evento_id: eventoId,
-          user_id: user.id,
-          department: record,
-          role: "coordenador",
-        });
-        return;
-      }
+    // Ocupado por outra pessoa: o card já vem inerte, isto é só um guard.
+    if (record.coordenador_id) {
       showToast("Este departamento já possui um coordenador." + (record.ownerName ? " " + record.ownerName : "") + ".");
       return;
     }
 
-    // Daqui para baixo: lógica normal de abrir o modal de assumir
+    // Disponível: abre a confirmação de assumir
     setConfirmModal({
       type: "claim",
       title: "Assumir Departamento",
-      message: `Certeza que deseja coordenar o departamento ${standardDept.name}?`,
-      onConfirm: () => doClaim(standardDept),
+      message: `Certeza que deseja coordenar o departamento ${record.name}?`,
+      onConfirm: () => doClaim(record),
     });
   }
 
-  async function doClaim(standardDept) {
+  async function doClaim(record) {
     setConfirmModal(null);
     setClaiming(true);
     try {
-      const dept = (await supabase.from("departments").select("id, name, slug").eq("slug", standardDept.slug).maybeSingle()).data;
+      // O departamento já vem identificado pelo id (mesmo quando o slug não
+      // está disponível na listagem).
+      const dept = record?.id
+        ? { id: record.id, name: record.name, slug: record.slug || "" }
+        : null;
       if (!dept) {
         showToast("Departamento não encontrado no banco de dados.");
         return;
@@ -244,52 +333,46 @@ export default function Dashboard() {
         return;
       }
 
-      const department = await createDepartment(standardDept.name, standardDept.slug, eventoId || null);
+      // Garante o vínculo do departamento com o evento. Se o registro ainda
+      // não existir (ou o retorno vier vazio), criamos e vinculamos.
       if (eventoId) {
         try {
-          await linkDepartmentToEvento(eventoId, department.id);
+          await linkDepartmentToEvento(eventoId, dept.id);
         } catch (linkErr) {
-          console.error("Erro ao vincular departamento ao evento:", linkErr);
+          console.warn("Departamento já vinculado ou falha ao vincular:", linkErr);
+          showToast("Aviso: o departamento assumiu, mas o vínculo com o evento falhou.");
         }
       }
 
       // Registro do grid correspondente (pode ainda não existir se o dept acabou de ser criado)
-      const record = deptRecords.find((d) => d.slug === standardDept.slug) || department;
+      const target = deptRecords.find((d) => d.id === dept.id) || dept;
 
-      // 1. Persiste a relação event-scoped
+      // 1. Persiste a relação event-scoped (fonte de verdade do coordenador)
       if (eventoId) {
-        await claimDepartmentForEvento(record.id, eventoId, user.id);
+        await claimDepartmentForEvento(target.id, eventoId, user.id);
       } else {
         const { linkUserAsCoordinator } = await import("../services/departmentService");
-        await linkUserAsCoordinator(record.id, user.id, null);
+        await linkUserAsCoordinator(target.id, user.id, null);
       }
 
       // 2. OPTIMISTIC UPDATE: Injeta na Navbar IMEDIATAMENTE
-      const optimisicMembership = {
-        department_id: record.id,
-        evento_id: eventoId,
-        user_id: user.id,
-        role: 'coordenador',
-        departments: record, // Essencial para a Navbar ler nome/ícone do departamento
-        department: record, // chave lida de fato pela Navbar/App (activeDepartment?.department.*)
-        id: record.id,
-      };
+      const optimisticMembership = buildOptimisticMembership(target, eventoId, user.id);
 
       // Envia direto pro AuthContext
-      selectDepartment(optimisicMembership);
+      selectDepartment(optimisticMembership);
+      // Assumiu a partir da grade (/departamentos): vai direto para o Resumo.
+      if (forcePicker) navigate("/");
 
       // 3. OPTIMISTIC UPDATE: Atualiza o Grid IMEDIATAMENTE
-      if (typeof setDeptRecords === 'function') {
-        setDeptRecords(prev => prev.map(dept =>
-          (dept.id === record.id)
-            ? { ...dept, coordenador_id: user.id, ownerId: user.id }
-            : dept
-        ));
-      }
+      setDeptRecords((prev) => prev.map((dept) =>
+        (dept.id === target.id)
+          ? { ...dept, coordenador_id: user.id, ownerId: user.id, ownerName: profile?.name || dept.ownerName || null }
+          : dept
+      ));
 
       // 4. Sincroniza em background silenciosamente
       refreshDeptRecords();
-      if (typeof refreshSession === 'function') refreshSession();
+      refreshSession();
     } catch (err) {
       console.error("Erro no doClaim:", err);
       showToast(err?.message || "Erro ao reivindicar departamento.");
@@ -318,7 +401,8 @@ export default function Dashboard() {
       await refreshDeptRecords();
       showToast("Coordenação revogada. Voltando ao Dashboard...");
     } catch (err) {
-      showToast("Erro ao revogar coordenação.");
+      console.error("Erro ao revogar coordenação:", err);
+      showToast(err?.message || "Erro ao revogar coordenação.");
     }
   }
 
@@ -333,6 +417,7 @@ export default function Dashboard() {
           await linkDepartmentToEvento(eventoId, department.id);
         } catch (linkErr) {
           console.error("Erro ao vincular departamento ao evento:", linkErr);
+          showToast("Aviso: o departamento foi criado, mas o vínculo com o evento falhou.");
         }
         await claimDepartmentForEvento(department.id, eventoId, user.id);
       } else {
@@ -345,13 +430,8 @@ export default function Dashboard() {
         (m) => m?.department?.id === department.id && m?.user_id === user?.id
       );
       selectDepartment(
-        membership || {
-          id: department.id,
-          department: { id: department.id, name: department.name, slug: department.slug },
-          role: "coordenador",
-        }
+        membership || buildOptimisticMembership(department, eventoId, user.id)
       );
-      setCustomDepts((prev) => [...prev, { id: department.id, name: department.name, slug: department.slug }]);
       setShowNewDeptModal(false);
       setNewDeptName("");
       showToast("Departamento criado.");
@@ -368,8 +448,11 @@ export default function Dashboard() {
   const scaleLink = departmentSlug ? `${shareBase}/${departmentSlug}/escala` : "";
   const eventLabel = activeEvent ? formatEventoNome(activeEvent) : "";
   const eventDate = activeEvent ? formatEventoDate(activeEvent) : "";
+  // Sem nome de departamento a confirmação em duas etapas perde o sentido:
+  // exigimos que o usuário digite um nome real antes de liberar a revogação.
+  const canConfirmRevoke = departmentName.trim().length > 0 && revokeInput.trim() === departmentName;
 
-  if (!departmentId) {
+  if (!departmentId || forcePicker) {
     return (
       <div className="space-y-6">
         {toast && (
@@ -377,7 +460,7 @@ export default function Dashboard() {
         )}
 
         <div>
-          <h2 className="text-xl font-bold text-navy-800">Bem-vindo!</h2>
+          <h2 className="text-xl font-bold text-navy-800">{forcePicker ? "Departamentos" : "Bem-vindo!"}</h2>
           <p className="mt-1 text-sm text-slate-500">
             {activeEvent
               ? `Escolha o departamento para o evento: ${getEventoTipoLabel(activeEvent.tipo)}.`
@@ -391,70 +474,59 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {loading ? (
-            <>
-              <Skeleton className="h-40 rounded-2xl" />
-              <Skeleton className="h-40 rounded-2xl" />
-              <Skeleton className="h-40 rounded-2xl" />
-            </>
-          ) : (
-            <>
-              {STANDARD_DEPARTMENTS.map((dept) => {
-                const record = deptRecords.find((item) => item.slug === dept.slug);
-                const mine = record && user ? record.coordenador_id === user.id : false;
-                const taken = record ? Boolean(record.coordenador_id) : false;
-                return (
-                  <button key={dept.slug} type="button" onClick={() => handleCardClick(dept)} disabled={claiming} className="group rounded-2xl border-2 border-transparent bg-white p-6 text-left shadow-card transition hover:border-brand-400/40 hover:shadow-md disabled:opacity-60">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-400/10">
-                        <i className="fi fi-rr-building text-xl text-brand-400" />
-                      </div>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${mine ? "bg-brand-400/15 text-brand-400" : taken ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>
-                        {mine ? "Seu departamento" : taken ? "Ocupado" : "Disponível"}
-                      </span>
-                    </div>
-                    <p className="mt-4 font-semibold text-navy-800">{dept.name}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                      {mine ? "Clique para acessar o painel deste departamento." : taken ? `Responsável: ${record.ownerName || "Coordenador"}.` : "Ao reivindicar, você será o coordenador deste departamento."}
-                    </p>
-                  </button>
-                );
-              })}
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-40 rounded-2xl" />
+            <Skeleton className="h-40 rounded-2xl" />
+            <Skeleton className="h-40 rounded-2xl" />
+          </div>
+        ) : (
+          <div className="space-y-8">
+            <DepartmentSection
+              title="Meus departamentos"
+              description="Departamentos que você coordena neste evento."
+              departments={grouped.mine}
+              variant="mine"
+              disabled={claiming}
+              onSelect={(dept) => handleCardClick(dept)}
+            />
 
-              {customDepts.map((dept) => {
-                const record = deptRecords.find((item) => item.id === dept.id);
-                const mine = record && user ? record.coordenador_id === user.id : false;
-                const taken = record ? Boolean(record.coordenador_id) : false;
-                return (
-                  <button key={dept.id} type="button" onClick={() => handleCardClick({ name: dept.name, slug: dept.slug })} disabled={claiming} className="group rounded-2xl border-2 border-transparent bg-white p-6 text-left shadow-card transition hover:border-brand-400/40 hover:shadow-md disabled:opacity-60">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-400/10">
-                        <i className="fi fi-rr-building text-xl text-brand-400" />
-                      </div>
-                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${mine ? "bg-brand-400/15 text-brand-400" : taken ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-500"}`}>
-                        {mine ? "Seu departamento" : taken ? "Ocupado" : "Disponível"}
-                      </span>
-                    </div>
-                    <p className="mt-4 font-semibold text-navy-800">{dept.name}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                      {mine ? "Clique para acessar o painel deste departamento." : taken ? `Responsável: ${record.ownerName || "Coordenador"}.` : "Ao reivindicar, você será o coordenador deste departamento."}
-                    </p>
-                  </button>
-                );
-              })}
+            <DepartmentSection
+              title="Disponíveis"
+              description="Ninguém assumiu ainda — clique para assumir a coordenação."
+              departments={grouped.available}
+              variant="available"
+              disabled={claiming}
+              onSelect={(dept) => handleCardClick(dept)}
+            />
 
-              <button type="button" onClick={() => { setShowNewDeptModal(true); setNewDeptName(""); }} className="group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-left shadow-card transition hover:border-brand-400/40 hover:bg-brand-400/5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 transition group-hover:bg-brand-400/15">
-                  <i className="fi fi-rr-plus text-xl text-slate-400 transition group-hover:text-brand-400" />
-                </div>
-                <p className="mt-2 text-sm font-semibold text-slate-500 transition group-hover:text-navy-800">Novo Departamento</p>
-                <p className="text-xs text-slate-400">Criar departamento personalizado</p>
-              </button>
-            </>
-          )}
-        </div>
+            <DepartmentSection
+              title="Ocupados"
+              description="Estes departamentos já têm coordenador neste evento."
+              departments={grouped.takenByOthers}
+              variant="taken"
+              disabled={claiming}
+              onSelect={() => {}}
+            />
 
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Criar</h3>
+              <div className="grid gap-4 md:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowNewDeptModal(true); setNewDeptName(""); }}
+                  className="group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-left shadow-card transition hover:border-brand-400/40 hover:bg-brand-400/5"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 transition group-hover:bg-brand-400/15">
+                    <i className="fi fi-rr-plus text-xl text-slate-400 transition group-hover:text-brand-400" />
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-slate-500 transition group-hover:text-navy-800">Novo Departamento</p>
+                  <p className="text-xs text-slate-400">Criar departamento personalizado</p>
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
         {confirmModal && (
           <ConfirmModal
             title={confirmModal.title}
@@ -513,6 +585,7 @@ export default function Dashboard() {
       <div>
         <h2 className="text-xl font-bold text-navy-800">Painel do Coordenador</h2>
         <p className="mt-1 text-sm text-slate-500">{departmentName}</p>
+        {eventDate && <p className="mt-0.5 text-xs text-slate-400">{eventDate}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
@@ -679,7 +752,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={doRevoke}
-                disabled={revokeInput.trim() !== departmentName}
+                disabled={!canConfirmRevoke}
                 className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Revogar

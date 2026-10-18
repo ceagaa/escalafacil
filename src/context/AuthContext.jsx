@@ -64,7 +64,41 @@ export function AuthProvider({ children }) {
     const rows = Array.isArray(data) ? data : [];
     const activeEventoId = eventoIdRef.current;
     if (!activeEventoId) return rows;
-    return rows.filter((row) => !row?.evento_id || row.evento_id === activeEventoId);
+    // Vínculo legado (evento_id NULL) vale como fallback; o vínculo do evento
+    // ativo tem prioridade e, quando existe, esconde o legado do mesmo dept.
+    const eventRows = rows.filter((row) => row?.evento_id === activeEventoId);
+    const eventDeptIds = new Set(
+      eventRows.map((row) => row?.department?.id || row?.department_id).filter(Boolean)
+    );
+    const legacyRows = rows.filter(
+      (row) =>
+        !row?.evento_id &&
+        !eventDeptIds.has(row?.department?.id || row?.department_id)
+    );
+    return [...eventRows, ...legacyRows];
+  }, []);
+
+  /**
+   * IDs de departamento que o usuário coordena no evento ativo.
+   * Lê direto de department_members (fonte de verdade) para que a tela de
+   * escolha e a navbar reconheçam o departamento mesmo que o join de
+   * departments falhe por RLS ou cache de schema do PostgREST.
+   */
+  const fetchCoordinatedDepartmentIds = useCallback(async (userId, eventoId) => {
+    if (!userId || !eventoId) return [];
+    const { data, error } = await supabase
+      .from("department_members")
+      .select("department_id, evento_id, role, user_id")
+      .eq("user_id", userId)
+      .eq("role", "coordenador")
+      .eq("evento_id", eventoId);
+    if (error) {
+      console.warn("Falha ao buscar departamentos coordenados:", error.message);
+      return [];
+    }
+    return (Array.isArray(data) ? data : [])
+      .map((row) => row?.department_id)
+      .filter(Boolean);
   }, []);
 
   const reconcileActiveDepartment = useCallback((depts, prev) => {
@@ -126,14 +160,17 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (eventLoading) return;
-    let cancelled = false;
 
+    // Sem evento ativo não há departamento ativo. Isto NÃO apaga `departments`,
+    // que precisa sobreviver à troca de evento para o Dashboard conseguir
+    // reconhecer (sem piscar) os departamentos já coordenados pelo usuário.
     if (!eventoId) {
-      setDepartments([]);
       setActiveDepartment(null);
+      storeDeptId(null);
       return;
     }
 
+    let cancelled = false;
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const currentUser = session?.user ?? null;
@@ -292,6 +329,7 @@ export function AuthProvider({ children }) {
     selectDepartment,
     refreshSession,
     refreshDepartments,
+    fetchCoordinatedDepartmentIds,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

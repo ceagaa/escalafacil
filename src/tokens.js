@@ -76,7 +76,7 @@ export const DESIGN_TOKENS = {
     input: "16px",
     pill: "999px",
   },
-} as const;
+};
 
 /**
  * Princípios de Design

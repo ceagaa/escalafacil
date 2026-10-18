@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo, lazy, Suspense, Component } from "react";
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import {
   initialSchedule,
   initialVolunteers,
   emptyVolunteer,
-  sanitizeSchedule,
+  sanitizeLoadedSchedule,
   mapAppVolunteerToDb,
   makeId,
-  formatCurrentDate,
   buildOfflineSnapshot,
   saveOfflineSnapshot,
   loadOfflineSnapshot,
@@ -28,7 +27,6 @@ import {
   deleteShift,
   saveShiftAssignments,
 } from "./services/scheduleService";
-import { Stat } from "./components/UI";
 import ShiftEditorModal from "./components/ShiftEditorModal";
 import RequireAuth from "./components/RequireAuth";
 
@@ -37,7 +35,7 @@ const EventSelector = lazy(() => import("./pages/EventSelector"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Programacao = lazy(() => import("./pages/Programacao"));
 const Voluntarios = lazy(() => import("./pages/Voluntarios"));
-const GerenciarDepartamentos = lazy(() => import("./pages/GerenciarDepartamentos"));
+const MeusDepartamentos = lazy(() => import("./pages/MeusDepartamentos"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const PublicCadastro = lazy(() => import("./pages/PublicCadastro"));
 const PublicEscala = lazy(() => import("./pages/PublicEscala"));
@@ -72,10 +70,30 @@ class ErrorBoundary extends Component {
   }
 }
 
+const CONGRESSO_DAYS = ["Sexta-feira", "Sábado", "Domingo"];
+
+/** Retorna o rótulo do primeiro dia da escala para o tipo de evento. */
+function getDefaultDay(eventType) {
+  if (eventType === "congresso_regional") return CONGRESSO_DAYS[0];
+  return "Dia do Evento";
+}
+
+/** Localiza um turno no estado local da escala. */
+function findShift(schedule, blockId, shiftId) {
+  return schedule.find((block) => block.id === blockId)
+    ?.shifts.find((shift) => shift.id === shiftId) || null;
+}
+
+/** Converte os nomes avulsos do turno em linhas de shift_volunteers. */
+function buildManualAssignments(shift) {
+  return (shift?.manualNames || []).map((name) => ({ volunteer_id: null, manual_name: name }));
+}
+
 const ROUTE_TITLES = {
-  "/": "Dashboard",
+  "/": "Resumo",
   "/programacao": "Escala",
   "/voluntarios": "Voluntários",
+  "/meus-departamentos": "Meus departamentos",
   "/departamentos": "Departamentos",
   "/configuracoes": "Configurações",
 };
@@ -83,11 +101,11 @@ const ROUTE_TITLES = {
 function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, activeDepartment, departments, selectDepartment, refreshSession } = useAuth();
+  const { user, logout, activeDepartment, departments, selectDepartment } = useAuth();
   const { activeEvent, eventoId, eventLoading, clearEvent } = useEvent();
 
-  const [activeDay, setActiveDay] = useState("Sexta-feira");
-  const [schedule, setSchedule] = useLocalStorage("ap_schedule_v4_validation", initialSchedule, sanitizeSchedule);
+  const [activeDay, setActiveDay] = useState(() => getDefaultDay(activeEvent?.tipo));
+  const [schedule, setSchedule] = useLocalStorage("ap_schedule_v4_validation", initialSchedule, sanitizeLoadedSchedule);
   const [volunteers, setVolunteers] = useLocalStorage("ap_volunteers", initialVolunteers);
   const [shiftEditor, setShiftEditor] = useState(null);
   const [volunteerForm, setVolunteerForm] = useState(emptyVolunteer());
@@ -106,13 +124,18 @@ function AppLayout() {
   const visibleNavigationItems = useMemo(
     () => navigationItems.filter((item) => {
       if (item.requiresDepartment && !hasDepartment) return false;
-      if (item.path === "/configuracoes" && !isCoordinator) return false;
+      if (item.coordinatorOnly && !isCoordinator) return false;
       return true;
     }),
     [isCoordinator, hasDepartment]
   );
 
   const hasMultipleDepts = departments.length > 1;
+
+  // Mantém o dia ativo coerente com o evento selecionado (assembleia tem um dia só).
+  useEffect(() => {
+    setActiveDay(getDefaultDay(activeEvent?.tipo));
+  }, [eventoId, activeEvent?.tipo]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setNow(new Date()), 60000);
@@ -132,7 +155,7 @@ function AppLayout() {
 
   useEffect(() => {
     setHasLoadedRemoteData(false);
-  }, [departmentId]);
+  }, [departmentId, eventoId]);
 
   useEffect(() => {
     async function loadRemoteData() {
@@ -154,7 +177,7 @@ function AppLayout() {
       }
     }
     loadRemoteData();
-  }, [isOnline, hasLoadedRemoteData, departmentId, setSchedule, setVolunteers]);
+  }, [isOnline, hasLoadedRemoteData, departmentId, eventoId, setSchedule, setVolunteers]);
 
   useEffect(() => {
     const snapshot = buildOfflineSnapshot(schedule, volunteers);
@@ -162,11 +185,24 @@ function AppLayout() {
   }, [schedule, volunteers]);
 
   const dayCards = useMemo(() => schedule.filter((item) => item.day === activeDay), [schedule, activeDay]);
-  const totalShifts = useMemo(() => schedule.reduce((acc, item) => acc + item.shifts.length, 0), [schedule]);
-  const assignedShifts = useMemo(
-    () => schedule.flatMap((block) => block.shifts).filter((shift) => shift.volunteerIds.length > 0).length,
-    [schedule]
-  );
+
+  function showToast(message) {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 2200);
+  }
+
+  /** Persiste as designações de um turno preservando os nomes avulsos. */
+  function persistAssignments(shiftId, volunteerIds, manualAssignments, actionLabel) {
+    if (!departmentId || String(shiftId).startsWith("local-")) return;
+    const assignments = [
+      ...volunteerIds.map((id) => ({ volunteer_id: id, manual_name: null })),
+      ...manualAssignments,
+    ];
+    saveShiftAssignments(shiftId, assignments, departmentId).catch((err) => {
+      console.warn("Falha ao salvar " + actionLabel + ".", err);
+      showToast("Não foi possível salvar a " + actionLabel + " no servidor.");
+    });
+  }
 
   function handleEditShift(payload) { setShiftEditor(payload); }
   function handleCreateShift(blockId) { setShiftEditor({ blockId, shiftId: null }); }
@@ -180,12 +216,21 @@ function AppLayout() {
           : block
       )
     );
-    showToast("Turno excluído.");
-    if (String(shiftId).startsWith("local-")) return;
+    if (String(shiftId).startsWith("local-")) {
+      showToast("Turno excluído.");
+      return;
+    }
+    if (!isOnline) {
+      showToast("Turno excluído offline. Sincronize quando voltar a internet.");
+      return;
+    }
     try {
       await deleteShift(departmentId, shiftId);
+      showToast("Turno excluído.");
     } catch (error) {
       console.warn("Falha ao excluir turno no Supabase.", error);
+      showToast("Não foi possível excluir o turno. Recarregue a página.");
+      setHasLoadedRemoteData(false);
     }
   }
 
@@ -195,14 +240,12 @@ function AppLayout() {
 
   function handleAllocateVolunteer(volunteerId) {
     if (!allocateModal) return;
-    const { blockId, shiftId, shift } = allocateModal;
-    const currentIds = (() => {
-      const block = schedule.find((b) => b.id === blockId);
-      const s = block?.shifts.find((sh) => sh.id === shiftId);
-      return s?.volunteerIds || [];
-    })();
+    const { blockId, shiftId } = allocateModal;
+    const currentShift = findShift(schedule, blockId, shiftId);
+    const currentIds = currentShift?.volunteerIds || [];
     if (currentIds.includes(volunteerId)) return;
     const newIds = [...currentIds, volunteerId];
+    const manualAssignments = buildManualAssignments(currentShift);
     setSchedule((current) =>
       current.map((block) =>
         block.id === blockId
@@ -211,23 +254,16 @@ function AppLayout() {
       )
     );
     setAllocateModal((prev) => prev ? { ...prev, shift: { ...prev.shift, volunteerIds: newIds } } : null);
-    if (!String(shiftId).startsWith("local-")) {
-      const assignments = newIds.map((id) => ({ volunteer_id: id, manual_name: null }));
-      saveShiftAssignments(shiftId, assignments, departmentId).catch((err) => {
-        console.warn("Falha ao salvar alocação.", err);
-      });
-    }
+    persistAssignments(shiftId, newIds, manualAssignments, "alocação");
   }
 
   function handleDeallocateVolunteer(volunteerId) {
     if (!allocateModal) return;
     const { blockId, shiftId } = allocateModal;
-    const currentIds = (() => {
-      const block = schedule.find((b) => b.id === blockId);
-      const s = block?.shifts.find((sh) => sh.id === shiftId);
-      return s?.volunteerIds || [];
-    })();
+    const currentShift = findShift(schedule, blockId, shiftId);
+    const currentIds = currentShift?.volunteerIds || [];
     const newIds = currentIds.filter((id) => id !== volunteerId);
+    const manualAssignments = buildManualAssignments(currentShift);
     setSchedule((current) =>
       current.map((block) =>
         block.id === blockId
@@ -236,12 +272,7 @@ function AppLayout() {
       )
     );
     setAllocateModal((prev) => prev ? { ...prev, shift: { ...prev.shift, volunteerIds: newIds } } : null);
-    if (!String(shiftId).startsWith("local-")) {
-      const assignments = newIds.map((id) => ({ volunteer_id: id, manual_name: null }));
-      saveShiftAssignments(shiftId, assignments, departmentId).catch((err) => {
-        console.warn("Falha ao salvar desalocação.", err);
-      });
-    }
+    persistAssignments(shiftId, newIds, manualAssignments, "desalocação");
   }
 
   async function saveShiftFromModal(data) {
@@ -272,12 +303,13 @@ function AppLayout() {
     }
 
     setShiftEditor(null);
-    showToast(data.shiftId ? "Turno atualizado." : "Turno criado.");
 
     if (!isOnline) {
       showToast("Salvo offline. Sincronize quando voltar a internet.");
       return;
     }
+
+    showToast(data.shiftId ? "Salvando turno..." : "Criando turno...");
 
     try {
       let targetShiftId = data.shiftId;
@@ -299,9 +331,11 @@ function AppLayout() {
         ...(data.manualName ? [{ volunteer_id: null, manual_name: data.manualName }] : []),
       ];
       await saveShiftAssignments(targetShiftId, assignments, departmentId);
+      showToast(data.shiftId ? "Turno atualizado." : "Turno criado.");
     } catch (error) {
       console.warn("Falha ao salvar escala no Supabase.", error);
-      showToast("Escala salva offline. Sincronize quando voltar a internet.");
+      showToast("Não foi possível salvar no servidor. Recarregue a página.");
+      setHasLoadedRemoteData(false);
     }
   }
 
@@ -352,9 +386,18 @@ function AppLayout() {
         })),
       }))
     );
-    showToast("Voluntário removido da lista e da escala.");
-    if (!isOnline || String(id).startsWith("local-") || !departmentId) return;
-    try { await deleteVolunteer(id, departmentId); } catch (error) { console.warn("Falha ao excluir voluntário no Supabase.", error); }
+    if (!isOnline || String(id).startsWith("local-") || !departmentId) {
+      showToast("Voluntário removido da lista e da escala.");
+      return;
+    }
+    try {
+      await deleteVolunteer(id, departmentId);
+      showToast("Voluntário removido da lista e da escala.");
+    } catch (error) {
+      console.warn("Falha ao excluir voluntário no Supabase.", error);
+      showToast("Não foi possível excluir no servidor. Recarregue a página.");
+      setHasLoadedRemoteData(false);
+    }
   }
 
   async function approveVolunteer(id) {
@@ -376,14 +419,18 @@ function AppLayout() {
 
   async function rejectVolunteer(id) {
     setVolunteers((current) => current.filter((v) => v.id !== id));
-    showToast("Cadastro recusado.");
-    if (!isOnline || String(id).startsWith("local-") || !departmentId) return;
-    try { await deleteVolunteer(id, departmentId); } catch (error) { console.warn("Falha ao recusar voluntário.", error); }
-  }
-
-  function showToast(message) {
-    setToast(message);
-    window.setTimeout(() => setToast(""), 2200);
+    if (!isOnline || String(id).startsWith("local-") || !departmentId) {
+      showToast("Cadastro recusado.");
+      return;
+    }
+    try {
+      await deleteVolunteer(id, departmentId);
+      showToast("Cadastro recusado.");
+    } catch (error) {
+      console.warn("Falha ao recusar voluntário.", error);
+      showToast("Não foi possível recusar no servidor. Recarregue a página.");
+      setHasLoadedRemoteData(false);
+    }
   }
 
   function handleLogout() {
@@ -549,35 +596,18 @@ function AppLayout() {
           <Suspense fallback={<div className="flex items-center justify-center py-12"><p className="text-sm text-slate-400">Carregando...</p></div>}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/departamentos" element={<Dashboard forcePicker />} />
+              <Route path="/meus-departamentos" element={<MeusDepartamentos />} />
+              {hasDepartment && (
+                <>
+                  <Route path="/programacao" element={<Programacao activeDay={activeDay} setActiveDay={setActiveDay} dayCards={dayCards} volunteers={volunteers} now={now} onEditShift={handleEditShift} onCreateShift={handleCreateShift} onDeleteShift={handleDeleteShift} onAllocateVolunteers={handleOpenAllocate} departmentName={departmentName} eventType={activeEvent?.tipo} dataEvento={activeEvent?.data_evento} />} />
+                  <Route path="/voluntarios" element={<Voluntarios volunteers={volunteers} volunteerForm={volunteerForm} setVolunteerForm={setVolunteerForm} onSave={saveVolunteer} onEdit={setVolunteerForm} onDelete={removeVolunteer} onApprove={approveVolunteer} onReject={rejectVolunteer} departmentName={departmentName} />} />
+                  <Route path="/configuracoes" element={<Configuracoes />} />
+                </>
+              )}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
-
-          {hasDepartment && activeView !== "/" && (
-            <>
-              <p className="text-sm font-medium capitalize text-slate-500 md:text-base">{formatCurrentDate(now)}</p>
-              <div className="ap-stats-scroll -mx-4 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
-                <div className="ap-stats-row flex min-w-max gap-3 md:grid md:min-w-0 md:grid-cols-2 md:gap-4">
-                  <Stat icon="clock" label="Turnos" value={totalShifts} detail={assignedShifts + "/" + totalShifts + " designado"} day={activeDay} />
-                  <Stat icon="users" label="Voluntários" value={volunteers.filter((v) => v.active !== false).length} detail="cadastros ativos" day={activeDay} />
-                </div>
-              </div>
-            </>
-          )}
-
-          {hasDepartment && (
-            <Suspense fallback={<div className="flex items-center justify-center py-12"><p className="text-sm text-slate-400">Carregando...</p></div>}>
-              <Routes>
-                {activeView !== "/" && (
-                  <>
-                    <Route path="/programacao" element={<Programacao activeDay={activeDay} setActiveDay={setActiveDay} dayCards={dayCards} volunteers={volunteers} now={now} onEditShift={handleEditShift} onCreateShift={handleCreateShift} onDeleteShift={handleDeleteShift} onAllocateVolunteers={handleOpenAllocate} departmentName={departmentName} eventType={activeEvent?.tipo} dataEvento={activeEvent?.data_evento} />} />
-                    <Route path="/voluntarios" element={<Voluntarios volunteers={volunteers} volunteerForm={volunteerForm} setVolunteerForm={setVolunteerForm} onSave={saveVolunteer} onEdit={setVolunteerForm} onDelete={removeVolunteer} onApprove={approveVolunteer} onReject={rejectVolunteer} departmentName={departmentName} />} />
-                    <Route path="/departamentos" element={<GerenciarDepartamentos />} />
-                    <Route path="/configuracoes" element={<Configuracoes />} />
-                  </>
-                )}
-              </Routes>
-            </Suspense>
-          )}
         </section>
       </main>
 

@@ -123,17 +123,6 @@ export function Select({ label, value, onChange, options }) {
   );
 }
 
-export function Icon({ name, className = "" }) {
-  const icons = { search: "⌕" };
-  return (
-    <span
-      aria-hidden="true"
-      className={`inline-flex h-5 w-5 items-center justify-center text-base leading-none ${className}`}
-    >
-      {icons[name] || "•"}
-    </span>
-  );
-}
 
 export function StatSvgIcon({ name }) {
   return (

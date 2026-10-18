@@ -5,7 +5,7 @@ import { getAvailabilitySlotId, parseAvailability } from "../utils/helpers";
 export default function AllocateVolunteersModal({
   block,
   shift,
-  volunteers,
+  volunteers = [],
   assignedVolunteerIds,
   onAllocate,
   onDeallocate,
@@ -14,6 +14,7 @@ export default function AllocateVolunteersModal({
   const [search, setSearch] = useState("");
 
   const slotId = getAvailabilitySlotId(block?.day, block?.period);
+  const assignedSet = new Set(assignedVolunteerIds || []);
 
   const sortedVolunteers = useMemo(() => {
     const list = [...volunteers].sort((a, b) => {
@@ -26,7 +27,7 @@ export default function AllocateVolunteersModal({
     return list.filter((v) => v.name.toLowerCase().includes(q) || (v.congregation || "").toLowerCase().includes(q));
   }, [volunteers, slotId, search]);
 
-  const assignedSet = new Set(assignedVolunteerIds || []);
+  if (!block || !shift) return null;
 
   return (
     <Modal title={`Alocar Voluntários — ${shift.start} até ${shift.end}`} onClose={onClose}>
@@ -48,7 +49,6 @@ export default function AllocateVolunteersModal({
             Voluntários com disponibilidade para <strong>{block.day} — {block.period}</strong> estão destacados.
           </p>
         )}
-
         <div className="max-h-72 space-y-2 overflow-auto pr-1">
           {sortedVolunteers.length === 0 ? (
             <p className="py-6 text-center text-sm text-slate-400">Nenhum voluntário encontrado.</p>

@@ -10,7 +10,7 @@ import {
 } from "../services/eventService";
 import { createStandardDepartmentsForEvento } from "../services/departmentService";
 import { getEventoTipoLabel, formatEventoNome, formatEventoDate } from "../utils/helpers";
-import CityCombobox from "../components/CityCombobox";
+import { UfCityFields, IdentificacoesFields, maskIdentificacao } from "../components/EventFormFields";
 import ConfirmModal from "../components/ConfirmModal";
 
 const EVENT_TYPES = [
@@ -21,24 +21,16 @@ const EVENT_TYPES = [
 
 const ASSEMBLEIA_TYPES = ["assembleia_circuito", "assembleia_representante"];
 
+const IDENTIFICACOES_HINT = {
+  assembleia: "Se o evento for em conjunto com outro circuito, adicione todos para que as escalas sejam unificadas.",
+  congresso: "Adicione múltiplas identificações se o congresso reunir diferentes seções.",
+};
+
 function isPastEvent(evento) {
   if (!evento.data_evento) return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return new Date(evento.data_evento + "T12:00:00") < today;
-}
-
-function applyCircuitoMask(value) {
-  const raw = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (raw.length === 0) return "";
-  const letters = raw.replace(/[0-9]/g, "");
-  const digits = raw.replace(/[^0-9]/g, "");
-  if (letters.length <= 2) {
-    return letters + (digits ? "-" + digits : "");
-  }
-  const uf = letters.slice(0, 2);
-  const rest = letters.slice(2);
-  return uf + "-" + digits + (rest ? " " + rest : "");
 }
 
 async function fetchEstados() {
@@ -87,7 +79,6 @@ export default function EventSelector() {
   const [editModal, setEditModal] = useState(null);
   const [editForm, setEditForm] = useState({ tipo: "", estado: "", cidade: "", data_evento: "" });
   const [editIdentificacoes, setIdentificacoes] = useState([""]);
-  const [editCityValid, setEditCityValid] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
 
   const [deleteModal, setDeleteModal] = useState(null);
@@ -251,7 +242,7 @@ export default function EventSelector() {
   }
 
   function handleIdentificacaoChange(index, value) {
-    const masked = isAssembleia ? applyCircuitoMask(value) : value.toUpperCase().slice(0, 10);
+    const masked = maskIdentificacao(value, isAssembleia);
     setIdentificacoesState((prev) => {
       const next = [...prev];
       next[index] = masked;
@@ -290,7 +281,6 @@ export default function EventSelector() {
       data_evento: evento.data_evento || "",
     });
     setIdentificacoes(ids.length > 0 ? ids : [""]);
-    setEditCityValid(true);
     setEditModal(evento);
   }
 
@@ -372,90 +362,30 @@ export default function EventSelector() {
       )}
 
       {isCongreso && (
-        <>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Estado (UF)</label>
-            <select
-              value={form.estado}
-              onChange={(e) => setForm((prev) => ({ ...prev, estado: e.target.value }))}
-              disabled={loading}
-              className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-base outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
-            >
-              <option value="">Selecione o estado</option>
-              {estados.map((uf) => (
-                <option key={uf.id} value={uf.sigla}>
-                  {uf.nome} ({uf.sigla})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <CityCombobox
-            cidades={cidades}
-            value={form.cidade}
-            onChange={(cidade) => setForm((prev) => ({ ...prev, cidade }))}
-            onValidate={setCityValid}
-            disabled={loading || !form.estado}
-            loading={loadingCidades}
-          />
-        </>
+        <UfCityFields
+          uf={form.estado}
+          cidade={form.cidade}
+          estados={estados}
+          cidades={cidades}
+          loadingCidades={loadingCidades}
+          disabled={loading}
+          onChangeUf={(estado) => setForm((prev) => ({ ...prev, estado }))}
+          onChangeCidade={(cidade) => setForm((prev) => ({ ...prev, cidade }))}
+          onValidateCidade={setCityValid}
+        />
       )}
 
       {form.tipo && (
-        <div>
-          <label className="block text-sm font-medium text-slate-700">
-            {isAssembleia ? "Circuito(s)" : "Identificação do Congresso"}
-          </label>
-          <div className="mt-1 space-y-2">
-            {identificacoes.map((val, index) => (
-              <div key={index} className="flex gap-2">
-                <input
-                  value={val}
-                  onChange={(e) => handleIdentificacaoChange(index, e.target.value)}
-                  placeholder={
-                    isAssembleia
-                      ? index === 0
-                        ? "Ex: PB-008 B"
-                        : "Ex: SP-138 A"
-                      : index === 0
-                        ? "Ex: 027 (B)"
-                        : "Ex: 001 (A)"
-                  }
-                  maxLength={10}
-                  disabled={loading}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base uppercase outline-none transition placeholder:normal-case focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
-                />
-                {identificacoes.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeIdentificacao(index)}
-                    disabled={loading}
-                    className="shrink-0 rounded-xl border border-slate-200 px-3 text-slate-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500"
-                    aria-label={`Remover identificação ${index + 1}`}
-                  >
-                    <i className="fi fi-rr-trash-small text-base" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={addIdentificacao}
-            disabled={loading}
-            className="mt-2 flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-brand-400 transition hover:bg-brand-400/5"
-          >
-            <i className="fi fi-rr-plus text-[10px]" />
-            {isAssembleia
-              ? "Adicionar outro circuito (Evento Conjunto)"
-              : "Adicionar outra identificação"}
-          </button>
-          <p className="mt-1 text-xs text-slate-400">
-            {isAssembleia
-              ? "Se o evento for em conjunto com outro circuito, adicione todos para que as escalas sejam unificadas."
-              : "Adicione múltiplas identificações se o congresso reunir diferentes seções."}
-          </p>
-        </div>
+        <IdentificacoesFields
+          values={identificacoes}
+          isAssembleia={isAssembleia}
+          disabled={loading}
+          onChange={handleIdentificacaoChange}
+          onAdd={addIdentificacao}
+          onRemove={removeIdentificacao}
+          addLabel={isAssembleia ? "Adicionar outro circuito (Evento Conjunto)" : "Adicionar outra identificação"}
+          addHint={isAssembleia ? IDENTIFICACOES_HINT.assembleia : IDENTIFICACOES_HINT.congresso}
+        />
       )}
 
       <div>
@@ -719,82 +649,36 @@ export default function EventSelector() {
               </div>
 
               {ASSEMBLEIA_TYPES.includes(editForm.tipo) && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">Estado (UF)</label>
-                    <select
-                      value={editForm.estado}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, estado: e.target.value }))}
-                      disabled={editLoading}
-                      className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-base outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
-                    >
-                      <option value="">Selecione o estado</option>
-                      {estados.map((uf) => (
-                        <option key={uf.id} value={uf.sigla}>
-                          {uf.nome} ({uf.sigla})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <CityCombobox
-                    cidades={cidades}
-                    value={editForm.cidade}
-                    onChange={(cidade) => setEditForm((prev) => ({ ...prev, cidade }))}
-                    onValidate={setEditCityValid}
-                    disabled={editLoading || !editForm.estado}
-                    loading={loadingCidades}
-                  />
-                </>
+                <UfCityFields
+                  uf={editForm.estado}
+                  cidade={editForm.cidade}
+                  estados={estados}
+                  cidades={cidades}
+                  loadingCidades={loadingCidades}
+                  disabled={editLoading}
+                  onChangeUf={(estado) => setEditForm((prev) => ({ ...prev, estado }))}
+                  onChangeCidade={(cidade) => setEditForm((prev) => ({ ...prev, cidade }))}
+                  onValidateCidade={() => {}}
+                />
               )}
 
               {editForm.tipo && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    {ASSEMBLEIA_TYPES.includes(editForm.tipo) ? "Circuito(s)" : "Identificação do Congresso"}
-                  </label>
-                  <div className="mt-1 space-y-2">
-                    {editIdentificacoes.map((val, index) => (
-                      <div key={index} className="flex gap-2">
-                        <input
-                          value={val}
-                          onChange={(e) => {
-                            const masked = ASSEMBLEIA_TYPES.includes(editForm.tipo)
-                              ? applyCircuitoMask(e.target.value)
-                              : e.target.value.toUpperCase().slice(0, 10);
-                            setIdentificacoes((prev) => {
-                              const next = [...prev];
-                              next[index] = masked;
-                              return next;
-                            });
-                          }}
-                          maxLength={10}
-                          disabled={editLoading}
-                          className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base uppercase outline-none transition placeholder:normal-case focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
-                        />
-                        {editIdentificacoes.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => setIdentificacoes((prev) => prev.filter((_, i) => i !== index))}
-                            disabled={editLoading}
-                            className="shrink-0 rounded-xl border border-slate-200 px-3 text-slate-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500"
-                            aria-label={`Remover identificação ${index + 1}`}
-                          >
-                            <i className="fi fi-rr-trash-small text-base" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIdentificacoes((prev) => [...prev, ""])}
-                    disabled={editLoading}
-                    className="mt-2 flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-brand-400 transition hover:bg-brand-400/5"
-                  >
-                    <i className="fi fi-rr-plus text-[10px]" />
-                    Adicionar
-                  </button>
-                </div>
+                <IdentificacoesFields
+                  values={editIdentificacoes}
+                  isAssembleia={ASSEMBLEIA_TYPES.includes(editForm.tipo)}
+                  disabled={editLoading}
+                  onChange={(index, value) => {
+                    const masked = maskIdentificacao(value, ASSEMBLEIA_TYPES.includes(editForm.tipo));
+                    setIdentificacoes((prev) => {
+                      const next = [...prev];
+                      next[index] = masked;
+                      return next;
+                    });
+                  }}
+                  onAdd={() => setIdentificacoes((prev) => [...prev, ""])}
+                  onRemove={(index) => setIdentificacoes((prev) => prev.filter((_, i) => i !== index))}
+                  addLabel="Adicionar"
+                />
               )}
 
               <div>

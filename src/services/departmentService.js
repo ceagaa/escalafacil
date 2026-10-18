@@ -16,13 +16,6 @@ export const STANDARD_DEPARTMENTS = [
   { name: "Transporte e equipamentos", slug: "transporte-e-equipamentos" },
 ];
 
-export async function getDashboardStats() {
-  const { data, error } = await supabase.rpc("get_dashboard_stats");
-  if (error) {
-    throw new Error(sanitizeError(error, "fetch"));
-  }
-  return data;
-}
 
 export async function getDepartmentOwnerBySlugRpc(slug) {
   const { data, error } = await supabase.rpc("get_department_owner_by_slug", {
@@ -45,17 +38,6 @@ export async function getDepartmentOwner(departmentId) {
   return data.profiles?.name || null;
 }
 
-export async function getDepartmentOwnerBySlug(slug) {
-  const { data: department, error } = await supabase
-    .from("departments")
-    .select("id")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (error || !department) return null;
-
-  return getDepartmentOwner(department.id);
-}
 
 export async function createDepartment(name, slug, eventoId) {
   const departmentSlug =
@@ -157,20 +139,6 @@ export async function getEventoDepartmentOwner(departmentId, eventoId) {
   return { name: data.profiles?.name || null, userId: data.user_id || null };
 }
 
-export async function updateDepartmentFeatures(departmentId, features) {
-  const { data, error } = await supabase
-    .from("departments")
-    .update({ features })
-    .eq("id", departmentId)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(sanitizeError(error, "update"));
-  }
-
-  return data;
-}
 
 export async function findProfileByEmail(email) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
@@ -307,4 +275,41 @@ export async function createStandardDepartmentsForEvento(eventoId) {
   }
 
   return created;
+}
+
+/**
+ * Repara os links dos departamentos padrão com o evento (best-effort).
+ * Diferente de createStandardDepartmentsForEvento, esta função preenche
+ * vínculos FALTANTES mesmo quando o evento já tem outros links (ex.: só o
+ * departamento que alguém assumiu) — era o que deixava a grade incompleta.
+ */
+export async function linkStandardDepartmentsToEvento(eventoId) {
+  if (!eventoId) return { linked: 0 };
+
+  const { data: existing, error: existingError } = await supabase
+    .from("evento_departamentos")
+    .select("department_id")
+    .eq("evento_id", eventoId);
+  if (existingError) throw new Error(sanitizeError(existingError, "fetch"));
+
+  const { data: standard, error: standardError } = await supabase
+    .from("departments")
+    .select("id")
+    .in("slug", STANDARD_DEPARTMENTS.map((dept) => dept.slug));
+  if (standardError) throw new Error(sanitizeError(standardError, "fetch"));
+
+  const linkedIds = new Set((Array.isArray(existing) ? existing : []).map((row) => row?.department_id));
+  const rows = (Array.isArray(standard) ? standard : [])
+    .filter((dept) => dept?.id && !linkedIds.has(dept.id))
+    .map((dept) => ({ evento_id: eventoId, department_id: dept.id }));
+
+  if (rows.length === 0) return { linked: 0 };
+
+  const { error: linkError } = await supabase
+    .from("evento_departamentos")
+    .upsert(rows, { onConflict: "evento_id,department_id" });
+  if (linkError && linkError.code !== "23505") {
+    throw new Error(sanitizeError(linkError, "create"));
+  }
+  return { linked: rows.length };
 }

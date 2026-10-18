@@ -39,15 +39,25 @@ export function EventProvider({ children }) {
         return;
       }
 
-      try {
-        const { data } = await supabase
-          .from("eventos")
-          .select("*")
-          .eq("id", storedId)
-          .maybeSingle();
+      const TIMEOUT_MS = 8000;
+      const query = supabase
+        .from("eventos")
+        .select("*")
+        .eq("id", storedId)
+        .maybeSingle();
 
-        if (!cancelled && data) {
-          setActiveEvent(data);
+      const timeout = new Promise((resolve) => {
+        window.setTimeout(() => resolve({ timedOut: true }), TIMEOUT_MS);
+      });
+
+      try {
+        const result = await Promise.race([query, timeout]);
+
+        if (result?.timedOut) {
+          console.warn("Busca do evento expirou — seguindo sem evento restaurado.");
+          if (!cancelled) storeEventoId(null);
+        } else if (!cancelled && result?.data) {
+          setActiveEvent(result.data);
         } else if (!cancelled) {
           storeEventoId(null);
         }

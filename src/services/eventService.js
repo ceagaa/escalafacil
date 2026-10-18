@@ -137,16 +137,6 @@ export async function getCoordinatedEventoIds(userId) {
   return [...eventoIds];
 }
 
-export async function getEventoById(id) {
-  const { data, error } = await supabase
-    .from("eventos")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) throw new Error(sanitizeError(error, "fetch"));
-  return data;
-}
 
 export async function linkDepartmentToEvento(eventoId, departmentId) {
   let { error } = await supabase
@@ -168,26 +158,7 @@ export async function linkDepartmentToEvento(eventoId, departmentId) {
   }
 }
 
-export async function getEventDepartments(eventoId) {
-  const { data, error } = await supabase
-    .from("evento_departamentos")
-    .select("*, department:departments(id, name, slug, features)")
-    .eq("evento_id", eventoId);
 
-  if (error) throw new Error(sanitizeError(error, "fetch"));
-  return Array.isArray(data) ? data : [];
-}
-
-export async function getUserEvents(userId) {
-  const { data, error } = await supabase
-    .from("department_members")
-    .select("evento_id, eventos!inner(id, tipo, estado, cidade, circuito, ano, slug)")
-    .eq("user_id", userId)
-    .not("evento_id", "is", null);
-
-  if (error) throw new Error(sanitizeError(error, "fetch"));
-  return Array.isArray(data) ? data : [];
-}
 
 export async function getDepartmentHistory(departmentId, currentEventoId) {
   const { data, error } = await supabase

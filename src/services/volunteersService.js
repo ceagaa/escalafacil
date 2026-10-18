@@ -14,19 +14,6 @@ export async function getVolunteers(departmentId) {
   return data;
 }
 
-export async function getVolunteer(id, departmentId) {
-  if (!departmentId) throw new Error("departmentId is required");
-  const { data, error } = await supabase
-    .from("volunteers")
-    .select("*")
-    .eq("id", id)
-    .eq("department_id", departmentId)
-    .single();
-  if (error) {
-    throw new Error(sanitizeError(error, "fetch"));
-  }
-  return data;
-}
 
 export async function createVolunteer(departmentId, data) {
   if (!departmentId) throw new Error("departmentId is required");

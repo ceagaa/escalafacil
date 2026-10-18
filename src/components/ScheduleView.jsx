@@ -54,12 +54,13 @@ export default function ScheduleView({
   const [deleteModal, setDeleteModal] = useState(null);
   const currentMinutes = getCurrentMinutes(now);
   const todayDay = getTodayScheduleDay(now);
-  const activeShiftId = findActiveShiftId(dayCards, activeDay, todayDay, currentMinutes);
 
   const eventDays = useMemo(() => getEventDays(eventType, dataEvento), [eventType, dataEvento]);
   const isSingleDay = eventDays.length === 1;
 
+  // Em evento de dia único o dia real é o do evento, não o `activeDay` do App.
   const effectiveDay = isSingleDay ? eventDays[0]?.label : activeDay;
+  const activeShiftId = findActiveShiftId(dayCards, effectiveDay, todayDay, currentMinutes);
 
   const handleNewShift = useCallback(() => {
     onCreateShift(dayCards[0]?.id);

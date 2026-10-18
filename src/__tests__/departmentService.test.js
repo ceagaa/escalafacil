@@ -5,6 +5,7 @@ const mockSelect = vi.fn().mockReturnThis();
 const mockSingle = vi.fn();
 const mockUpdate = vi.fn().mockReturnThis();
 const mockEq = vi.fn().mockReturnThis();
+const mockIn = vi.fn().mockReturnThis();
 const mockNot = vi.fn().mockReturnThis();
 const mockIlike = vi.fn().mockReturnThis();
 const mockMaybeSingle = vi.fn();
@@ -23,6 +24,7 @@ vi.mock("../services/supabase.js", () => ({
       single: mockSingle,
       update: mockUpdate,
       eq: mockEq,
+      in: mockIn,
       not: mockNot,
       ilike: mockIlike,
       maybeSingle: mockMaybeSingle,
@@ -38,16 +40,14 @@ vi.mock("../services/supabase.js", () => ({
 import {
   createDepartment,
   linkUserAsCoordinator,
-  updateDepartmentFeatures,
   findProfileByEmail,
   addDepartmentMember,
   listDepartmentMembers,
   removeDepartmentMember,
-  getDepartmentOwnerBySlug,
   getDepartmentOwner,
-  getDashboardStats,
   getDepartmentOwnerBySlugRpc,
   createStandardDepartmentsForEvento,
+  linkStandardDepartmentsToEvento,
   STANDARD_DEPARTMENTS,
 } from "../services/departmentService";
 
@@ -57,6 +57,7 @@ beforeEach(() => {
   mockSelect.mockReturnThis();
   mockUpdate.mockReturnThis();
   mockEq.mockReturnThis();
+  mockIn.mockReturnThis();
   mockNot.mockReturnThis();
   mockIlike.mockReturnThis();
   mockDelete.mockReturnThis();
@@ -166,59 +167,7 @@ describe("departmentService", () => {
     });
   });
 
-  describe("getDepartmentOwnerBySlug", () => {
-    it("returns the coordinator profile name", async () => {
-      mockMaybeSingle
-        .mockResolvedValueOnce({ data: { id: "d-1" }, error: null })
-        .mockResolvedValueOnce({
-          data: { coordenador_id: "u-1", profiles: { name: "Ana Souza" } },
-          error: null,
-        });
-      const owner = await getDepartmentOwnerBySlug("indicadores");
-      expect(owner).toBe("Ana Souza");
-    });
 
-    it("returns null when department does not exist", async () => {
-      mockMaybeSingle.mockResolvedValue({ data: null, error: null });
-      const owner = await getDepartmentOwnerBySlug("nao-existe");
-      expect(owner).toBeNull();
-    });
-
-    it("returns null when no coordinator member found", async () => {
-      mockMaybeSingle
-        .mockResolvedValueOnce({ data: { id: "d-1" }, error: null })
-        .mockResolvedValueOnce({ data: null, error: null });
-      const owner = await getDepartmentOwnerBySlug("limpeza");
-      expect(owner).toBeNull();
-    });
-  });
-
-  describe("getDashboardStats", () => {
-    it("returns stats from the RPC", async () => {
-      mockRpc.mockResolvedValue({
-        data: {
-          total_departments: 3,
-          total_volunteers: 12,
-          total_coordinators: 2,
-          top_department: "Indicadores",
-        },
-        error: null,
-      });
-      const stats = await getDashboardStats();
-      expect(stats).toEqual({
-        total_departments: 3,
-        total_volunteers: 12,
-        total_coordinators: 2,
-        top_department: "Indicadores",
-      });
-      expect(mockRpc).toHaveBeenCalledWith("get_dashboard_stats");
-    });
-
-    it("throws when RPC fails", async () => {
-      mockRpc.mockResolvedValue({ data: null, error: { message: "rpc error" } });
-      await expect(getDashboardStats()).rejects.toThrow("rpc error");
-    });
-  });
 
   describe("getDepartmentOwnerBySlugRpc", () => {
     it("returns the owner name", async () => {
@@ -276,33 +225,6 @@ describe("departmentService", () => {
     });
   });
 
-  describe("updateDepartmentFeatures", () => {
-    it("updates the features column", async () => {
-      mockUpdate.mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({
-              data: { id: "d-1", features: { showMap: true } },
-              error: null,
-            }),
-          }),
-        }),
-      });
-      const result = await updateDepartmentFeatures("d-1", { showMap: true });
-      expect(result).toEqual({ id: "d-1", features: { showMap: true } });
-    });
-
-    it("throws on update error", async () => {
-      mockUpdate.mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: null, error: { message: "rls violation" } }),
-          }),
-        }),
-      });
-      await expect(updateDepartmentFeatures("d-1", { showMap: true })).rejects.toThrow("rls violation");
-    });
-  });
 
   describe("findProfileByEmail", () => {
     it("returns the matched profile", async () => {
@@ -391,6 +313,53 @@ describe("departmentService", () => {
         ]),
         { onConflict: "slug" }
       );
+    });
+  });
+
+  describe("linkStandardDepartmentsToEvento", () => {
+    it("retorna { linked: 0 } sem eventoId", async () => {
+      await expect(linkStandardDepartmentsToEvento(null)).resolves.toEqual({ linked: 0 });
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("vincula somente os departamentos padrão que faltam no evento", async () => {
+      mockEq.mockResolvedValue({ data: [{ department_id: "id-contas" }], error: null });
+      mockIn.mockResolvedValue({
+        data: [{ id: "id-contas" }, { id: "id-indicadores" }],
+        error: null,
+      });
+      mockUpsert.mockResolvedValue({ error: null });
+
+      const result = await linkStandardDepartmentsToEvento("ev-1");
+
+      expect(result).toEqual({ linked: 1 });
+      expect(mockUpsert).toHaveBeenCalledWith(
+        [{ evento_id: "ev-1", department_id: "id-indicadores" }],
+        { onConflict: "evento_id,department_id" }
+      );
+    });
+
+    it("não faz upsert quando o evento já tem todos os vínculos padrão", async () => {
+      mockEq.mockResolvedValue({ data: [{ department_id: "id-contas" }], error: null });
+      mockIn.mockResolvedValue({ data: [{ id: "id-contas" }], error: null });
+
+      const result = await linkStandardDepartmentsToEvento("ev-1");
+
+      expect(result).toEqual({ linked: 0 });
+      expect(mockUpsert).not.toHaveBeenCalled();
+    });
+
+    it("lança erro quando a leitura dos vínculos falha", async () => {
+      mockEq.mockResolvedValue({ data: null, error: { message: "rls" } });
+      await expect(linkStandardDepartmentsToEvento("ev-1")).rejects.toThrow();
+    });
+
+    it("lança erro quando o vínculo (INSERT) é recusado", async () => {
+      mockEq.mockResolvedValue({ data: [], error: null });
+      mockIn.mockResolvedValue({ data: [{ id: "id-contas" }], error: null });
+      mockUpsert.mockResolvedValue({ error: { code: "42501", message: "permission denied" } });
+
+      await expect(linkStandardDepartmentsToEvento("ev-1")).rejects.toThrow();
     });
   });
 });

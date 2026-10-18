@@ -24,7 +24,6 @@ vi.mock("../services/supabase.js", () => ({
 
 import {
   getVolunteers,
-  getVolunteer,
   createVolunteer,
   updateVolunteer,
   deleteVolunteer,
@@ -56,17 +55,6 @@ describe("volunteersService", () => {
     });
   });
 
-  describe("getVolunteer", () => {
-    it("throws when departmentId is missing", async () => {
-      await expect(getVolunteer("v-1")).rejects.toThrow("departmentId is required");
-    });
-
-    it("fetches a single volunteer", async () => {
-      mockSingle.mockResolvedValue({ data: { id: "v-1", name: "Carlos" }, error: null });
-      const result = await getVolunteer("v-1", DEPT_ID);
-      expect(result).toEqual({ id: "v-1", name: "Carlos" });
-    });
-  });
 
   describe("createVolunteer", () => {
     it("throws when departmentId is missing", async () => {

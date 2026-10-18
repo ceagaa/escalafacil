@@ -115,6 +115,17 @@ export function sanitizeSchedule(schedule) {
   return isValidSchedule(schedule) ? schedule : initialSchedule;
 }
 
+/**
+ * Aceita a escala persistida (localStorage) ou a resposta do banco.
+ * A escala vinda do Supabase pode ter qualquer número de blocos — quem decide
+ * se há escala é `dayCards.length`, não um limite mínimo de turnos.
+ */
+export function sanitizeLoadedSchedule(schedule) {
+  if (!Array.isArray(schedule)) return initialSchedule;
+  const blocks = schedule.filter((block) => block && Array.isArray(block.shifts));
+  return blocks.length > 0 ? blocks : initialSchedule;
+}
+
 export function isValidSchedule(schedule) {
   if (!Array.isArray(schedule)) return false;
   if (schedule.length < 6) return false;
@@ -123,13 +134,26 @@ export function isValidSchedule(schedule) {
 }
 
 export function sortScheduleBlocks(blocks) {
-  const order = ["sex-manha", "sex-tarde", "sab-manha", "sab-tarde", "dom-manha", "dom-tarde"];
-  return [...blocks].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  return [...blocks].sort(sortByKnownOrder(SCHEDULE_BLOCK_ORDER));
 }
 
 export function sortShifts(shifts) {
   const order = initialSchedule.flatMap((block) => block.shifts.map((shift) => shift.id));
-  return [...shifts].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  return [...shifts].sort(sortByKnownOrder(order));
+}
+
+const SCHEDULE_BLOCK_ORDER = ["sex-manha", "sex-tarde", "sab-manha", "sab-tarde", "dom-manha", "dom-tarde"];
+
+/**
+ * Comparador que ordena pelos ids conhecidos e joga os desconhecidos para o fim,
+ * preservando a ordem relativa (ids de banco são UUIDs, não a ordem de exibição).
+ */
+function sortByKnownOrder(order) {
+  return (a, b) => {
+    const indexA = order.indexOf(a.id);
+    const indexB = order.indexOf(b.id);
+    return (indexA < 0 ? order.length : indexA) - (indexB < 0 ? order.length : indexB);
+  };
 }
 
 export function mapAppVolunteerToDb(volunteer) {
@@ -148,8 +172,7 @@ export function createWhatsAppUrl(phone) {
   return "https://api.whatsapp.com/send?phone=" + withCountryCode;
 }
 
-export function createWaMeLink(phone, text) {
-  const onlyNumbers = String(phone || "").replace(/\D/g, "");
+export function createWaMeLink(phone, text) {  const onlyNumbers = String(phone || "").replace(/\D/g, "");
   if (!onlyNumbers) return "";
   const withCountryCode = onlyNumbers.startsWith("55") ? onlyNumbers : "55" + onlyNumbers;
   const suffix = text ? "?text=" + encodeURIComponent(text) : "";
@@ -328,10 +351,26 @@ export function formatCurrentDate(date = new Date()) {
 }
 
 export const navigationItems = [
-  { path: "/", label: "Dashboard", iconClass: "fi fi-rr-home" },
+  { path: "/", label: "Resumo", iconClass: "fi fi-rr-home" },
   { path: "/programacao", label: "Escala", iconClass: "fi fi-rr-calendar-lines", requiresDepartment: true },
   { path: "/voluntarios", label: "Voluntários", iconClass: "fi fi-rr-users", requiresDepartment: true },
-  { path: "/configuracoes", label: "Configurações", iconClass: "fi fi-rr-settings", requiresDepartment: true },
+  {
+    path: "/meus-departamentos",
+    label: "Meus departamentos",
+    iconClass: "fi fi-rr-building",
+  },
+  {
+    path: "/departamentos",
+    label: "Departamentos",
+    iconClass: "fi fi-rr-apps",
+  },
+  {
+    path: "/configuracoes",
+    label: "Configurações",
+    iconClass: "fi fi-rr-settings",
+    requiresDepartment: true,
+    coordinatorOnly: true,
+  },
 ];
 
 export function getResponsibleNames(responsible) {

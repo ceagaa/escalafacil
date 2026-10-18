@@ -51,46 +51,58 @@ export default function PublicCadastro() {
   const assembleia = isAssembleiaType(eventoTipo);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchDept() {
-      const { data, error } = await supabase
-        .from("departments")
-        .select("id, name")
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (error || !data) {
-        setNotFound(true);
-        setLoadingDept(false);
-        return;
-      }
-
-      setDepartment(data);
-      document.title = `Seja Voluntário — ${data.name}`;
-      setMetaTag("og:title", `Seja Voluntário — ${data.name}`);
-      setMetaTag("og:description", `Cadastre-se como voluntário no departamento ${data.name}. Participação em escalas de eventos sazonais.`);
-      setMetaTag("og:image", window.location.origin + "/favicon.png");
-      setMetaTag("og:url", window.location.href);
-
-      const { data: evDepts } = await supabase
-        .from("evento_departamentos")
-        .select("evento_id")
-        .eq("department_id", data.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (evDepts?.evento_id) {
-        const { data: evento } = await supabase
-          .from("eventos")
-          .select("tipo")
-          .eq("id", evDepts.evento_id)
+      try {
+        const { data, error } = await supabase
+          .from("departments")
+          .select("id, name")
+          .eq("slug", slug)
           .maybeSingle();
-        if (evento?.tipo) setEventoTipo(evento.tipo);
-      }
 
-      setLoadingDept(false);
+        if (cancelled) return;
+
+        if (error || !data) {
+          setNotFound(true);
+          return;
+        }
+
+        setDepartment(data);
+        document.title = `Seja Voluntário — ${data.name}`;
+        setMetaTag("og:title", `Seja Voluntário — ${data.name}`);
+        setMetaTag("og:description", `Cadastre-se como voluntário no departamento ${data.name}. Participação em escalas de eventos sazonais.`);
+        setMetaTag("og:image", window.location.origin + "/favicon.png");
+        setMetaTag("og:url", window.location.href);
+
+        const { data: evDepts } = await supabase
+          .from("evento_departamentos")
+          .select("evento_id")
+          .eq("department_id", data.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (evDepts?.evento_id) {
+          const { data: evento } = await supabase
+            .from("eventos")
+            .select("tipo")
+            .eq("id", evDepts.evento_id)
+            .maybeSingle();
+          if (!cancelled && evento?.tipo) setEventoTipo(evento.tipo);
+        }
+      } catch (err) {
+        console.warn("Falha ao carregar o departamento do cadastro.", err);
+        if (!cancelled) setError("Não foi possível carregar este departamento. Tente recarregar a página.");
+      } finally {
+        if (!cancelled) setLoadingDept(false);
+      }
     }
+
     fetchDept();
+    return () => { cancelled = true; };
   }, [slug]);
 
   function toggleSlot(slotId) {
@@ -131,8 +143,6 @@ export default function PublicCadastro() {
     setSubmitting(true);
     setError("");
 
-    localStorage.setItem(SUBMISSION_KEY, String(Date.now()));
-
     const { error: insertError } = await supabase.from("volunteers").insert({
       department_id: department.id,
       name: trimmedName,
@@ -148,6 +158,8 @@ export default function PublicCadastro() {
       return;
     }
 
+    // Só bloqueia o próximo envio depois de um cadastro realmente aceito.
+    localStorage.setItem(SUBMISSION_KEY, String(Date.now()));
     setSubmitting(false);
     setSubmitted(true);
   }
@@ -160,7 +172,7 @@ export default function PublicCadastro() {
     );
   }
 
-  if (notFound) {
+  if (notFound || !department) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f6f6f6]">
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
@@ -169,7 +181,7 @@ export default function PublicCadastro() {
           </div>
           <h1 className="mt-4 text-xl font-bold text-[#172233]">Departamento não encontrado</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Verifique o link e tente novamente.
+            {error || "Verifique o link e tente novamente."}
           </p>
         </div>
       </div>
