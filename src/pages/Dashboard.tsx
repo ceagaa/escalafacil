@@ -730,17 +730,23 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
       </div>
 
       {isCoordinator && (
-        <div className="rounded-2xl border border-dashed border-red-200 bg-red-50/50 p-5">
-          <div className="text-center">
-            <h3 className="text-sm font-semibold text-red-600">Revogar coordenação deste departamento</h3>
-            <p className="mt-1 text-xs text-red-500/70">
-              Você não é o coordenador desse departamento ou não está mais responsável? Clique aqui e revogue o acesso.
-            </p>
-            <button type="button" onClick={handleRevoke} className="mt-3 text-sm font-semibold text-red-600 transition hover:text-red-700 hover:underline">
-              Revogar Acesso
-            </button>
+        <section className="revoke-access-card" aria-labelledby="revoke-access-title">
+          <div className="revoke-access-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 9v4m0 4h.01" />
+              <path d="M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3l-7.5-13a2 2 0 0 0-3.4-.1Z" />
+            </svg>
           </div>
-        </div>
+          <div className="revoke-access-copy">
+            <h3 id="revoke-access-title">Revogar acesso de coordenador</h3>
+            <p>
+              Remova seu vínculo com este departamento. Você deixará de acessar o painel de coordenação.
+            </p>
+          </div>
+          <button type="button" onClick={handleRevoke} className="revoke-access-button">
+            Revogar acesso
+          </button>
+        </section>
       )}
 
       {confirmModal && (
@@ -757,17 +763,25 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
 
       {revokeStep === 1 && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
-          <div role="dialog" aria-modal="true" aria-labelledby="revoke-step1-title" className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-            <h3 id="revoke-step1-title" className="text-lg font-bold text-navy-800">Revogar Coordenação</h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">
-              Tem certeza que deseja desistir da coordenação do departamento <strong>{departmentName}</strong>? Você perderá acesso ao painel.
+          <div role="dialog" aria-modal="true" aria-labelledby="revoke-step1-title" className="revoke-dialog w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="revoke-dialog-heading">
+              <span className="revoke-warning-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 9v4m0 4h.01" />
+                  <path d="M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3l-7.5-13a2 2 0 0 0-3.4-.1Z" />
+                </svg>
+              </span>
+              <h3 id="revoke-step1-title">Revogar coordenação?</h3>
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-slate-500">
+              Você deixará de coordenar <strong className="font-semibold text-navy-800">{departmentName}</strong> e perderá acesso ao painel deste departamento.
             </p>
             <div className="mt-6 flex gap-3">
               <button type="button" onClick={() => setRevokeStep(0)} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
                 Cancelar
               </button>
               <button type="button" onClick={confirmRevokeStep1} className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700">
-                Prosseguir
+                Continuar
               </button>
             </div>
           </div>
@@ -776,10 +790,18 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
 
       {revokeStep === 2 && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
-          <div role="dialog" aria-modal="true" aria-labelledby="revoke-step2-title" className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-            <h3 id="revoke-step2-title" className="text-lg font-bold text-navy-800">Confirmação Final</h3>
+          <div role="dialog" aria-modal="true" aria-labelledby="revoke-step2-title" className="revoke-dialog w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="revoke-dialog-heading">
+              <span className="revoke-warning-badge" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 9v4m0 4h.01" />
+                  <path d="M10.3 3.9 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3l-7.5-13a2 2 0 0 0-3.4-.1Z" />
+                </svg>
+              </span>
+              <h3 id="revoke-step2-title">Confirmação final</h3>
+            </div>
             <label htmlFor="revoke-dept-name" className="mt-2 block text-sm leading-relaxed text-slate-500">
-              Digite o nome do departamento <strong>{departmentName}</strong> para confirmar a revogação:
+              Para confirmar, digite o nome do departamento:
             </label>
             <input
               id="revoke-dept-name"
@@ -790,6 +812,9 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
               className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
               autoFocus
             />
+            <p className="mt-2 text-xs text-slate-500">
+              Digite <strong className="font-semibold text-navy-800">{departmentName}</strong> exatamente como aparece.
+            </p>
             <div className="mt-6 flex gap-3">
               <button type="button" onClick={() => setRevokeStep(0)} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
                 Cancelar
@@ -800,7 +825,7 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
                 disabled={!canConfirmRevoke}
                 className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Revogar
+                Confirmar revogação
               </button>
             </div>
           </div>

@@ -45,7 +45,7 @@ vi.mock("../components/ConfirmModal", () => ({
 import Dashboard from "../pages/Dashboard";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
-import { claimDepartmentForEvento, getEventoDepartmentOwner } from "../services/departmentService";
+import { claimDepartmentForEvento, getEventoDepartmentOwner, revokeDepartmentCoordinator } from "../services/departmentService";
 import { groupDepartments } from "../services/dashboardDepartments";
 
 vi.mock("../services/dashboardDepartments", async (importOriginal) => {
@@ -400,6 +400,34 @@ describe("Dashboard", () => {
       expect(screen.getByText("Gestão de Escalas")).toBeDefined();
       expect(screen.getByText("Equipe e Aprovação")).toBeDefined();
       expect(screen.getByText("Configurações")).toBeDefined();
+    });
+
+    it("explica o impacto e exige confirmação em duas etapas para revogar acesso", async () => {
+      (useAuth as any).mockReturnValue(deptAuth);
+      renderDashboard();
+
+      expect(screen.getByText("Revogar acesso de coordenador")).toBeDefined();
+      expect(screen.getByText(/Você deixará de acessar o painel de coordenação/)).toBeDefined();
+      fireEvent.click(screen.getByRole("button", { name: "Revogar acesso" }));
+
+      const firstDialog = screen.getByRole("dialog", { name: "Revogar coordenação?" });
+      expect(firstDialog).toBeDefined();
+      fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+
+      const finalDialog = screen.getByRole("dialog", { name: "Confirmação final" });
+      const confirmButton = screen.getByRole("button", { name: "Confirmar revogação" });
+      expect((confirmButton as HTMLButtonElement).disabled).toBe(true);
+
+      fireEvent.change(screen.getByRole("textbox", { name: /digite o nome do departamento/i }), {
+        target: { value: "Indicadores" },
+      });
+      expect((confirmButton as HTMLButtonElement).disabled).toBe(false);
+      fireEvent.click(confirmButton);
+
+      await waitFor(() => {
+        expect(revokeDepartmentCoordinator).toHaveBeenCalledWith("d-1", "user-1");
+      });
+      expect(finalDialog.isConnected).toBe(false);
     });
   });
 });
