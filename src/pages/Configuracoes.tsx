@@ -7,6 +7,72 @@ import {
   removeDepartmentMember,
 } from "../services/departmentService";
 import type { DepartmentMemberRow } from "../types";
+import LGPDModal from "../components/LGPDModal";
+import type { ThemePreference } from "../context/theme";
+import { useTheme } from "../hooks/useTheme";
+
+const APP_VERSION = "1.2.1";
+
+const THEME_OPTIONS: { value: ThemePreference; label: string; description: string }[] = [
+  { value: "system", label: "Automático", description: "Segue o tema do seu dispositivo" },
+  { value: "light", label: "Claro", description: "Fundo claro e alto contraste" },
+  { value: "dark", label: "Escuro", description: "Confortável em ambientes com pouca luz" },
+];
+
+function AppearanceSettings() {
+  const { preference, setPreference } = useTheme();
+  return (
+    <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
+      <h2 className="text-lg font-bold text-[#172233]">Aparência</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Escolha como o EscalaFácil aparece neste dispositivo.
+      </p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3" role="group" aria-label="Tema do aplicativo">
+        {THEME_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => setPreference(option.value)}
+            aria-pressed={preference === option.value}
+            className={`appearance-option ${preference === option.value ? "is-selected" : ""}`}
+          >
+            <span className="font-semibold">{option.label}</span>
+            <span className="text-xs font-normal">{option.description}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AppInformationSettings() {
+  const [showPolicy, setShowPolicy] = useState(false);
+
+  return (
+    <>
+      <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
+        <h2 className="text-lg font-bold text-[#172233]">Aplicativo</h2>
+        <button
+          type="button"
+          onClick={() => setShowPolicy(true)}
+          className="mt-4 flex min-h-14 w-full items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50"
+        >
+          <i className="fi fi-rr-shield-check text-lg text-brand-500" aria-hidden="true" />
+          <span className="flex-1">
+            <span className="block font-semibold text-[#172233]">Política de Privacidade</span>
+            <span className="mt-0.5 block text-xs text-slate-500">Leia como seus dados são utilizados</span>
+          </span>
+          <i className="fi fi-rr-angle-small-right text-slate-400" aria-hidden="true" />
+        </button>
+        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
+          <span className="text-slate-500">Versão do aplicativo</span>
+          <span className="font-semibold text-[#172233]">{APP_VERSION}</span>
+        </div>
+      </section>
+      {showPolicy && <LGPDModal onClose={() => setShowPolicy(false)} />}
+    </>
+  );
+}
 
 function readErrorMessage(err: unknown, fallback: string): string {
   if (err && typeof err === "object" && "message" in err && typeof (err as { message?: unknown }).message === "string") {
@@ -94,20 +160,26 @@ export default function Configuracoes() {
 
   if (!isCoordinator) {
     return (
-      <div className="mx-auto max-w-lg rounded-2xl bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl">
-          <i className="fi fi-rr-lock" />
+      <div className="mx-auto max-w-lg space-y-6">
+        <AppearanceSettings />
+        <AppInformationSettings />
+        <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl">
+            <i className="fi fi-rr-lock" />
+          </div>
+          <h2 className="mt-4 text-lg font-bold text-[#172233]">Acesso restrito a coordenadores</h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Somente o coordenador do departamento pode gerenciar a equipe e as configurações.
+          </p>
         </div>
-        <h2 className="mt-4 text-lg font-bold text-[#172233]">Acesso restrito a coordenadores</h2>
-        <p className="mt-2 text-sm text-slate-500">
-          Somente o coordenador do departamento pode gerenciar a equipe e as configurações.
-        </p>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      <AppearanceSettings />
+      <AppInformationSettings />
       <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
         <h2 className="text-lg font-bold text-[#172233]">Link público da escala</h2>
         <p className="mt-1 text-sm text-slate-500">

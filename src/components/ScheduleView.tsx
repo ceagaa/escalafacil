@@ -244,7 +244,7 @@ export default function ScheduleView({
                                 onClick={() => onAllocateVolunteers({ blockId: block.id, shiftId: shift.id, block, shift })}
                                 aria-label="Alocar voluntários"
                               >
-                                <i className="fi fi-rr-user-plus" aria-hidden="true" />
+                                <i className="fi fi-rr-user-add" aria-hidden="true" />
                               </Button>
                               <Button
                                 variant="outline"

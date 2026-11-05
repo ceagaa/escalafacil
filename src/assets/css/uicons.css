@@ -44,22 +44,36 @@ span[class*=" fi-brands-"]:before {
 }
 
 .fi-rr-angle-small-down:before { content: "\e0a1"; }
+.fi-rr-angle-right:before { content: "\e0a0"; }
+.fi-rr-angle-small-right:before { content: "\e0a3"; }
+.fi-rr-arrow-left:before { content: "\e0f9"; }
 .fi-rr-apps:before { content: "\e0c4"; }
 .fi-rr-ballot-check:before { content: "\e194"; }
 .fi-rr-building:before { content: "\e314"; }
 .fi-rr-calendar:before { content: "\e35d"; }
 .fi-rr-calendar-lines:before { content: "\e36b"; }
+.fi-rr-calendar-plus:before { content: "\e372"; }
 .fi-rr-check:before { content: "\e430"; }
 .fi-rr-check-circle:before { content: "\e431"; }
 .fi-rr-copy:before { content: "\e5ab"; }
+.fi-rr-cross:before { content: "\e5e8"; }
+.fi-rr-cross-small:before { content: "\e5eb"; }
+.fi-rr-edit:before { content: "\e759"; }
+.fi-rr-folder-open:before { content: "\e8eb"; }
 .fi-rr-hand-holding-heart:before { content: "\e9fe"; }
 .fi-rr-home:before { content: "\ea8b"; }
+.fi-rr-inbox:before { content: "\eaff"; }
 .fi-rr-link-slash:before { content: "\ec25"; }
 .fi-rr-lock:before { content: "\ec4f"; }
+.fi-rr-menu-dots-vertical:before { content: "\eced"; }
 .fi-rr-pencil:before { content: "\eea9"; }
 .fi-rr-plus:before { content: "\ef85"; }
+.fi-rr-search:before { content: "\f13a"; }
+.fi-rr-shield-check:before { content: "\f176"; }
 .fi-rr-settings:before { content: "\f163"; }
+.fi-rr-sign-out-alt:before { content: "\f1b3"; }
 .fi-rr-trash:before { content: "\f463"; }
+.fi-rr-triangle-warning:before { content: "\f488"; }
 .fi-rr-user-add:before { content: "\f4fa"; }
 .fi-rr-users:before { content: "\f554"; }
 .fi-brands-whatsapp:before { content: "\f5f5"; }

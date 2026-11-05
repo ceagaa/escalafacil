@@ -28,6 +28,7 @@ import {
   saveShiftAssignments,
 } from "./services/scheduleService";
 import ShiftEditorModal from "./components/ShiftEditorModal";
+import ThemeToggleButton from "./components/ThemeToggleButton";
 import RequireAuth from "./components/RequireAuth";
 import type {
   AllocateModalState,
@@ -140,6 +141,7 @@ function AppLayout() {
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [hasLoadedRemoteData, setHasLoadedRemoteData] = useState(false);
   const [showDeptSwitcher, setShowDeptSwitcher] = useState(false);
+  const [showMobileMore, setShowMobileMore] = useState(false);
   const [allocateModal, setAllocateModal] = useState<AllocateModalState | null>(null);
 
   const departmentId = activeDepartment?.department?.id || activeDepartment?.id || null;
@@ -480,7 +482,11 @@ function AppLayout() {
   function navTo(path: string) {
     navigate(path);
     setShowDeptSwitcher(false);
+    setShowMobileMore(false);
   }
+
+  const mobilePrimaryItems = visibleNavigationItems.slice(0, 3);
+  const hasActiveMoreItem = visibleNavigationItems.slice(3).some((item) => item.path === activeView);
 
   if (eventLoading) {
     return (
@@ -499,9 +505,12 @@ function AppLayout() {
           <div className="w-full bg-white px-5 py-5 shadow-sm md:px-8 md:py-6">
             <div className="flex items-center justify-between">
               <img src={logo} alt="EscalaFácil" className="h-8 w-auto" />
-              {user && (
-                <button onClick={handleLogout} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Sair</button>
-              )}
+              <div className="flex items-center gap-2">
+                <ThemeToggleButton />
+                {user && (
+                  <button onClick={handleLogout} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Sair</button>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -524,9 +533,9 @@ function AppLayout() {
         </div>
       )}
 
-      <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-navy-800 bg-navy-800 p-5 backdrop-blur-xl lg:block" aria-label="Menu principal">
+      <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-slate-200 bg-white p-5 lg:block" aria-label="Menu principal">
         <div>
-          <img src={logo} alt="EscalaFácil" className="mx-auto mb-6 h-[100px] w-[100px] object-contain" />
+          <img src={logo} alt="EscalaFácil" className="ap-brand-logo mx-auto mb-6 h-[100px] w-[100px] object-contain" />
 
           {hasDepartment ? (
             <div className="relative mt-4">
@@ -537,20 +546,20 @@ function AppLayout() {
                     <i className={`fi fi-rr-angle-small-down text-sm text-brand-400 transition-transform ${showDeptSwitcher ? "rotate-180" : ""}`} />
                   </button>
                   {showDeptSwitcher && (
-                    <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl border border-navy-800 bg-navy-800 p-2 shadow-2xl">
+                    <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
                       {departments.map((dept) => {
                         const deptName = dept.department?.name || "Departamento";
                         const isActive = dept.department?.id === departmentId;
                         return (
-                          <button key={dept.id} type="button" onClick={() => { selectDepartment(dept); setShowDeptSwitcher(false); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${isActive ? "bg-brand-400/15 text-brand-400" : "text-slate-300 hover:bg-white/5 hover:text-white"}`}>
+                          <button key={dept.id} type="button" onClick={() => { selectDepartment(dept); setShowDeptSwitcher(false); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${isActive ? "bg-brand-400/15 text-brand-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}>
                             <i className={`fi fi-rr-building text-base ${isActive ? "text-brand-400" : "text-slate-500"}`} />
                             <span className="truncate">{deptName}</span>
                             {isActive && <i className="fi fi-rr-check ml-auto text-xs text-brand-400" />}
                           </button>
                         );
                       })}
-                      <div className="my-1 border-t border-navy-800" />
-                      <button type="button" onClick={() => { selectDepartment(null); setShowDeptSwitcher(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-400 transition hover:bg-white/5 hover:text-white">
+                      <div className="my-1 border-t border-slate-200" />
+                      <button type="button" onClick={() => { selectDepartment(null); setShowDeptSwitcher(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
                         <i className="fi fi-rr-apps text-base text-slate-500" />
                         Ver todos os departamentos
                       </button>
@@ -570,13 +579,13 @@ function AppLayout() {
         </div>
 
         <div className="mt-8 flex items-center gap-4 px-2">
-          <span className="text-base font-semibold text-[#d8ff56]">Menu</span>
-          <span className="h-px flex-1 border-t border-dashed border-[#d8ff56]/35" />
+          <span className="text-base font-semibold text-slate-500">Menu</span>
+          <span className="h-px flex-1 border-t border-dashed border-slate-300" />
         </div>
 
         <nav className="mt-5 space-y-2" aria-label="Navegação principal">
           {visibleNavigationItems.map((item) => (
-            <button key={item.path} onClick={() => navTo(item.path)} className={`app-nav-button flex w-full items-center gap-3 text-sm transition ${activeView === item.path ? "is-active" : ""}`}>
+            <button key={item.path} onClick={() => navTo(item.path)} aria-current={activeView === item.path ? "page" : undefined} className={`app-nav-button flex w-full items-center gap-3 text-sm transition ${activeView === item.path ? "is-active" : ""}`}>
               <i className={item.iconClass} />
               {item.label}
             </button>
@@ -587,7 +596,7 @@ function AppLayout() {
           <button
             type="button"
             onClick={() => { clearEvent(); selectDepartment(null); }}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-400 transition hover:bg-white/5 hover:text-white"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
           >
             <i className="fi fi-rr-arrow-left text-base text-slate-500" />
             Trocar Evento
@@ -612,10 +621,13 @@ function AppLayout() {
                     : routeTitle}
                 </h1>
               </div>
-              <div className="hidden items-center gap-3 md:flex">
-                {user && (
-                  <button onClick={handleLogout} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Sair</button>
-                )}
+              <div className="flex items-center gap-2">
+                <ThemeToggleButton />
+                <div className="hidden items-center gap-3 md:flex">
+                  {user && (
+                    <button onClick={handleLogout} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Sair</button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -640,16 +652,40 @@ function AppLayout() {
         </section>
       </main>
 
+      {showMobileMore && (
+        <div id="mobile-more-menu" className="ap-mobile-more-menu lg:hidden">
+          <div className="flex items-center justify-between px-3 pb-2 pt-1">
+            <p className="text-sm font-semibold">Mais opções</p>
+            <button type="button" className="text-sm font-semibold text-slate-500" onClick={() => setShowMobileMore(false)}>Fechar</button>
+          </div>
+          {visibleNavigationItems.slice(3).map((item) => (
+            <button key={item.path} type="button" onClick={() => navTo(item.path)} aria-current={activeView === item.path ? "page" : undefined} className="ap-mobile-more-item">
+              <i className={item.iconClass} />
+              <span>{item.label}</span>
+              {activeView === item.path && <i className="fi fi-rr-check ml-auto" aria-hidden="true" />}
+            </button>
+          ))}
+          <button type="button" className="ap-mobile-more-item" onClick={() => { clearEvent(); selectDepartment(null); setShowMobileMore(false); }}>
+            <i className="fi fi-rr-arrow-left" />
+            <span>Trocar evento</span>
+          </button>
+          <button type="button" className="ap-mobile-more-item" onClick={handleLogout}>
+            <i className="fi fi-rr-sign-out-alt" />
+            <span>Sair</span>
+          </button>
+        </div>
+      )}
+
       <div className="ap-mobile-nav lg:hidden">
-        {visibleNavigationItems.map((item) => (
-          <button key={item.path} onClick={() => navTo(item.path)} className={`app-mobile-nav-button ${activeView === item.path ? "is-active" : ""}`}>
+        {mobilePrimaryItems.map((item) => (
+          <button key={item.path} onClick={() => navTo(item.path)} aria-current={activeView === item.path ? "page" : undefined} className={`app-mobile-nav-button ${activeView === item.path ? "is-active" : ""}`}>
             <i className={item.iconClass} />
             <span>{item.label}</span>
           </button>
         ))}
-        <button onClick={handleLogout} className="app-mobile-nav-button">
-          <i className="fi fi-rr-sign-out" />
-          <span>Sair</span>
+        <button type="button" onClick={() => setShowMobileMore((current) => !current)} aria-expanded={showMobileMore} aria-controls={showMobileMore ? "mobile-more-menu" : undefined} className={`app-mobile-nav-button ${hasActiveMoreItem || showMobileMore ? "is-active" : ""}`}>
+          <i className="fi fi-rr-apps" />
+          <span>Mais</span>
         </button>
       </div>
 

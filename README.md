@@ -7,6 +7,7 @@ App para gerenciar escala de voluntários dos departamentos.
 - **Escala de voluntários** — monta turnos pra sexta, sábado e domingo, designa quem fica em cada período
 - **Voluntários** — cadastra, aprova e organiza a equipe por departamento
 - **Dashboard** — visão geral com stats do dia
+- **Aparência** — tema automático conforme o dispositivo, com opções clara e escura
 - **PWA** — funciona offline e pode ser instalado no celular como app
 
 ## Tecnologias
@@ -116,7 +117,9 @@ Pra corrigir (o dashboard não deixa salvar o deploy command vazio, então use a
 
 ## Banco de dados
 
-Os scripts SQL ficam em `supabase/`. Não são commitados por segurança (contêm schema e políticas de acesso). Roda eles direto no SQL Editor do Supabase Dashboard.
+Os scripts SQL sensíveis ficam em `supabase/` e são ignorados pelo Git. A migração `supabase/widen_evento_circuito.sql` é uma exceção, pois não contém dados sensíveis e precisa ser aplicada ao banco.
+
+Para permitir eventos conjuntos com vários circuitos, aplique `supabase/widen_evento_circuito.sql` no SQL Editor do Supabase. O script amplia a coluna `eventos.circuito` para `text`, preservando os valores existentes.
 
 Para habilitar a exclusão de eventos por coordenadores, aplique a política de DELETE atualizada em `supabase/event_lifecycle.sql` (seção 4) ou `supabase/migration_eventos_complete.sql` (seção 4). Ela permite excluir ao criador ou a um coordenador vinculado ao mesmo evento; a edição continua restrita ao criador.
 

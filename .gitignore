@@ -27,6 +27,7 @@ dist-ssr
 supabase/*.sql
 supabase/**/*.sql
 *.sql
+!supabase/widen_evento_circuito.sql
 
 # AI agent config files
 .opencode

@@ -136,7 +136,7 @@ export function IdentificacoesFields({
                 className={ICON_BUTTON_CLASS}
                 aria-label={`Remover identificação ${index + 1}`}
               >
-                <i className="fi fi-rr-trash-small text-base" />
+                <i className="fi fi-rr-trash text-base" />
               </button>
             )}
           </div>

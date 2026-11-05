@@ -662,7 +662,7 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-brand-400/5 to-white p-5">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-400/15">
               <i className="fi fi-rr-user-add text-lg text-brand-400" />
@@ -681,7 +681,7 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-brand-400/5 to-white p-5">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-400/15">
               <i className="fi fi-rr-calendar text-lg text-brand-400" />

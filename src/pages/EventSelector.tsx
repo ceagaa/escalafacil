@@ -373,7 +373,7 @@ export default function EventSelector() {
 
       {isAssembleia && (
         <div className="flex items-start gap-3 rounded-r border-l-4 border-amber-500 bg-amber-50 p-3">
-          <i className="fi fi-rr-exclamation-triangle mt-0.5 text-lg text-amber-500" />
+          <i className="fi fi-rr-triangle-warning mt-0.5 text-lg text-amber-500" />
           <p className="text-sm leading-relaxed text-amber-800">
             Antes de prosseguir, verifique quais circuitos estarão juntos nesse evento.
           </p>

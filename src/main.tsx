@@ -5,6 +5,7 @@ import "./assets/css/uicons.css";
 import App from "./App";
 import { EventProvider } from "./context/EventContext";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 const container = document.getElementById("root");
 if (!container) {
@@ -13,10 +14,12 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <EventProvider>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </EventProvider>
+    <ThemeProvider>
+      <EventProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </EventProvider>
+    </ThemeProvider>
   </StrictMode>
 );

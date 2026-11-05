@@ -24,14 +24,14 @@ export default function LGPDModal({ onClose }: LGPDModalProps) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
+    <div className="lgpd-modal-backdrop fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="w-full max-w-lg max-h-[80vh] overflow-auto rounded-3xl bg-white p-6 shadow-2xl outline-none"
+        className="lgpd-modal w-full max-w-lg max-h-[80vh] overflow-auto rounded-3xl bg-white p-6 shadow-2xl outline-none"
       >
         <div className="flex items-center justify-between">
           <h3 id={titleId} className="text-lg font-bold text-[#172233]">Política de Privacidade e LGPD</h3>
