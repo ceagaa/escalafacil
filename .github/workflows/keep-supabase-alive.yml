@@ -1,0 +1,75 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Executa a cada 3 dias às 07:00 UTC (04:00 BRT) para impedir o pause de 7 dias de inatividade do Supabase Free
+    - cron: '0 7 */3 * *'
+  workflow_dispatch: # Permite execução manual a qualquer momento pela aba Actions no GitHub
+
+jobs:
+  ping-supabase:
+    name: Ping Supabase Database & Auth
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Validar Segredos e Configurações
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL || vars.SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::error::SUPABASE_URL (ou VITE_SUPABASE_URL) não foi configurada nos Secrets/Variables do repositório."
+            echo "Por favor, cadastre em: Configurações do Repositório > Secrets and variables > Actions"
+            exit 1
+          fi
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_ANON_KEY (ou VITE_SUPABASE_ANON_KEY) não foi configurada nos Secrets do repositório."
+            echo "Por favor, cadastre em: Configurações do Repositório > Secrets and variables > Actions"
+            exit 1
+          fi
+          echo "✅ Segredos de conexão detectados com sucesso."
+
+      - name: Ping PostgREST (PostgreSQL Query)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL || vars.SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          CLEAN_URL="${SUPABASE_URL%/}"
+          echo "Enviando query via PostgREST para manter o banco de dados ativo..."
+
+          HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" \
+            -X GET "${CLEAN_URL}/rest/v1/departments?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}")
+
+          echo "Código HTTP recebido: $HTTP_STATUS"
+          echo "Resposta do servidor:"
+          cat response.json
+          echo ""
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+            echo "✅ Banco de dados respondeu com sucesso ($HTTP_STATUS). Contador de inatividade zerado!"
+          elif [ "$HTTP_STATUS" -eq 401 ] || [ "$HTTP_STATUS" -eq 403 ]; then
+            echo "⚠️ Resposta com restrição de acesso ($HTTP_STATUS), mas a chamada alcançou o Supabase e registrou tráfego de API."
+          else
+            echo "::error::Falha ao comunicar com o Supabase. Código HTTP: $HTTP_STATUS"
+            exit 1
+          fi
+
+      - name: Ping Auth Service (Healthcheck)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL || vars.SUPABASE_URL || vars.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY || vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          CLEAN_URL="${SUPABASE_URL%/}"
+          echo "Verificando serviço de Auth..."
+
+          AUTH_STATUS=$(curl -s -o auth_response.json -w "%{http_code}" \
+            -X GET "${CLEAN_URL}/auth/v1/health" \
+            -H "apikey: ${SUPABASE_ANON_KEY}")
+
+          echo "Status do serviço de autenticação: $AUTH_STATUS"
+          cat auth_response.json
+          echo ""
+

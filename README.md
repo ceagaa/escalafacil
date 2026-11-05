@@ -120,13 +120,24 @@ Os scripts SQL ficam em `supabase/`. Não são commitados por segurança (contê
 
 Para habilitar a exclusão de eventos por coordenadores, aplique a política de DELETE atualizada em `supabase/event_lifecycle.sql` (seção 4) ou `supabase/migration_eventos_complete.sql` (seção 4). Ela permite excluir ao criador ou a um coordenador vinculado ao mesmo evento; a edição continua restrita ao criador.
 
+## Manter o Supabase Ativo (Prevenção de Pausa do Plano Free)
+
+No plano gratuito do Supabase, projetos ficam pausados após 7 dias sem atividade. Para evitar isso, há um workflow do GitHub Actions configurado em `.github/workflows/keep-supabase-alive.yml` que executa a cada 3 dias (e também pode ser disparado manualmente).
+
+Para ativá-lo:
+1. Vá até o repositório no GitHub: **Settings** → **Secrets and variables** → **Actions**.
+2. Clique em **New repository secret** e adicione:
+   - `SUPABASE_URL` (ou `VITE_SUPABASE_URL`): a URL do projeto (ex.: `https://xxxx.supabase.co`).
+   - `SUPABASE_ANON_KEY` (ou `VITE_SUPABASE_ANON_KEY`): a chave pública **anon** do projeto.
+3. Para testar imediatamente, vá na aba **Actions** do GitHub, selecione o workflow **Keep Supabase Alive** e clique em **Run workflow**.
+
 ## Testes
 
 ```bash
 npm test
 ```
 
-Usa Vitest com jsdom. 213 testes cobrindo services, componentes e fluxos de auth.
+Usa Vitest com jsdom. 228 testes cobrindo services, componentes e fluxos de auth.
 
 ## Licença
 
