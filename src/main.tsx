@@ -12,6 +12,19 @@ if (!container) {
   throw new Error("Elemento #root não encontrado.");
 }
 
+// PWA (autoUpdate): quando um novo Service Worker assume o controle de uma
+// página já carregada, recarrega para servir o bundle novo — evita que o
+// usuário fique preso a uma versão antiga em cache (ex.: botão de senha).
+if ("serviceWorker" in navigator) {
+  const wasControlled = Boolean(navigator.serviceWorker.controller);
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!wasControlled || refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
+}
+
 createRoot(container).render(
   <StrictMode>
     <ThemeProvider>
