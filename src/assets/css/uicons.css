@@ -59,6 +59,8 @@ span[class*=" fi-brands-"]:before {
 .fi-rr-cross:before { content: "\e5e8"; }
 .fi-rr-cross-small:before { content: "\e5eb"; }
 .fi-rr-edit:before { content: "\e759"; }
+.fi-rr-eye:before { content: "\e7bb"; }
+.fi-rr-eye-crossed:before { content: "\e7be"; }
 .fi-rr-folder-open:before { content: "\e8eb"; }
 .fi-rr-hand-holding-heart:before { content: "\e9fe"; }
 .fi-rr-home:before { content: "\ea8b"; }

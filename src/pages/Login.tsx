@@ -22,6 +22,7 @@ export default function Login() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -45,6 +46,7 @@ export default function Login() {
 
   function switchMode(nextMode: Mode) {
     setMode(nextMode);
+    setShowPassword(false);
     setError("");
     setNotice("");
   }
@@ -151,7 +153,12 @@ export default function Login() {
                 </label>
                 <label className="block">
                   <span className="text-sm font-medium text-[#172233]">Senha</span>
-                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Sua senha" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="current-password" />
+                  <div className="relative">
+                    <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Sua senha" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 pr-10 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="current-password" />
+                    <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} className="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 transition hover:text-slate-600">
+                      <i className={`fi ${showPassword ? "fi-rr-eye-crossed" : "fi-rr-eye"}`} aria-hidden="true" />
+                    </button>
+                  </div>
                 </label>
               </div>
 
@@ -180,7 +187,12 @@ export default function Login() {
                 </label>
                 <label className="block">
                   <span className="text-sm font-medium text-[#172233]">Senha</span>
-                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Mínimo de 6 caracteres" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="new-password" />
+                  <div className="relative">
+                    <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Mínimo de 6 caracteres" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 pr-10 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="new-password" />
+                    <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} className="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 transition hover:text-slate-600">
+                      <i className={`fi ${showPassword ? "fi-rr-eye-crossed" : "fi-rr-eye"}`} aria-hidden="true" />
+                    </button>
+                  </div>
                 </label>
               </div>
 
