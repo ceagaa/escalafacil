@@ -28,7 +28,7 @@ import {
   saveShiftAssignments,
 } from "./services/scheduleService";
 import ShiftEditorModal from "./components/ShiftEditorModal";
-import ThemeToggleButton from "./components/ThemeToggleButton";
+import UserMenu from "./components/UserMenu";
 import RequireAuth from "./components/RequireAuth";
 import type {
   AllocateModalState,
@@ -506,10 +506,7 @@ function AppLayout() {
             <div className="flex items-center justify-between">
               <img src={logo} alt="EscalaFácil" className="h-8 w-auto" />
               <div className="flex items-center gap-2">
-                <ThemeToggleButton />
-                {user && (
-                  <button onClick={handleLogout} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Sair</button>
-                )}
+                {user && <UserMenu user={user} onLogout={handleLogout} />}
               </div>
             </div>
           </div>
@@ -622,12 +619,7 @@ function AppLayout() {
                 </h1>
               </div>
               <div className="flex items-center gap-2">
-                <ThemeToggleButton />
-                <div className="hidden items-center gap-3 md:flex">
-                  {user && (
-                    <button onClick={handleLogout} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Sair</button>
-                  )}
-                </div>
+                {user && <UserMenu user={user} onLogout={handleLogout} />}
               </div>
             </div>
           </div>
