@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "../services/supabase";
+import { apiGet, ApiError } from "../services/api";
 import { dayTheme, sortScheduleBlocks, sortShifts } from "../utils/helpers";
 import type { DepartmentRef } from "../types";
 
@@ -56,13 +56,15 @@ export default function PublicEscala() {
     let cancelled = false;
 
     async function load(): Promise<void> {
-      const { data: dept, error: deptError } = await supabase
-        .from("departments")
-        .select("id, name")
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (deptError || !dept) {
+      let dept: Pick<DepartmentRef, "id" | "name"> | null = null;
+      try {
+        dept = await apiGet<Pick<DepartmentRef, "id" | "name">>(
+          `/api/public/departments/${encodeURIComponent(slug || "")}`
+        );
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 404)) {
+          console.warn("Falha ao carregar o departamento da escala:", err);
+        }
         if (!cancelled) {
           setNotFound(true);
           setLoading(false);
@@ -70,26 +72,43 @@ export default function PublicEscala() {
         return;
       }
 
-      const [blocksRes, shiftsRes, assignedRes, volunteersRes] = await Promise.all([
-        supabase.from("schedule_blocks").select("*").eq("department_id", dept.id),
-        supabase.from("shifts").select("*").eq("department_id", dept.id),
-        supabase.from("shift_volunteers").select("*").eq("department_id", dept.id),
-        supabase.from("volunteers").select("id, name, active").eq("department_id", dept.id),
-      ]);
-
-      if (cancelled) return;
-
-      if (blocksRes.error || shiftsRes.error) {
-        setLoadError("Não foi possível carregar a escala deste departamento.");
-        setLoading(false);
+      if (!dept) {
+        if (!cancelled) {
+          setNotFound(true);
+          setLoading(false);
+        }
         return;
       }
 
-      const blocks: DbBlock[] = Array.isArray(blocksRes.data) ? (blocksRes.data as DbBlock[]) : [];
-      const shifts: DbShiftRow[] = Array.isArray(shiftsRes.data) ? (shiftsRes.data as DbShiftRow[]) : [];
-      const assigned: DbAssignedRow[] = Array.isArray(assignedRes.data) ? (assignedRes.data as DbAssignedRow[]) : [];
-      const volunteers: { id: string; name: string; active?: boolean | null }[] = Array.isArray(volunteersRes.data)
-        ? (volunteersRes.data as { id: string; name: string; active?: boolean | null }[]).filter((volunteer) => volunteer.active !== false)
+      type SchedulePayload = {
+        blocks: DbBlock[];
+        shifts: DbShiftRow[];
+        assignments: DbAssignedRow[];
+        volunteers: { id: string; name: string; active?: boolean | null }[];
+      };
+
+      let payload: SchedulePayload;
+      try {
+        payload = await apiGet<SchedulePayload>(
+          `/api/public/departments/${encodeURIComponent(dept.id)}/schedule`
+        );
+      } catch {
+        if (!cancelled) {
+          setLoadError("Não foi possível carregar a escala deste departamento.");
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (cancelled) return;
+
+      const blocks: DbBlock[] = Array.isArray(payload?.blocks) ? payload.blocks : [];
+      const shifts: DbShiftRow[] = Array.isArray(payload?.shifts) ? payload.shifts : [];
+      const assigned: DbAssignedRow[] = Array.isArray(payload?.assignments) ? payload.assignments : [];
+      const volunteers: { id: string; name: string; active?: boolean | null }[] = Array.isArray(
+        payload?.volunteers
+      )
+        ? payload.volunteers.filter((volunteer) => volunteer.active !== false)
         : [];
 
       const volunteerNameById = new Map(
@@ -117,7 +136,7 @@ export default function PublicEscala() {
         })),
       }));
 
-      setDepartment(dept as Pick<DepartmentRef, "id" | "name">);
+      setDepartment(dept);
       setSchedule(grouped);
       setLoading(false);
     }

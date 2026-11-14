@@ -70,7 +70,7 @@ export default function LGPDModal({ onClose }: LGPDModalProps) {
           <div>
             <h4 className="font-semibold text-[#172233]">4. Segurança</h4>
             <p className="mt-1">
-              Utilizamos criptografia e políticas de segurança de nível banco de dados (Supabase RLS)
+              Utilizamos criptografia, autenticação segura e permissões de acesso por usuário
               para proteger suas informações.
             </p>
           </div>

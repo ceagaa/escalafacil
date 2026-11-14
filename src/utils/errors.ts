@@ -20,7 +20,10 @@ export function sanitizeError(error: unknown, operation: SafeErrorOperation = "u
   const base = SAFE_ERROR_MESSAGES[operation] || SAFE_ERROR_MESSAGES.unknown;
   if (!error) return base;
   if (typeof error === "string") return base;
-  const err = error as SanitizableError;
+  const err = error as SanitizableError & { safe?: boolean };
+  // Mensagens próprias do Worker (`ApiError.safe`, status < 500) já são
+  // seguras e específicas — passam direto (antes dos mapeamentos genéricos).
+  if (err.safe && typeof err.message === "string" && err.message) return err.message;
   if (err.code === "23505") return "Registro duplicado.";
   if (err.code === "42501" || err.code === "42P01") return "Acesso negado.";
   if (err.message?.includes("permission denied")) return "Acesso negado.";

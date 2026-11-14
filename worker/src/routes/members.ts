@@ -77,9 +77,11 @@ put("/api/profiles/me", async ({ env, request, user }) => {
 // ------------------------------------------------------- department_members
 
 /**
- * GET /api/members?user_id=&evento_id=&role=&department_id=
+ * GET /api/members?user_id=&evento_id=&role=&department_id=&include=department
  * Usado pelo AuthContext (vínculos do usuário), pelo Dashboard (mapa de
  * coordenadores do evento) e por fetchCoordinatedDepartmentIds.
+ * `include=department` anexa o departamento ao vínculo (select do AuthContext
+ * `department:departments(id, name, features, slug)`).
  */
 get("/api/members", async ({ env, url, user }) => {
   if (!user) throw new ApiError("Não autenticado.", 401);
@@ -88,6 +90,7 @@ get("/api/members", async ({ env, url, user }) => {
   const eventoId = url.searchParams.get("evento_id");
   const role = url.searchParams.get("role");
   const departmentId = url.searchParams.get("department_id");
+  const includeDepartment = url.searchParams.get("include") === "department";
 
   // Sem user_id explícito, só o próprio usuário pode listar seus vínculos.
   const targetUser = userId ?? user.id;
@@ -95,31 +98,55 @@ get("/api/members", async ({ env, url, user }) => {
     throw new ApiError("Sem permissão para listar vínculos de outro usuário.", 403);
   }
 
-  const where: string[] = ["user_id = ?"];
+  const where: string[] = ["dm.user_id = ?"];
   const binds: unknown[] = [targetUser];
   if (eventoId) {
-    where.push("evento_id = ?");
+    where.push("dm.evento_id = ?");
     binds.push(eventoId);
   }
   if (role) {
-    where.push("role = ?");
+    where.push("dm.role = ?");
     binds.push(role);
   }
   if (departmentId) {
-    where.push("department_id = ?");
+    where.push("dm.department_id = ?");
     binds.push(departmentId);
   }
 
   const rows = await env.DB.prepare(
-    `SELECT id, department_id, evento_id, user_id, role, created_at
-       FROM department_members
-      WHERE ${where.join(" AND ")}
-      ORDER BY created_at ASC`
+    includeDepartment
+      ? `SELECT dm.id, dm.department_id, dm.evento_id, dm.user_id, dm.role, dm.created_at,
+                d.id AS d_id, d.name AS d_name, d.slug AS d_slug, d.features AS d_features
+           FROM department_members dm
+           LEFT JOIN departments d ON d.id = dm.department_id
+          WHERE ${where.join(" AND ")}
+          ORDER BY dm.created_at ASC`
+      : `SELECT dm.id, dm.department_id, dm.evento_id, dm.user_id, dm.role, dm.created_at
+           FROM department_members dm
+          WHERE ${where.join(" AND ")}
+          ORDER BY dm.created_at ASC`
   )
     .bind(...(binds as never[]))
     .all();
 
-  return json({ data: mapRows(rows.results as Record<string, unknown>[]) });
+  const data = (rows.results as Record<string, unknown>[]).map((row) => {
+    const base: Record<string, unknown> = {
+      id: row.id,
+      department_id: row.department_id,
+      evento_id: row.evento_id,
+      user_id: row.user_id,
+      role: row.role,
+      created_at: row.created_at,
+    };
+    if (includeDepartment) {
+      base.department = row.d_id
+        ? { id: row.d_id, name: row.d_name, slug: row.d_slug, features: row.d_features }
+        : null;
+    }
+    return base;
+  });
+
+  return json({ data });
 });
 
 /** GET /api/departments/:id/members — membros + profiles (listDepartmentMembers). */

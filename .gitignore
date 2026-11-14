@@ -28,6 +28,9 @@ supabase/*.sql
 supabase/**/*.sql
 *.sql
 !supabase/widen_evento_circuito.sql
+# Migrations do Worker (D1) são código e precisam ir para o repositório.
+# Exceção: export/import da migração Supabase -> D1 ficam fora (dados reais).
+!worker/migrations/*.sql
 
 # AI agent config files
 .opencode

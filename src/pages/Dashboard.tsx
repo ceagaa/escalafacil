@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback, useRef, type KeyboardEvent }
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
-import { supabase } from "../services/supabase";
+import { apiGet } from "../services/api";
 import {
   createDepartment,
   claimDepartmentForEvento,
@@ -21,13 +21,12 @@ import {
 import type { DepartmentMembership, DepartmentRecord, DeptStats } from "../types";
 
 async function fetchDeptStats(departmentId: string): Promise<DeptStats> {
-  const [volunteers, shifts] = await Promise.all([
-    supabase.from("volunteers").select("id", { count: "exact", head: true }).eq("department_id", departmentId).eq("active", true),
-    supabase.from("shifts").select("id", { count: "exact", head: true }).eq("department_id", departmentId),
-  ]);
+  const stats = await apiGet<{ volunteers?: number; shifts?: number }>(
+    `/api/departments/${encodeURIComponent(departmentId)}/volunteers/stats`
+  );
   return {
-    volunteers: volunteers.count ?? 0,
-    shifts: shifts.count ?? 0,
+    volunteers: stats?.volunteers ?? 0,
+    shifts: stats?.shifts ?? 0,
   };
 }
 

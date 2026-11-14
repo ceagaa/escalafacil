@@ -21,6 +21,29 @@ get("/api/public/departments/:slug", async ({ env, params }) => {
   return json({ data: mapRow(row) });
 });
 
+/** GET /api/public/eventos?slug=abc | ?id= — evento por slug ou id (cadastro público). */
+get("/api/public/eventos", async ({ env, url }) => {
+  const slug = url.searchParams.get("slug");
+  const id = url.searchParams.get("id");
+  if (!slug && !id) throw new ApiError("Informe id ou slug.", 400);
+
+  const row = id
+    ? await env.DB.prepare(
+        `SELECT id, slug, tipo, estado, cidade, circuito, ano, data_evento
+           FROM eventos WHERE id = ? LIMIT 1`
+      )
+        .bind(id)
+        .first()
+    : await env.DB.prepare(
+        `SELECT id, slug, tipo, estado, cidade, circuito, ano, data_evento
+           FROM eventos WHERE slug = ? LIMIT 1`
+      )
+        .bind(slug)
+        .first();
+  if (!row) throw new ApiError("Evento não encontrado.", 404);
+  return json({ data: mapRow(row) });
+});
+
 /** GET /api/public/eventos/:slug — usado pelo cadastro público. */
 get("/api/public/eventos/:slug", async ({ env, params }) => {
   const row = await env.DB.prepare(
@@ -67,11 +90,14 @@ get("/api/public/departments/:id/schedule", async ({ env, params }) => {
   });
 });
 
-/** GET /api/public/departments/:id/links — 1º evento vinculado (cadastro público). */
+/**
+ * GET /api/public/departments/:id/links — evento vinculado mais recente
+ * (cadastro público; front pedia ORDER BY created_at DESC LIMIT 1).
+ */
 get("/api/public/departments/:id/links", async ({ env, params }) => {
   const row = await env.DB.prepare(
     `SELECT evento_id FROM evento_departamentos
-      WHERE department_id = ? ORDER BY created_at ASC LIMIT 1`
+      WHERE department_id = ? ORDER BY created_at DESC LIMIT 1`
   )
     .bind(params.id)
     .first<{ evento_id: string }>();

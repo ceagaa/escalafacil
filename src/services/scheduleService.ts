@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "./api";
 import { getVolunteers } from "./volunteersService";
 import { makeId } from "../utils/helpers";
 import { sanitizeError } from "../utils/errors";
@@ -28,54 +28,51 @@ interface DbShiftVolunteer {
   manual_name?: string | null;
 }
 
-export async function getScheduleBlocks(departmentId: string): Promise<DbScheduleBlock[]> {
+const dept = (departmentId: string): string => {
   if (!departmentId) throw new Error("departmentId is required");
-  const { data, error } = await supabase
-    .from("schedule_blocks")
-    .select("*")
-    .eq("department_id", departmentId)
-    .order("created_at", { ascending: false });
-  if (error) {
+  return `/api/departments/${encodeURIComponent(departmentId)}`;
+};
+
+export async function getScheduleBlocks(departmentId: string): Promise<DbScheduleBlock[]> {
+  const base = dept(departmentId);
+  try {
+    const data = await apiGet<DbScheduleBlock[]>(`${base}/blocks`);
+    return data ?? [];
+  } catch (error) {
     throw new Error(sanitizeError(error, "fetch"));
   }
-  return (data ?? []) as DbScheduleBlock[];
 }
 
 export async function getShiftsByBlock(blockId: string, departmentId: string): Promise<DbShift[]> {
-  if (!departmentId) throw new Error("departmentId is required");
-  const { data, error } = await supabase
-    .from("shifts")
-    .select("*")
-    .eq("block_id", blockId)
-    .eq("department_id", departmentId);
-  if (error) {
+  const base = dept(departmentId);
+  try {
+    const data = await apiGet<DbShift[]>(
+      `${base}/shifts?block_id=${encodeURIComponent(blockId)}`
+    );
+    return data ?? [];
+  } catch (error) {
     throw new Error(sanitizeError(error, "fetch"));
   }
-  return (data ?? []) as DbShift[];
 }
 
 export async function getAllShifts(departmentId: string): Promise<DbShift[]> {
-  if (!departmentId) throw new Error("departmentId is required");
-  const { data, error } = await supabase
-    .from("shifts")
-    .select("*")
-    .eq("department_id", departmentId);
-  if (error) {
+  const base = dept(departmentId);
+  try {
+    const data = await apiGet<DbShift[]>(`${base}/shifts`);
+    return data ?? [];
+  } catch (error) {
     throw new Error(sanitizeError(error, "fetch"));
   }
-  return (data ?? []) as DbShift[];
 }
 
 export async function getShiftVolunteers(departmentId: string): Promise<DbShiftVolunteer[]> {
-  if (!departmentId) throw new Error("departmentId is required");
-  const { data, error } = await supabase
-    .from("shift_volunteers")
-    .select("*, shift:shifts!inner(department_id)")
-    .eq("shift.department_id", departmentId);
-  if (error) {
+  const base = dept(departmentId);
+  try {
+    const data = await apiGet<DbShiftVolunteer[]>(`${base}/assignments`);
+    return data ?? [];
+  } catch (error) {
     throw new Error(sanitizeError(error, "fetch"));
   }
-  return (data ?? []) as DbShiftVolunteer[];
 }
 
 export async function assignVolunteersToShift(
@@ -83,28 +80,14 @@ export async function assignVolunteersToShift(
   volunteerIds: string[],
   departmentId: string
 ): Promise<void> {
-  if (!departmentId) throw new Error("departmentId is required");
-  const { error: deleteError } = await supabase
-    .from("shift_volunteers")
-    .delete()
-    .eq("shift_id", shiftId);
-  if (deleteError) {
-    throw new Error(sanitizeError(deleteError, "delete"));
-  }
-
-  if (volunteerIds.length === 0) return;
-
-  const rows = volunteerIds.map((volunteerId) => ({
-    shift_id: shiftId,
-    volunteer_id: volunteerId,
-    department_id: departmentId,
-  }));
-
-  const { error: insertError } = await supabase
-    .from("shift_volunteers")
-    .insert(rows);
-  if (insertError) {
-    throw new Error(sanitizeError(insertError, "create"));
+  dept(departmentId); // valida a entrada (assinatura mantida por compatibilidade)
+  try {
+    // PUT substitui todas as alocações do turno (delete + insert no Worker).
+    await apiPut(`/api/shifts/${encodeURIComponent(shiftId)}/assignments`, {
+      volunteer_ids: volunteerIds,
+    });
+  } catch (error) {
+    throw new Error(sanitizeError(error, volunteerIds.length > 0 ? "create" : "delete"));
   }
 }
 
@@ -113,30 +96,16 @@ export async function saveShiftAssignments(
   assignments: ShiftAssignment[],
   departmentId: string
 ): Promise<void> {
-  if (!departmentId) throw new Error("departmentId is required");
-
-  const { error: deleteError } = await supabase
-    .from("shift_volunteers")
-    .delete()
-    .eq("shift_id", shiftId);
-  if (deleteError) {
-    throw new Error(sanitizeError(deleteError, "delete"));
-  }
-
-  if (assignments.length === 0) return;
-
-  const rows = assignments.map((assignment) => ({
-    shift_id: shiftId,
-    volunteer_id: assignment.volunteer_id || null,
-    manual_name: assignment.manual_name || null,
-    department_id: departmentId,
-  }));
-
-  const { error: insertError } = await supabase
-    .from("shift_volunteers")
-    .insert(rows);
-  if (insertError) {
-    throw new Error(sanitizeError(insertError, "create"));
+  dept(departmentId);
+  try {
+    await apiPut(`/api/shifts/${encodeURIComponent(shiftId)}/assignments`, {
+      assignments: assignments.map((assignment) => ({
+        volunteer_id: assignment.volunteer_id || null,
+        manual_name: assignment.manual_name || null,
+      })),
+    });
+  } catch (error) {
+    throw new Error(sanitizeError(error, assignments.length > 0 ? "create" : "delete"));
   }
 }
 
@@ -145,26 +114,19 @@ export async function createShift(
   blockId: string,
   payload: { start_time: string; end_time: string; description?: string; vagas?: number }
 ): Promise<DbShift> {
-  if (!departmentId) throw new Error("departmentId is required");
-  const { data, error } = await supabase
-    .from("shifts")
-    .insert([
-      {
-        id: makeId("shift"),
-        block_id: blockId,
-        start_time: payload.start_time,
-        end_time: payload.end_time,
-        description: payload.description || "",
-        vagas: payload.vagas || 0,
-        department_id: departmentId,
-      },
-    ])
-    .select()
-    .single();
-  if (error) {
+  const base = dept(departmentId);
+  try {
+    return await apiPost<DbShift>(`${base}/shifts`, {
+      id: makeId("shift"),
+      block_id: blockId,
+      start_time: payload.start_time,
+      end_time: payload.end_time,
+      description: payload.description || "",
+      vagas: payload.vagas || 0,
+    });
+  } catch (error) {
     throw new Error(sanitizeError(error, "create"));
   }
-  return data as DbShift;
 }
 
 export async function updateShift(
@@ -172,33 +134,24 @@ export async function updateShift(
   shiftId: string,
   payload: { start_time: string; end_time: string; description?: string; vagas?: number }
 ): Promise<DbShift> {
-  if (!departmentId) throw new Error("departmentId is required");
-  const { data, error } = await supabase
-    .from("shifts")
-    .update({
+  dept(departmentId);
+  try {
+    return await apiPatch<DbShift>(`/api/shifts/${encodeURIComponent(shiftId)}`, {
       start_time: payload.start_time,
       end_time: payload.end_time,
       description: payload.description || "",
       vagas: payload.vagas || 0,
-    })
-    .eq("id", shiftId)
-    .eq("department_id", departmentId)
-    .select()
-    .single();
-  if (error) {
+    });
+  } catch (error) {
     throw new Error(sanitizeError(error, "update"));
   }
-  return data as DbShift;
 }
 
 export async function deleteShift(departmentId: string, shiftId: string): Promise<void> {
-  if (!departmentId) throw new Error("departmentId is required");
-  const { error } = await supabase
-    .from("shifts")
-    .delete()
-    .eq("id", shiftId)
-    .eq("department_id", departmentId);
-  if (error) {
+  dept(departmentId);
+  try {
+    await apiDelete(`/api/shifts/${encodeURIComponent(shiftId)}`);
+  } catch (error) {
     throw new Error(sanitizeError(error, "delete"));
   }
 }

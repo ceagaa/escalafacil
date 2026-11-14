@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "../services/supabase";
+import { apiGet, apiPost, ApiError } from "../services/api";
 import { getAvailabilitySlots, isAssembleiaType } from "../utils/helpers";
 import type { DepartmentRef, EventoTipo } from "../types";
 
@@ -58,45 +58,44 @@ export default function PublicCadastro() {
 
     async function fetchDept() {
       try {
-        const { data, error } = await supabase
-          .from("departments")
-          .select("id, name")
-          .eq("slug", slug)
-          .maybeSingle();
+        const data = await apiGet<DeptRef>(
+          `/api/public/departments/${encodeURIComponent(slug || "")}`
+        );
 
         if (cancelled) return;
 
-        if (error || !data) {
+        if (!data) {
           setNotFound(true);
           return;
         }
 
-        setDepartment(data as DeptRef);
+        setDepartment(data);
         document.title = `Seja Voluntário — ${data.name}`;
         setMetaTag("og:title", `Seja Voluntário — ${data.name}`);
         setMetaTag("og:description", `Cadastre-se como voluntário no departamento ${data.name}. Participação em escalas de eventos sazonais.`);
         setMetaTag("og:image", window.location.origin + "/favicon.png");
         setMetaTag("og:url", window.location.href);
 
-        const { data: evDepts } = await supabase
-          .from("evento_departamentos")
-          .select("evento_id")
-          .eq("department_id", data.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (cancelled) return;
-
-        if (evDepts?.evento_id) {
-          const { data: evento } = await supabase
-            .from("eventos")
-            .select("tipo")
-            .eq("id", evDepts.evento_id)
-            .maybeSingle();
-          if (!cancelled && evento?.tipo) setEventoTipo(evento.tipo as EventoTipo);
+        // Evento mais recente vinculado ao departamento (para as opções de
+        // disponibilidade); erros aqui não bloqueiam o cadastro.
+        try {
+          const eventoId = await apiGet<string | null>(
+            `/api/public/departments/${encodeURIComponent(data.id)}/links`
+          );
+          if (!cancelled && eventoId) {
+            const evento = await apiGet<{ tipo?: EventoTipo } | null>(
+              `/api/public/eventos?id=${encodeURIComponent(eventoId)}`
+            );
+            if (!cancelled && evento?.tipo) setEventoTipo(evento.tipo);
+          }
+        } catch {
+          // Sem tipo de evento — slots caindo no padrão.
         }
       } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          if (!cancelled) setNotFound(true);
+          return;
+        }
         console.warn("Falha ao carregar o departamento do cadastro.", err);
         if (!cancelled) setError("Não foi possível carregar este departamento. Tente recarregar a página.");
       } finally {
@@ -146,16 +145,16 @@ export default function PublicCadastro() {
     setSubmitting(true);
     setError("");
 
-    const { error: insertError } = await supabase.from("volunteers").insert({
-      department_id: department.id,
-      name: trimmedName,
-      congregation: trimmedCongregation,
-      phone: trimmedPhone,
-      availability: JSON.stringify(selectedSlots),
-      active: false,
-    });
-
-    if (insertError) {
+    try {
+      // Cadastro anônimo — o Worker grava com active=0 (aprovação manual).
+      await apiPost("/api/public/volunteers", {
+        department_id: department.id,
+        name: trimmedName,
+        congregation: trimmedCongregation,
+        phone: trimmedPhone,
+        availability: selectedSlots,
+      });
+    } catch {
       setError("Erro ao realizar cadastro. Tente novamente.");
       setSubmitting(false);
       return;

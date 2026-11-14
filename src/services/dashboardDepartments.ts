@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { apiGet } from "./api";
 import type { DepartmentOwner, DepartmentRecord } from "../types";
 
 /**
@@ -24,21 +24,16 @@ const STANDARD_SLUGS = [
 const healedEventos = new Set<string>();
 
 /**
- * Departamentos padrão lidos direto de `departments` (leitura pública).
+ * Departamentos padrão lidos de `departments` (leitura autenticada).
  * Rede de segurança: a grade NUNCA pode ficar vazia por problemas em
  * evento_departamentos (links vazios/faltantes/ilegíveis).
  */
 async function fetchStandardDepartments(): Promise<DepartmentRecord[]> {
   try {
-    const { data, error } = await supabase
-      .from("departments")
-      .select("id, name, slug, coordenador_id")
-      .in("slug", STANDARD_SLUGS);
-    if (error) {
-      console.warn("Falha ao buscar departamentos padrão:", error.message);
-      return [];
-    }
-    return Array.isArray(data) ? (data as DepartmentRecord[]) : [];
+    const data = await apiGet<DepartmentRecord[]>(
+      `/api/departments/standard?slug_in=${STANDARD_SLUGS.join(",")}`
+    );
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     console.warn("Falha ao buscar departamentos padrão:", (error as Error)?.message);
     return [];
@@ -62,7 +57,6 @@ function healEventLinks(eventoId: string): void {
     .catch((error) => console.warn("Não foi possível reparar os vínculos do evento:", (error as Error)?.message));
 }
 
-
 /**
  * Consulta dos departamentos de um evento, já com o coordenador resolvido.
  *
@@ -73,58 +67,23 @@ function healEventLinks(eventoId: string): void {
 export async function fetchOwnersMap(eventoId: string | null | undefined): Promise<Map<string, DepartmentOwner>> {
   if (!eventoId) return new Map();
 
-  // 1. Quem coordena cada departamento do evento — SEM join, porque um join
-  //    que falhe (RLS/cache do PostgREST) derrubava o mapa inteiro e fazia
-  //    TODOS os cards aparecerem como "Disponível".
-  let rows: Array<{ department_id: string; user_id: string | null }> = [];
+  // O Worker resolve o coordenador (department_members + profiles) num único
+  // endpoint; se falhar, devolvemos mapa vazio — os cards caem no fallback
+  // de `departments.coordenador_id`.
   try {
-    const { data, error } = await supabase
-      .from("department_members")
-      .select("department_id, user_id")
-      .eq("role", "coordenador")
-      .eq("evento_id", eventoId);
-    if (error) {
-      console.warn("Falha ao buscar coordenadores do evento:", error.message);
-      return new Map();
-    }
-    rows = ((Array.isArray(data) ? data : []) as Array<{ department_id?: string | null; user_id?: string | null }>)
-      .filter((row): row is { department_id: string; user_id: string | null } => Boolean(row?.department_id))
-      .map((row) => ({ department_id: row.department_id as string, user_id: row.user_id ?? null }));
+    const rows = await apiGet<Array<{ department_id?: string | null; user_id?: string | null; name?: string | null }>>(
+      `/api/eventos/${encodeURIComponent(eventoId)}/owners`
+    );
+    const map = new Map<string, DepartmentOwner>();
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      if (!row?.department_id) return;
+      map.set(row.department_id, { userId: row.user_id || null, name: row.name ?? null });
+    });
+    return map;
   } catch (error) {
     console.warn("Falha ao buscar coordenadores do evento:", (error as Error)?.message);
     return new Map();
   }
-
-  const map = new Map<string, DepartmentOwner>();
-  rows.forEach((row) => {
-    map.set(row.department_id, { userId: row.user_id || null, name: null });
-  });
-
-  // 2. Nomes dos coordenadores numa segunda consulta tolerante: se falhar,
-  //    o card ainda mostra "Ocupado" (sem o nome) em vez de "Disponível".
-  const userIds = [...new Set(rows.map((row) => row.user_id).filter(Boolean))] as string[];
-  if (userIds.length === 0) return map;
-  try {
-    const { data: profiles, error } = await supabase
-      .from("profiles")
-      .select("id, name")
-      .in("id", userIds);
-    if (error) {
-      console.warn("Falha ao buscar nomes dos coordenadores:", error.message);
-      return map;
-    }
-    const namesById = new Map(
-      ((Array.isArray(profiles) ? profiles : []) as Array<{ id?: string | null; name?: string | null }>).map((p) => [String(p?.id), p?.name ?? null])
-    );
-    map.forEach((value) => {
-      if (value.userId && namesById.has(value.userId)) {
-        value.name = namesById.get(value.userId) || null;
-      }
-    });
-  } catch (error) {
-    console.warn("Falha ao buscar nomes dos coordenadores:", (error as Error)?.message);
-  }
-  return map;
 }
 
 /**
@@ -149,54 +108,31 @@ export function applyEventOwner(dept: DepartmentRecord, owners: Map<string, Depa
 /**
  * Departamentos vinculados ao evento, com o coordenador do evento aplicado.
  *
- * A consulta é única e tolerante: o join `department:departments(...)` pode
- * falhar por RLS ou por cache de schema do PostgREST, e nesse caso o erro
- * derrubava a lista inteira, deixando a tela de escolha e a navbar vazias.
- * Se o join falhar, caímos para uma consulta simples de departments.
+ * A consulta é única e tolerante: se falhar, a lista fica vazia e o fallback
+ * de departamentos padrão (abaixo) ainda roda para a grade não ficar em branco
+ * para quem não tem vínculo.
  */
 export async function fetchEventDepartments(eventoId: string | null | undefined): Promise<DepartmentRecord[]> {
   if (!eventoId) return [];
 
   const ownersPromise = fetchOwnersMap(eventoId);
-  const withJoin = await supabase
-    .from("evento_departamentos")
-    .select("department:departments(id, name, slug, coordenador_id, coordenador:coordenador_id(name))")
-    .eq("evento_id", eventoId);
 
   let list: DepartmentRecord[] = [];
-  if (!withJoin.error) {
-    list = ((withJoin.data || []) as unknown as Array<{ department: DepartmentRecord | null }>)
-      .map((row) => row.department)
-      .filter((dept): dept is DepartmentRecord => Boolean(dept));
-  } else {
-    console.warn("Falha no join de departments do evento, usando consulta simples:", withJoin.error.message);
-    const { data: links, error: linkError } = await supabase
-      .from("evento_departamentos")
-      .select("department_id")
-      .eq("evento_id", eventoId);
-    if (linkError) {
-      // Não damos return aqui: a lista continua vazia e o fallback de
-      // departamentos padrão (abaixo) ainda precisa rodar para a grade
-      // não ficar em branco para quem não tem vínculo.
-      console.warn("Falha ao listar departamentos do evento:", linkError.message);
-    }
-    const ids = ((links || []) as Array<{ department_id?: string | null }>)
-      .map((row) => row.department_id)
-      .filter(Boolean) as string[];
-    if (ids.length > 0) {
-      const { data: depts, error: deptsError } = await supabase
-        .from("departments")
-        .select("id, name, slug, coordenador_id, coordenador:coordenador_id(name)")
-        .in("id", ids);
-      if (!deptsError) list = Array.isArray(depts) ? (depts as DepartmentRecord[]) : [];
-      else console.warn("Falha ao buscar os departamentos:", deptsError.message);
-    }
+  try {
+    const data = await apiGet<DepartmentRecord[]>(
+      `/api/eventos/${encodeURIComponent(eventoId)}/departments`
+    );
+    list = Array.isArray(data)
+      ? data.filter((dept): dept is DepartmentRecord => Boolean(dept))
+      : [];
+  } catch (error) {
+    console.warn("Falha ao listar departamentos do evento:", (error as Error)?.message);
+    // Não damos return aqui: o fallback de departamentos padrão (abaixo)
+    // ainda precisa rodar para a grade não ficar em branco.
   }
 
   // Grade completa: os departamentos padrão precisam aparecer em TODO evento,
-  // mesmo que evento_departamentos esteja vazio, incompleto (ex.: só o
-  // departamento que alguém assumiu) ou ilegível. Sem isto, quem não tem
-  // vínculo nenhum via uma grade vazia.
+  // mesmo que evento_departamentos esteja vazio ou incompleto.
   const standard = await fetchStandardDepartments();
   if (standard.length > 0) {
     const linkedIds = new Set(list.map((dept) => dept?.id).filter(Boolean) as string[]);

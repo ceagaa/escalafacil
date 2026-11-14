@@ -6,6 +6,7 @@ import Login from "../pages/Login";
 const mockLogin = vi.fn();
 const mockSignUp = vi.fn();
 const mockResetPassword = vi.fn();
+const mockRefreshSession = vi.fn();
 
 vi.mock("../context/AuthContext", () => ({
   useAuth: vi.fn(() => ({
@@ -14,16 +15,22 @@ vi.mock("../context/AuthContext", () => ({
     login: mockLogin,
     signUp: mockSignUp,
     resetPassword: mockResetPassword,
+    refreshSession: mockRefreshSession,
   })),
 }));
 
 import { useAuth } from "../context/AuthContext";
 
-vi.mock("../services/supabase", () => ({
-  supabase: { auth: { signInWithIdToken: vi.fn() } },
+vi.mock("../services/api", () => ({
+  apiRequest: vi.fn(),
+  apiGet: vi.fn(),
+  apiPost: vi.fn(),
+  apiPatch: vi.fn(),
+  apiPut: vi.fn(),
+  apiDelete: vi.fn(),
 }));
 
-import { supabase } from "../services/supabase";
+import { apiRequest } from "../services/api";
 
 function setupGoogleGisMock() {
   const state: { callback: ((response: any) => Promise<void>) | null } = { callback: null };
@@ -61,6 +68,7 @@ beforeEach(() => {
     login: mockLogin,
     signUp: mockSignUp,
     resetPassword: mockResetPassword,
+    refreshSession: mockRefreshSession,
   });
 });
 
@@ -198,9 +206,9 @@ describe("Login", () => {
     expect(mockSignUp).not.toHaveBeenCalled();
   });
 
-  it("signs in with Supabase using the Google ID token from GIS", async () => {
+  it("signs in with Google using the ID token from GIS", async () => {
     const gis = setupGoogleGisMock();
-    (supabase.auth.signInWithIdToken as any).mockResolvedValue({ data: { user: { id: "u-1" } }, error: null });
+    (apiRequest as any).mockResolvedValue({ user: { id: "u-1" } });
     renderLogin();
     await waitFor(() => {
       expect(window.google!.accounts!.id!.initialize).toHaveBeenCalledWith(
@@ -213,19 +221,17 @@ describe("Login", () => {
     });
     await gis.triggerCallback({ credential: "fake-google-jwt" });
     await waitFor(() => {
-      expect(supabase.auth.signInWithIdToken).toHaveBeenCalledWith({
-        provider: "google",
-        token: "fake-google-jwt",
+      expect(apiRequest).toHaveBeenCalledWith("/auth/google", {
+        method: "POST",
+        body: { credential: "fake-google-jwt" },
+        skipRefresh: true,
       });
     });
   });
 
   it("shows error when Google ID token sign-in fails", async () => {
     const gis = setupGoogleGisMock();
-    (supabase.auth.signInWithIdToken as any).mockResolvedValue({
-      data: null,
-      error: { message: "Token inválido" },
-    });
+    (apiRequest as any).mockRejectedValue(new Error("Token inválido"));
     renderLogin();
     await waitFor(() => {
       expect(window.google!.accounts!.id!.initialize).toHaveBeenCalled();
@@ -246,7 +252,7 @@ describe("Login", () => {
     await waitFor(() => {
       (expect(screen.getByRole("alert")) as any).toHaveTextContent(/Não foi possível concluir o login com Google/);
     });
-    expect(supabase.auth.signInWithIdToken).not.toHaveBeenCalled();
+    expect(apiRequest).not.toHaveBeenCalled();
   });
 
   it("redirects to / when already authenticated", () => {

@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
-import { supabase } from "../services/supabase";
+import { apiGet } from "../services/api";
 import type { Evento } from "../types";
 
 const EVENT_STORAGE_KEY = "escalafacil_active_evento_id";
@@ -51,11 +51,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
       }
 
       const TIMEOUT_MS = 8000;
-      const query = supabase
-        .from("eventos")
-        .select("*")
-        .eq("id", storedId)
-        .maybeSingle();
+      const query = apiGet<Evento>(`/api/eventos/${encodeURIComponent(storedId)}`);
 
       const timeout = new Promise<{ timedOut: true }>((resolve) => {
         window.setTimeout(() => resolve({ timedOut: true }), TIMEOUT_MS);
@@ -67,8 +63,8 @@ export function EventProvider({ children }: { children: ReactNode }) {
         if ("timedOut" in result && result.timedOut) {
           console.warn("Busca do evento expirou — seguindo sem evento restaurado.");
           if (!cancelled) storeEventoId(null);
-        } else if (!cancelled && "data" in result && result.data) {
-          setActiveEvent(result.data as Evento);
+        } else if (!cancelled && result) {
+          setActiveEvent(result as Evento);
         } else if (!cancelled) {
           storeEventoId(null);
         }

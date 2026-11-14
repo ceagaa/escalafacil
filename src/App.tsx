@@ -193,10 +193,10 @@ function AppLayout() {
         setSchedule(data.schedule);
         setVolunteers(data.volunteers);
         setHasLoadedRemoteData(true);
-        showToast("Dados sincronizados com Supabase.");
+        showToast("Dados sincronizados.");
       } catch (error) {
-        console.warn("Falha ao buscar dados no Supabase.", error);
-        showToast("Falha Supabase: " + (readErrMessage(error, "verifique tabelas/RLS")));
+        console.warn("Falha ao buscar dados.", error);
+        showToast("Falha ao sincronizar: " + (readErrMessage(error, "verifique a conexão com o servidor")));
         const backup = await loadOfflineSnapshot();
         if (backup) {
           setSchedule(backup.schedule || initialSchedule);
@@ -256,7 +256,7 @@ function AppLayout() {
       await deleteShift(departmentId, shiftId);
       showToast("Turno excluído.");
     } catch (error) {
-      console.warn("Falha ao excluir turno no Supabase.", error);
+      console.warn("Falha ao excluir turno no servidor.", error);
       showToast("Não foi possível excluir o turno. Recarregue a página.");
       setHasLoadedRemoteData(false);
     }
@@ -363,7 +363,7 @@ function AppLayout() {
       await saveShiftAssignments(targetShiftId, assignments, departmentId);
       showToast(data.shiftId ? "Turno atualizado." : "Turno criado.");
     } catch (error) {
-      console.warn("Falha ao salvar escala no Supabase.", error);
+      console.warn("Falha ao salvar escala no servidor.", error);
       showToast("Não foi possível salvar no servidor. Recarregue a página.");
       setHasLoadedRemoteData(false);
     }
@@ -401,8 +401,8 @@ function AppLayout() {
       }
       setVolunteerForm(emptyVolunteer());
     } catch (error) {
-      console.warn("Falha ao salvar voluntário no Supabase.", error);
-      showToast("Não foi possível salvar no Supabase.");
+      console.warn("Falha ao salvar voluntário no servidor.", error);
+      showToast("Não foi possível salvar no servidor.");
     }
   }
 
@@ -425,7 +425,7 @@ function AppLayout() {
       await deleteVolunteer(id, departmentId);
       showToast("Voluntário removido da lista e da escala.");
     } catch (error) {
-      console.warn("Falha ao excluir voluntário no Supabase.", error);
+      console.warn("Falha ao excluir voluntário no servidor.", error);
       showToast("Não foi possível excluir no servidor. Recarregue a página.");
       setHasLoadedRemoteData(false);
     }

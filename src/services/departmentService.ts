@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { ApiError, apiDelete, apiGet, apiPost } from "./api";
 import { sanitizeError } from "../utils/errors";
 import type { DepartmentMemberRow, DepartmentRef } from "../types";
 
@@ -17,28 +17,29 @@ export const STANDARD_DEPARTMENTS = [
   { name: "Transporte e equipamentos", slug: "transporte-e-equipamentos" },
 ];
 
-
+/** Nome do coordenador pelo slug (exibição em cartões públicos/admin). */
 export async function getDepartmentOwnerBySlugRpc(slug: string) {
-  const { data, error } = await supabase.rpc("get_department_owner_by_slug", {
-    p_slug: slug,
-  });
-  if (error) return null;
-  return data || null;
+  try {
+    const data = await apiGet<string | null>(
+      `/api/departments/owner?slug=${encodeURIComponent(slug)}`
+    );
+    return data || null;
+  } catch {
+    return null;
+  }
 }
 
+/** Nome do coordenador legado (`departments.coordenador_id`). */
 export async function getDepartmentOwner(departmentId: string): Promise<string | null> {
-  const { data, error } = await supabase
-    .from("departments")
-    .select("coordenador_id, profiles:coordenador_id(name)")
-    .eq("id", departmentId)
-    .not("coordenador_id", "is", null)
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  return (data as { profiles?: { name?: string | null } | null }).profiles?.name || null;
+  try {
+    const data = await apiGet<{ userId: string | null; name: string | null } | null>(
+      `/api/departments/${encodeURIComponent(departmentId)}/owner`
+    );
+    return data?.name || null;
+  } catch {
+    return null;
+  }
 }
-
 
 export async function createDepartment(
   name: string,
@@ -54,28 +55,18 @@ export async function createDepartment(
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
 
-  const { data, error } = await supabase
-    .from("departments")
-    .insert({ name, slug: departmentSlug })
-    .select()
-    .single();
-
-  if (error) {
-    if (error.code === "23505") {
-      const { data: existing, error: fetchError } = await supabase
-        .from("departments")
-        .select("id, name, slug")
-        .eq("slug", departmentSlug)
-        .maybeSingle();
-
-      if (!fetchError && existing) {
-        if (eventoId) {
-          const eventOwner = await getEventoDepartmentOwner((existing as DepartmentRef).id, eventoId);
-          if (eventOwner) {
-            throw new Error("Departamento já possui coordenador para este evento: " + eventOwner.name);
-          }
-        }
-        return existing as DepartmentRef;
+  try {
+    // O Worker devolve o departamento existente quando o slug já está em uso
+    // (e avisa com 409 se já houver coordenador no escopo do evento).
+    return await apiPost<DepartmentRef>("/api/departments", {
+      name,
+      slug: departmentSlug,
+      evento_id: eventoId ?? null,
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "23505") {
+      if (error.message.includes("Departamento já possui coordenador")) {
+        throw new Error(error.message);
       }
       throw new Error(
         "Este nome de departamento já está em uso por outra equipe. Escolha outro nome ou contate os administradores."
@@ -83,103 +74,90 @@ export async function createDepartment(
     }
     throw new Error(sanitizeError(error, "create"));
   }
-
-  return data as DepartmentRef;
 }
 
+/**
+ * Define o usuário como coordenador do departamento (escopo legado quando
+ * `eventoId` é nulo, escopo do evento quando informado). Só a si mesmo —
+ * validado pelo Worker contra a sessão.
+ */
 export async function linkUserAsCoordinator(
   departmentId: string,
   userId: string,
   eventoId?: string | null
 ): Promise<void> {
-  const payload: {
-    department_id: string;
-    user_id: string;
-    role: string;
-    evento_id?: string | null;
-  } = {
-    department_id: departmentId,
-    user_id: userId,
-    role: "coordenador",
-  };
-  if (eventoId) payload.evento_id = eventoId;
-
-  const { error } = await supabase
-    .from("department_members")
-    .insert(payload);
-
-  if (error) {
+  try {
+    await apiPost(`/api/departments/${encodeURIComponent(departmentId)}/members`, {
+      user_id: userId,
+      role: "coordenador",
+      evento_id: eventoId ?? null,
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "23505") {
+      throw new Error("Registro duplicado.");
+    }
     throw new Error(sanitizeError(error, "create"));
   }
 }
 
 /**
- * Claim a department for a user as coordinator within a specific event.
- * Writes ONLY to department_members (event-scoped membership).
- * The departments table is left untouched — the UI updates optimistically.
+ * Assume a coordenação do departamento num evento específico.
+ * Escreve apenas em `department_members` (membership com escopo de evento).
  */
-export async function claimDepartmentForEvento(departmentId: string, eventoId: string, userId: string) {
+export async function claimDepartmentForEvento(
+  departmentId: string,
+  eventoId: string,
+  _userId: string
+) {
   if (!eventoId) throw new Error("Evento ID é obrigatório para assumir departamento.");
 
-  const { data, error } = await supabase
-    .from("department_members")
-    .upsert({
-      evento_id: eventoId,
-      department_id: departmentId,
-      user_id: userId,
-      role: 'coordenador'
-    }, { onConflict: 'evento_id,department_id' })
-    .select()
-    .single();
-
-  if (error) throw error;
+  const data = await apiPost<Record<string, unknown>>(
+    `/api/departments/${encodeURIComponent(departmentId)}/claim`,
+    { evento_id: eventoId }
+  );
   return data;
 }
 
-/**
- * Get the coordinator of a department for a specific event.
- * Reads from department_members (event-scoped) with profile join.
- */
+/** Coordenador do departamento no escopo de um evento (fonte: department_members). */
 export async function getEventoDepartmentOwner(
   departmentId: string,
   eventoId?: string | null
 ): Promise<{ name: string | null; userId: string | null } | null> {
-  const { data, error } = await supabase
-    .from("department_members")
-    .select("user_id, profiles:user_id(name)")
-    .eq("department_id", departmentId)
-    .eq("role", "coordenador")
-    .eq("evento_id", eventoId || null)
-    .maybeSingle();
-
-  if (error || !data) return null;
-  const row = data as { user_id?: string | null; profiles?: { name?: string | null } | null };
-  return { name: row.profiles?.name || null, userId: row.user_id || null };
+  try {
+    const query = eventoId ? `?evento_id=${encodeURIComponent(eventoId)}` : "";
+    const data = await apiGet<{ userId: string | null; name: string | null } | null>(
+      `/api/departments/${encodeURIComponent(departmentId)}/owner${query}`
+    );
+    return data;
+  } catch {
+    return null;
+  }
 }
-
 
 export async function findProfileByEmail(email: string) {
   const normalizedEmail = String(email || "").trim().toLowerCase();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, email, name")
-    .eq("email", normalizedEmail)
-    .maybeSingle();
-
-  if (error) {
+  try {
+    return await apiGet<{ id: string; email: string | null; name: string | null } | null>(
+      `/api/profiles?email=${encodeURIComponent(normalizedEmail)}`
+    );
+  } catch (error) {
     throw new Error(sanitizeError(error, "fetch"));
   }
-
-  return data;
 }
 
-export async function addDepartmentMember(departmentId: string, userId: string, role = "assistente"): Promise<void> {
-  const { error } = await supabase
-    .from("department_members")
-    .insert({ department_id: departmentId, user_id: userId, role });
-
-  if (error) {
-    if (error.code === "23505") {
+export async function addDepartmentMember(
+  departmentId: string,
+  userId: string,
+  role = "assistente"
+): Promise<void> {
+  try {
+    await apiPost(`/api/departments/${encodeURIComponent(departmentId)}/members`, {
+      user_id: userId,
+      role,
+      evento_id: null,
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "23505") {
       throw new Error("Este usuário já faz parte do departamento.");
     }
     throw new Error(sanitizeError(error, "create"));
@@ -187,151 +165,93 @@ export async function addDepartmentMember(departmentId: string, userId: string, 
 }
 
 export async function listDepartmentMembers(departmentId: string): Promise<DepartmentMemberRow[]> {
-  const { data, error } = await supabase
-    .from("department_members")
-    .select("*, profiles(id, email)")
-    .eq("department_id", departmentId);
-
-  if (error) {
+  try {
+    const data = await apiGet<DepartmentMemberRow[]>(
+      `/api/departments/${encodeURIComponent(departmentId)}/members`
+    );
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
     throw new Error(sanitizeError(error, "fetch"));
   }
-
-  return Array.isArray(data) ? (data as DepartmentMemberRow[]) : [];
 }
 
 export async function removeDepartmentMember(membershipId: string): Promise<void> {
-  const { error } = await supabase
-    .from("department_members")
-    .delete()
-    .eq("id", membershipId);
-
-  if (error) {
+  try {
+    await apiDelete(`/api/members/${encodeURIComponent(membershipId)}`);
+  } catch (error) {
     throw new Error(sanitizeError(error, "delete"));
   }
 }
 
 /**
- * Revoke coordination of a department.
- * Removes the coordinator from department_members.
- * Also clears departments.coordenador_id if it matches.
+ * Revoga a coordenação do departamento. O Worker remove a linha de
+ * `department_members` e limpa `departments.coordenador_id` legado.
  */
-export async function revokeDepartmentCoordinator(departmentId: string, userId: string): Promise<{ id: string }> {
-  // 1. Remove from department_members
-  const { data: removed, error: removeError } = await supabase
-    .from("department_members")
-    .delete()
-    .eq("department_id", departmentId)
-    .eq("user_id", userId)
-    .eq("role", "coordenador")
-    .select("id");
-
-  if (removeError) {
-    throw new Error(sanitizeError(removeError, "delete"));
+export async function revokeDepartmentCoordinator(
+  departmentId: string,
+  userId: string
+): Promise<{ id: string }> {
+  try {
+    await apiDelete(
+      `/api/departments/${encodeURIComponent(departmentId)}/coordinator?user_id=${encodeURIComponent(userId)}`
+    );
+    return { id: departmentId };
+  } catch (error) {
+    throw new Error(sanitizeError(error, "delete"));
   }
-
-  if (!removed || removed.length === 0) {
-    throw new Error("Não foi possível revogar a coordenação. Verifique se você ainda é o coordenador.");
-  }
-
-  // 2. Also clear departments.coordenador_id if it matches
-  await supabase
-    .from("departments")
-    .update({ coordenador_id: null })
-    .eq("id", departmentId)
-    .eq("coordenador_id", userId);
-
-  return { id: departmentId };
-}
-
-export async function createStandardDepartmentsForEvento(eventoId?: string | null): Promise<DepartmentRef[]> {
-  if (!eventoId) return [];
-
-  // 1. Check if the event already has linked departments
-  const { data: existingLinks } = await supabase
-    .from("evento_departamentos")
-    .select("department_id")
-    .eq("evento_id", eventoId);
-
-  if (existingLinks && existingLinks.length > 0) {
-    // Departments already linked — return them without re-creating
-    const { data: existingDepts } = await supabase
-      .from("evento_departamentos")
-      .select("department:departments(id, name, slug)")
-      .eq("evento_id", eventoId);
-
-    return ((existingDepts || []) as unknown as Array<{ department: DepartmentRef | null }>)
-      .map((row) => row.department)
-      .filter((dept): dept is DepartmentRef => Boolean(dept));
-  }
-
-  // 2. No departments exist for this event — create them
-  const rows = STANDARD_DEPARTMENTS.map((dept) => ({
-    name: dept.name,
-    slug: dept.slug,
-  }));
-
-  const { data, error } = await supabase
-    .from("departments")
-    .upsert(rows, { onConflict: "slug" })
-    .select("id, name, slug");
-
-  if (error) throw new Error(sanitizeError(error, "create"));
-
-  const created: DepartmentRef[] = Array.isArray(data) ? (data as DepartmentRef[]) : [];
-
-  const linkRows = created.map((dept) => ({
-    evento_id: eventoId,
-    department_id: dept.id,
-  }));
-
-  if (linkRows.length > 0) {
-    const { error: linkError } = await supabase
-      .from("evento_departamentos")
-      .upsert(linkRows, { onConflict: "evento_id,department_id" });
-
-    if (linkError && linkError.code !== "23505") {
-      console.error("Erro ao vincular departamentos ao evento:", linkError);
-    }
-  }
-
-  return created;
 }
 
 /**
- * Repara os links dos departamentos padrão com o evento (best-effort).
- * Diferente de createStandardDepartmentsForEvento, esta função preenche
- * vínculos FALTANTES mesmo quando o evento já tem outros links (ex.: só o
- * departamento que alguém assumiu) — era o que deixava a grade incompleta.
+ * Garante os departamentos padrão no evento. Se o evento já tem vínculos,
+ * devolve os departamentos vinculados; caso contrário, o Worker cria os 12
+ * padrão (upsert por slug) e vincula todos.
  */
-export async function linkStandardDepartmentsToEvento(eventoId?: string | null): Promise<{ linked: number }> {
+export async function createStandardDepartmentsForEvento(
+  eventoId?: string | null
+): Promise<DepartmentRef[]> {
+  if (!eventoId) return [];
+
+  const eventPath = `/api/eventos/${encodeURIComponent(eventoId)}`;
+
+  // 1. O evento já tem departamentos vinculados? (devolve-os sem recriar)
+  try {
+    const links = await apiGet<Array<{ department_id?: string | null }>>(
+      `${eventPath}/department-links`
+    );
+    if (Array.isArray(links) && links.length > 0) {
+      const existing = await apiGet<DepartmentRef[]>(`${eventPath}/departments`);
+      return Array.isArray(existing) ? existing : [];
+    }
+  } catch {
+    // Sem como verificar — tenta a garantia padrão abaixo.
+  }
+
+  // 2. Sem vínculos: cria os padrão e vincula de uma vez.
+  try {
+    const result = await apiPost<{ departments: DepartmentRef[] }>(
+      `${eventPath}/departments/standard`
+    );
+    return Array.isArray(result?.departments) ? result.departments : [];
+  } catch (error) {
+    throw new Error(sanitizeError(error, "create"));
+  }
+}
+
+/**
+ * Repara em background os vínculos dos departamentos padrão que faltarem
+ * no evento (preenche vínculos FALTANTES mesmo com outros links existentes).
+ */
+export async function linkStandardDepartmentsToEvento(
+  eventoId?: string | null
+): Promise<{ linked: number }> {
   if (!eventoId) return { linked: 0 };
 
-  const { data: existing, error: existingError } = await supabase
-    .from("evento_departamentos")
-    .select("department_id")
-    .eq("evento_id", eventoId);
-  if (existingError) throw new Error(sanitizeError(existingError, "fetch"));
-
-  const { data: standard, error: standardError } = await supabase
-    .from("departments")
-    .select("id")
-    .in("slug", STANDARD_DEPARTMENTS.map((dept) => dept.slug));
-  if (standardError) throw new Error(sanitizeError(standardError, "fetch"));
-
-  const linkedIds = new Set(
-    ((Array.isArray(existing) ? existing : []) as Array<{ department_id?: string | null }>).map((row) => row?.department_id).filter(Boolean) as string[]
-  );
-  const rows = ((Array.isArray(standard) ? standard : []) as Array<{ id?: string | null }>)
-    .filter((dept) => dept?.id && !linkedIds.has(dept.id))
-    .map((dept) => ({ evento_id: eventoId, department_id: dept.id as string }));
-
-  if (rows.length === 0) return { linked: 0 };
-
-  const { error: linkError } = await supabase
-    .from("evento_departamentos")
-    .upsert(rows, { onConflict: "evento_id,department_id" });
-  if (linkError && linkError.code !== "23505") {
-    throw new Error(sanitizeError(linkError, "create"));
+  try {
+    const result = await apiPost<{ linked: number }>(
+      `/api/eventos/${encodeURIComponent(eventoId)}/departments/standard`
+    );
+    return { linked: result?.linked ?? 0 };
+  } catch (error) {
+    throw new Error(sanitizeError(error, "create"));
   }
-  return { linked: rows.length };
 }

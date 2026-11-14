@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../services/supabase";
+import { useAuth } from "../context/AuthContext";
+import { apiRequest } from "../services/api";
+import type { AuthUser } from "../services/api";
 
 const GOOGLE_CLIENT_ID = "1054965527933-fbsln30sap4nq2d80rs50gatikpc1tlf.apps.googleusercontent.com";
 const GIS_SCRIPT_ID = "google-gsi-client";
@@ -70,6 +72,7 @@ type GoogleLoginButtonProps = {
 
 export default function GoogleLoginButton({ disabled = false }: GoogleLoginButtonProps) {
   const navigate = useNavigate();
+  const { refreshSession } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -92,15 +95,24 @@ export default function GoogleLoginButton({ disabled = false }: GoogleLoginButto
               return;
             }
 
-            const { error: tokenError } = await supabase.auth.signInWithIdToken({
-              provider: "google",
-              token: idToken,
-            });
-
-            if (tokenError) {
-              console.error("Erro no login com Google:", tokenError?.message);
-              setError(tokenError?.message || "Falha ao autenticar com Google.");
+            try {
+              // Worker valida o ID token (JWKS do Google) e emite a sessão.
+              await apiRequest<{ user: AuthUser }>("/auth/google", {
+                method: "POST",
+                body: { credential: idToken },
+                skipRefresh: true,
+              });
+            } catch (tokenError) {
+              console.error("Erro no login com Google:", (tokenError as Error)?.message);
+              setError((tokenError as Error)?.message || "Falha ao autenticar com Google.");
               return;
+            }
+
+            // Sessão emitida: carrega profile + departamentos no contexto.
+            try {
+              await refreshSession();
+            } catch (err) {
+              console.warn("Erro ao carregar dados após login com Google:", err);
             }
 
             navigate("/", { replace: true });
@@ -128,7 +140,7 @@ export default function GoogleLoginButton({ disabled = false }: GoogleLoginButto
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, [navigate, refreshSession]);
 
   return (
     <div className="mt-6">

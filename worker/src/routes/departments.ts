@@ -82,6 +82,30 @@ get("/api/departments", async ({ env, url, user }) => {
 });
 
 /**
+ * GET /api/departments/links?department_id_in=a,b
+ * Vínculos evento<->departamento a partir dos departamentos (usado pelo
+ * getCoordinatedEventoIds do front para descobrir eventos do usuário).
+ */
+get("/api/departments/links", async ({ env, url, user }) => {
+  if (!user) throw new ApiError("Não autenticado.", 401);
+  const ids = (url.searchParams.get("department_id_in") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 100);
+  if (ids.length === 0) return json({ data: [] });
+
+  const placeholders = ids.map(() => "?").join(",");
+  const rows = await env.DB.prepare(
+    `SELECT evento_id, department_id FROM evento_departamentos
+      WHERE department_id IN (${placeholders})`
+  )
+    .bind(...ids)
+    .all();
+  return json({ data: mapRows(rows.results as Record<string, unknown>[]) });
+});
+
+/**
  * GET /api/departments/owner?slug=  — dono pelo slug (RPC
  * get_department_owner_by_slug, que exigia auth.uid() NOT NULL).
  */

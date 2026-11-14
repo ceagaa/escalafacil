@@ -5,6 +5,20 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig(() => {
   return {
     base: './',
+    // Dev: /api e /auth são repassados ao Worker local (npx wrangler dev).
+    // Em produção o Worker serve o SPA e a API no mesmo domínio.
+    server: {
+      proxy: {
+        '/api': 'http://localhost:8787',
+        '/auth': 'http://localhost:8787',
+      },
+    },
+    preview: {
+      proxy: {
+        '/api': 'http://localhost:8787',
+        '/auth': 'http://localhost:8787',
+      },
+    },
     plugins: [
       react(),
       VitePWA({

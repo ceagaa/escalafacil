@@ -10,6 +10,22 @@ import { get, post, patch, del } from "../router";
 import { ApiError, json, mapRow, mapRows, readJson } from "../http";
 import { canDeleteEvent, isEventCreator, requireCoordinator, requireMember } from "../guards";
 
+/** Departamentos padrão (espelha STANDARD_DEPARTMENTS do front). */
+const STANDARD_DEPARTMENTS = [
+  { name: "Contas", slug: "contas" },
+  { name: "Indicadores", slug: "indicadores" },
+  { name: "Áudio e vídeo", slug: "audio-e-video" },
+  { name: "Batismo", slug: "batismo" },
+  { name: "Primeiros socorros", slug: "primeiros-socorros" },
+  { name: "Informações e serviço voluntário", slug: "informacoes-e-servico-voluntario" },
+  { name: "Achados/perdidos e guarda-volumes", slug: "achados-perdidos-e-guarda-volumes" },
+  { name: "Montagem", slug: "montagem" },
+  { name: "Estacionamento", slug: "estacionamento" },
+  { name: "Hospedagem", slug: "hospedagem" },
+  { name: "Segurança", slug: "seguranca" },
+  { name: "Transporte e equipamentos", slug: "transporte-e-equipamentos" },
+];
+
 /** GET /api/eventos — lista ordenada (ano desc, created_at desc). */
 get("/api/eventos", async ({ env, user }) => {
   if (!user) throw new ApiError("Não autenticado.", 401);
@@ -280,6 +296,77 @@ post("/api/eventos/:id/departments/bulk", async ({ env, params, request, user })
     }
   }
   return json({ data: { linked } });
+});
+
+/**
+ * POST /api/eventos/:id/departments/standard
+ * Garante que os departamentos padrão existem (cria os que faltarem) e
+ * vincula todos os que ainda não estão no evento. Substitui o
+ * createStandardDepartmentsForEvento + linkStandardDepartmentsToEvento do front.
+ * Resposta: { linked, departments } — departments são os 12 padrão já
+ * existentes no banco após a garantia (com coordenador_id legado).
+ */
+post("/api/eventos/:id/departments/standard", async ({ env, params, user }) => {
+  if (!user) throw new ApiError("Não autenticado.", 401);
+
+  const evento = await env.DB.prepare(`SELECT id FROM eventos WHERE id = ?`)
+    .bind(params.id)
+    .first<{ id: string }>();
+  if (!evento) throw new ApiError("Evento não encontrado.", 404);
+
+  // 1. Garante que os 12 departamentos padrão existem (upsert por slug).
+  for (const dept of STANDARD_DEPARTMENTS) {
+    const existing = await env.DB.prepare(`SELECT id FROM departments WHERE slug = ?`)
+      .bind(dept.slug)
+      .first<{ id: string }>();
+    if (!existing) {
+      try {
+        await env.DB.prepare(`INSERT INTO departments (id, name, slug) VALUES (?, ?, ?)`)
+          .bind(crypto.randomUUID(), dept.name, dept.slug)
+          .run();
+      } catch (err) {
+        if (!String(err).includes("UNIQUE")) throw err;
+      }
+    }
+  }
+
+  const slugs = STANDARD_DEPARTMENTS.map((d) => d.slug);
+  const placeholders = slugs.map(() => "?").join(",");
+  const standardRows = await env.DB.prepare(
+    `SELECT id, name, slug, coordenador_id FROM departments
+      WHERE slug IN (${placeholders}) ORDER BY name ASC`
+  )
+    .bind(...slugs)
+    .all();
+  const standard = standardRows.results as Record<string, unknown>[];
+
+  // 2. Vincula os que faltarem no evento.
+  const linkedRows = await env.DB.prepare(
+    `SELECT department_id FROM evento_departamentos WHERE evento_id = ?`
+  )
+    .bind(params.id)
+    .all();
+  const have = new Set(
+    (linkedRows.results as Record<string, unknown>[]).map((r) => String(r.department_id))
+  );
+
+  let linked = 0;
+  for (const row of standard) {
+    const deptId = String(row.id);
+    if (have.has(deptId)) continue;
+    try {
+      await env.DB.prepare(
+        `INSERT INTO evento_departamentos (id, evento_id, department_id) VALUES (?, ?, ?)`
+      )
+        .bind(crypto.randomUUID(), params.id, deptId)
+        .run();
+      linked++;
+    } catch (err) {
+      if (!String(err).includes("UNIQUE")) throw err;
+    }
+  }
+
+  return json({ data: { linked, departments: mapRows(standard) } });
 });
 
 /** DELETE /api/eventos/:id/departments/:departmentId — só coordenador do departamento. */

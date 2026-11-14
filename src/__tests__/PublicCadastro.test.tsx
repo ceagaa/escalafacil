@@ -3,21 +3,37 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import PublicCadastro from "../pages/PublicCadastro";
 
-const mockInsert = vi.fn();
-const mockMaybeSingle = vi.fn();
-
-vi.mock("../services/supabase.js", () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      maybeSingle: mockMaybeSingle,
-      order: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockReturnThis(),
-      insert: mockInsert,
-    })),
-  },
+const mocks = vi.hoisted(() => ({
+  apiGet: vi.fn(),
+  apiPost: vi.fn(),
 }));
+
+vi.mock("../services/api", () => {
+  class ApiError extends Error {
+    status: number;
+    code?: string;
+    safe: boolean;
+    constructor(message: string, status = 400, code?: string) {
+      super(message);
+      this.name = "ApiError";
+      this.status = status;
+      this.code = code;
+      this.safe = status > 0 && status < 500;
+    }
+  }
+  return {
+    apiGet: mocks.apiGet,
+    apiPost: mocks.apiPost,
+    apiPatch: vi.fn(),
+    apiPut: vi.fn(),
+    apiDelete: vi.fn(),
+    apiData: vi.fn(),
+    apiRequest: vi.fn(),
+    ApiError,
+  };
+});
+
+import { ApiError } from "../services/api";
 
 function renderWithSlug(slug = "indicadores") {
   return render(
@@ -27,20 +43,46 @@ function renderWithSlug(slug = "indicadores") {
   );
 }
 
+/** Responde GETs: departamento por slug, links do departamento, evento. */
+function configureDept({
+  department,
+  links = null,
+  evento = null,
+}: {
+  department: any;
+  links?: any;
+  evento?: any;
+}) {
+  mocks.apiGet.mockImplementation(async (path: string) => {
+    if (path.endsWith("/links")) return links;
+    if (path.startsWith("/api/public/eventos")) return evento;
+    return department;
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  mockMaybeSingle.mockReset();
+  localStorage.clear();
+  vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
 describe("PublicCadastro", () => {
   it("shows loading state initially", () => {
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: null });
+    configureDept({ department: null });
     renderWithSlug();
     expect(screen.getByText("Carregando...")).toBeDefined();
   });
 
   it("shows not found when slug is invalid", async () => {
-    mockMaybeSingle.mockResolvedValueOnce({ data: null, error: { message: "not found" } });
+    configureDept({ department: null });
+    renderWithSlug("invalid-slug");
+    await waitFor(() => {
+      expect(screen.getByText("Departamento não encontrado")).toBeDefined();
+    });
+  });
+
+  it("shows not found when the API answers 404", async () => {
+    mocks.apiGet.mockRejectedValue(new ApiError("Departamento não encontrado.", 404));
     renderWithSlug("invalid-slug");
     await waitFor(() => {
       expect(screen.getByText("Departamento não encontrado")).toBeDefined();
@@ -48,9 +90,7 @@ describe("PublicCadastro", () => {
   });
 
   it("renders form when department is found", async () => {
-    mockMaybeSingle
-      .mockResolvedValueOnce({ data: { id: "d-1", name: "Indicadores" }, error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
+    configureDept({ department: { id: "d-1", name: "Indicadores" } });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getByText("Seja um Voluntário")).toBeDefined();
@@ -62,9 +102,7 @@ describe("PublicCadastro", () => {
   });
 
   it("renders all 6 availability slots for congresso (default)", async () => {
-    mockMaybeSingle
-      .mockResolvedValueOnce({ data: { id: "d-1", name: "Test Dept" }, error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
+    configureDept({ department: { id: "d-1", name: "Test Dept" } });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getAllByText("Sexta-feira").length).toBeGreaterThanOrEqual(1);
@@ -78,9 +116,7 @@ describe("PublicCadastro", () => {
   });
 
   it("toggles availability slot on click", async () => {
-    mockMaybeSingle
-      .mockResolvedValueOnce({ data: { id: "d-1", name: "Test Dept" }, error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
+    configureDept({ department: { id: "d-1", name: "Test Dept" } });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getAllByText("Sexta-feira").length).toBeGreaterThanOrEqual(1);
@@ -95,9 +131,7 @@ describe("PublicCadastro", () => {
   });
 
   it("shows validation error when submitting empty fields", async () => {
-    mockMaybeSingle
-      .mockResolvedValueOnce({ data: { id: "d-1", name: "Test Dept" }, error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
+    configureDept({ department: { id: "d-1", name: "Test Dept" } });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getByText("Cadastrar")).toBeDefined();
@@ -109,13 +143,12 @@ describe("PublicCadastro", () => {
     await waitFor(() => {
       expect(screen.getByText("Preencha todos os campos obrigatórios.")).toBeDefined();
     });
+    expect(mocks.apiPost).not.toHaveBeenCalled();
   });
 
   it("submits form and shows success screen", async () => {
-    mockMaybeSingle
-      .mockResolvedValueOnce({ data: { id: "d-1", name: "Indicadores" }, error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
-    mockInsert.mockResolvedValue({ error: null });
+    configureDept({ department: { id: "d-1", name: "Indicadores" } });
+    mocks.apiPost.mockResolvedValue({});
 
     renderWithSlug();
     await waitFor(() => {
@@ -129,13 +162,12 @@ describe("PublicCadastro", () => {
     fireEvent.click(screen.getByText("Cadastrar"));
 
     await waitFor(() => {
-      expect(mockInsert).toHaveBeenCalledWith({
+      expect(mocks.apiPost).toHaveBeenCalledWith("/api/public/volunteers", {
         department_id: "d-1",
         name: "João Silva",
         congregation: "Igreja Central",
         phone: "+55 11999-9888",
-        availability: "[]",
-        active: false,
+        availability: [],
       });
       expect(screen.getByText("Cadastro recebido!")).toBeDefined();
       expect(screen.getByText(/Indicadores/)).toBeDefined();
@@ -143,9 +175,7 @@ describe("PublicCadastro", () => {
   });
 
   it("formats phone with DDI mask", async () => {
-    mockMaybeSingle
-      .mockResolvedValueOnce({ data: { id: "d-1", name: "Test" }, error: null })
-      .mockResolvedValueOnce({ data: null, error: null });
+    configureDept({ department: { id: "d-1", name: "Test" } });
     renderWithSlug();
     await waitFor(() => {
       expect(screen.getByPlaceholderText("+55 99999-9999")).toBeDefined();

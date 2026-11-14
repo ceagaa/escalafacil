@@ -129,7 +129,7 @@ export function sanitizeSchedule(schedule: unknown): ScheduleBlock[] {
 
 /**
  * Aceita a escala persistida (localStorage) ou a resposta do banco.
- * A escala vinda do Supabase pode ter qualquer número de blocos — quem decide
+ * A escala vinda do servidor pode ter qualquer número de blocos — quem decide
  * se há escala é `dayCards.length`, não um limite mínimo de turnos.
  */
 export function sanitizeLoadedSchedule(schedule: unknown): ScheduleBlock[] {

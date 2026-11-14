@@ -7,34 +7,36 @@ const _mockUser = { id: "user-1", email: "test@example.com" };
 const mockProfile = { id: "user-1", name: "Test User", is_super_admin: false };
 const _mockDepts = [{ id: "dm-1", user_id: "user-1", department: { id: "dept-1", name: "Indicadores" } }];
 
-vi.mock("../services/supabase.js", () => {
-  const mockSignIn = vi.fn();
-  const mockSignOut = vi.fn();
-  const mockSignUp = vi.fn();
-  const mockGetSession = vi.fn();
-  const mockOnAuthStateChange = vi.fn();
+vi.mock("../services/api", () => {
+  const mockApiRequest = vi.fn();
+  const mockApiGet = vi.fn();
+
+  class MockApiError extends Error {
+    status: number;
+    code?: string;
+    safe: boolean;
+    constructor(message: string, status = 400, code?: string) {
+      super(message);
+      this.name = "ApiError";
+      this.status = status;
+      this.code = code;
+      this.safe = status > 0 && status < 500;
+    }
+  }
 
   return {
-    supabase: {
-      auth: {
-        signInWithPassword: mockSignIn,
-        signUp: mockSignUp,
-        signOut: mockSignOut,
-        getSession: mockGetSession,
-        onAuthStateChange: mockOnAuthStateChange,
-      },
-      from: vi.fn(() => ({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockProfile, error: null }),
-        upsert: vi.fn().mockResolvedValue({ error: null }),
-      })),
-    },
-    __mocks: { mockSignIn, mockSignUp, mockSignOut, mockGetSession, mockOnAuthStateChange },
+    apiRequest: mockApiRequest,
+    apiGet: mockApiGet,
+    apiData: vi.fn(),
+    apiPost: vi.fn(),
+    apiPatch: vi.fn(),
+    apiPut: vi.fn(),
+    apiDelete: vi.fn(),
+    ApiError: MockApiError,
   };
 });
 
-import { supabase } from "../services/supabase";
+import { apiRequest, apiGet } from "../services/api";
 
 function createWrapper() {
   return function Wrapper({ children }: { children: React.ReactNode }) {
@@ -49,10 +51,9 @@ function createWrapper() {
 describe("AuthContext", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (supabase.auth.getSession as any).mockResolvedValue({ data: { session: null } });
-    (supabase.auth.onAuthStateChange as any).mockReturnValue({
-      data: { subscription: { unsubscribe: vi.fn() } },
-    });
+    // Sessão inicial: sem usuário logado.
+    (apiRequest as any).mockResolvedValue({ user: null });
+    (apiGet as any).mockResolvedValue([]);
   });
 
   it("starts with loading=true and no user", () => {

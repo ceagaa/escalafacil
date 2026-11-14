@@ -1,13 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
-import type { User } from "@supabase/supabase-js";
-import { supabase } from "../services/supabase";
+import { apiGet, apiRequest, ApiError, type AuthUser } from "../services/api";
 import { useEvent } from "./EventContext";
 import type { DepartmentMembership, Profile } from "../types";
 
 const DEPT_STORAGE_KEY = "escalafacil_active_department_id";
 
 interface AuthContextValue {
-  user: User | null;
+  user: AuthUser | null;
   profile: Profile | null;
   departments: DepartmentMembership[];
   activeDepartment: DepartmentMembership | null;
@@ -47,7 +46,7 @@ function storeDeptId(id: string | null): void {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { eventoId, eventLoading } = useEvent();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [departments, setDepartments] = useState<DepartmentMembership[]>([]);
   const [activeDepartment, setActiveDepartment] = useState<DepartmentMembership | null>(null);
@@ -59,29 +58,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     eventoIdRef.current = eventoId;
   }, [eventoId]);
 
+  const userRef = useRef<AuthUser | null>(null);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    if (error) {
-      console.warn("Falha ao buscar perfil:", error.message);
+    try {
+      return await apiGet<Profile>(`/api/profiles?id=${encodeURIComponent(userId)}`);
+    } catch (error) {
+      console.warn("Falha ao buscar perfil:", (error as Error)?.message);
       return null;
     }
-    return data as Profile;
   }, []);
 
   const fetchDepartments = useCallback(async (userId: string): Promise<DepartmentMembership[]> => {
-    const { data, error } = await supabase
-      .from("department_members")
-      .select("*, department:departments(id, name, features, slug)")
-      .eq("user_id", userId);
-    if (error) {
-      console.warn("Falha ao buscar departamentos:", error.message);
+    let rows: DepartmentMembership[] = [];
+    try {
+      const data = await apiGet<DepartmentMembership[]>(
+        `/api/members?user_id=${encodeURIComponent(userId)}&include=department`
+      );
+      rows = Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.warn("Falha ao buscar departamentos:", (error as Error)?.message);
       return [];
     }
-    const rows: DepartmentMembership[] = Array.isArray(data) ? (data as DepartmentMembership[]) : [];
     const activeEventoId = eventoIdRef.current;
     if (!activeEventoId) return rows;
     // Vínculo legado (evento_id NULL) vale como fallback; o vínculo do evento
@@ -99,27 +100,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   /**
-   * IDs de departamento que o usuário coordena no evento ativo.
-   * Lê direto de department_members (fonte de verdade) para que a tela de
-   * escolha e a navbar reconheçam o departamento mesmo que o join de
-   * departments falhe por RLS ou cache de schema do PostgREST.
+   * IDs de departamento que o usuário coordena no evento ativo (fonte de
+   * verdade: department_members).
    */
-  const fetchCoordinatedDepartmentIds = useCallback(async (userId: string, eventoId: string): Promise<string[]> => {
-    if (!userId || !eventoId) return [];
-    const { data, error } = await supabase
-      .from("department_members")
-      .select("department_id, evento_id, role, user_id")
-      .eq("user_id", userId)
-      .eq("role", "coordenador")
-      .eq("evento_id", eventoId);
-    if (error) {
-      console.warn("Falha ao buscar departamentos coordenados:", error.message);
-      return [];
-    }
-    return (Array.isArray(data) ? data : [])
-      .map((row: { department_id?: string | null }) => row?.department_id)
-      .filter(Boolean) as string[];
-  }, []);
+  const fetchCoordinatedDepartmentIds = useCallback(
+    async (userId: string, eventoId: string): Promise<string[]> => {
+      if (!userId || !eventoId) return [];
+      try {
+        const data = await apiGet<Array<{ department_id?: string | null }>>(
+          `/api/members?user_id=${encodeURIComponent(userId)}&role=coordenador&evento_id=${encodeURIComponent(eventoId)}`
+        );
+        return (Array.isArray(data) ? data : [])
+          .map((row) => row?.department_id)
+          .filter(Boolean) as string[];
+      } catch (error) {
+        console.warn("Falha ao buscar departamentos coordenados:", (error as Error)?.message);
+        return [];
+      }
+    },
+    []
+  );
 
   const reconcileActiveDepartment = useCallback((
     depts: DepartmentMembership[],
@@ -145,48 +145,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const refreshSession = useCallback(async (): Promise<DepartmentMembership[]> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const currentUser = session?.user ?? null;
-    setUser(currentUser);
-
-    if (currentUser) {
+  /** Carrega profile + departamentos de um usuário autenticado. */
+  const loadUserData = useCallback(
+    async (currentUser: AuthUser): Promise<DepartmentMembership[]> => {
       const [profileData, depts] = await Promise.all([
         fetchProfile(currentUser.id),
         fetchDepartments(currentUser.id),
       ]);
       setProfile(profileData);
       setDepartments(depts);
-      setActiveDepartment((prev) => {
-        if (!prev) return null;
-        return reconcileActiveDepartment(depts, prev);
-      });
+      setActiveDepartment((prev) => (prev ? reconcileActiveDepartment(depts, prev) : prev));
       restoreFromStorage(depts);
       return depts;
-    }
+    },
+    [fetchProfile, fetchDepartments, reconcileActiveDepartment]
+  );
+
+  /** Estado limpo de "deslogado". */
+  const clearUserData = useCallback((): DepartmentMembership[] => {
     setProfile(null);
     setDepartments([]);
     setActiveDepartment(null);
+    storeDeptId(null);
     return [];
-  }, [fetchProfile, fetchDepartments, reconcileActiveDepartment]);
+  }, []);
+
+  /**
+   * Sincroniza o estado com a sessão do servidor (GET /auth/session;
+   * o cliente renova o access token automaticamente em 401).
+   */
+  const refreshSession = useCallback(async (): Promise<DepartmentMembership[]> => {
+    let currentUser: AuthUser | null = null;
+    try {
+      const body = await apiRequest<{ user?: AuthUser | null }>("/auth/session");
+      currentUser = body?.user ?? null;
+    } catch (error) {
+      if (!(error instanceof ApiError) || (error.status !== 401 && error.status !== 0)) {
+        console.warn("Erro ao verificar sessão:", (error as Error)?.message);
+      }
+      currentUser = null;
+    }
+
+    setUser(currentUser);
+    if (currentUser) {
+      try {
+        return await loadUserData(currentUser);
+      } catch (err) {
+        console.warn("Erro ao buscar dados do usuário:", err);
+        return [];
+      }
+    }
+    return clearUserData();
+  }, [loadUserData, clearUserData]);
 
   const refreshDepartments = useCallback(async (): Promise<DepartmentMembership[]> => {
-    if (!user) return [];
-    const depts = await fetchDepartments(user.id);
+    const currentUser = userRef.current;
+    if (!currentUser) return [];
+    const depts = await fetchDepartments(currentUser.id);
     setDepartments(depts);
     setActiveDepartment((prev) => {
       if (!prev) return null;
       return reconcileActiveDepartment(depts, prev);
     });
     return depts;
-  }, [user, fetchDepartments, reconcileActiveDepartment]);
+  }, [fetchDepartments, reconcileActiveDepartment]);
 
+  // Sessão inicial.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        await refreshSession();
+      } catch (err) {
+        console.warn("Erro ao verificar sessão:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [refreshSession]);
+
+  // Recarrega os vínculos quando o evento ativo muda. Isto NÃO apaga
+  // `departments` no fallback sem evento — eles precisam sobreviver à troca
+  // para o Dashboard reconhecer (sem piscar) os departamentos coordenados.
   useEffect(() => {
     if (eventLoading) return;
 
-    // Sem evento ativo não há departamento ativo. Isto NÃO apaga `departments`,
-    // que precisa sobreviver à troca de evento para o Dashboard conseguir
-    // reconhecer (sem piscar) os departamentos já coordenados pelo usuário.
     if (!eventoId) {
       setActiveDepartment(null);
       storeDeptId(null);
@@ -195,140 +241,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user ?? null;
-      if (!currentUser || cancelled) return;
+      const currentUser = userRef.current;
+      if (!currentUser) return;
       const depts = await fetchDepartments(currentUser.id);
       if (cancelled) return;
       setDepartments(depts);
       setActiveDepartment((prev) => (prev ? reconcileActiveDepartment(depts, prev) : prev));
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [eventoId, eventLoading, fetchDepartments, reconcileActiveDepartment]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const TIMEOUT_MS = 8000;
-
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise<{ timedOut: true }>((resolve) => {
-      setTimeout(() => resolve({ timedOut: true }), TIMEOUT_MS);
-    });
-
-    Promise.race([sessionPromise, timeoutPromise])
-      .then(async (result) => {
-        if (!mounted) return;
-
-        if ("timedOut" in result && result.timedOut) {
-          console.warn("Supabase session check timed out — proceeding without auth.");
-          return;
-        }
-
-        const session = ("data" in result ? result.data?.session : null) ?? null;
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-
-        if (currentUser) {
-          try {
-            const [profileData, depts] = await Promise.all([
-              fetchProfile(currentUser.id),
-              fetchDepartments(currentUser.id),
-            ]);
-            if (!mounted) return;
-            setProfile(profileData);
-            setDepartments(depts);
-            restoreFromStorage(depts);
-          } catch (err) {
-            console.warn("Erro ao buscar dados do usuário:", err);
-          }
-        }
-      })
-      .catch((err) => {
-        console.warn("Erro ao verificar sessão:", err);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        try {
-          const currentUser = session?.user ?? null;
-          setUser(currentUser);
-
-          if (currentUser) {
-            const [profileData, depts] = await Promise.all([
-              fetchProfile(currentUser.id),
-              fetchDepartments(currentUser.id),
-            ]);
-            setProfile(profileData);
-            setDepartments(depts);
-          } else {
-            setProfile(null);
-            setDepartments([]);
-            setActiveDepartment(null);
-            storeDeptId(null);
-          }
-        } catch (err) {
-          console.warn("Erro no onAuthStateChange:", err);
-        } finally {
-          setLoading(false);
-        }
-      }
-    );
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [fetchProfile, fetchDepartments]);
-
   async function login(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
-    return data;
+    const body = await apiRequest<{ user: AuthUser }>("/auth/login", {
+      method: "POST",
+      body: { email, password },
+      skipRefresh: true,
+    });
+    setUser(body.user);
+    await loadUserData(body.user);
+    return body;
   }
 
+  /**
+   * Cria a conta e já inicia a sessão (o Worker faz signup + login num passo).
+   * Devolve `{ session }` — o Login usa isso para navegar direto ao app.
+   */
   async function signUp(email: string, password: string, name: string) {
-    const redirectTo = typeof window !== "undefined" ? window.location.origin + "/login" : undefined;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name },
-        emailRedirectTo: redirectTo,
-      },
+    const body = await apiRequest<{ user: AuthUser }>("/auth/signup", {
+      method: "POST",
+      body: { email, password, name },
+      skipRefresh: true,
     });
-    if (error) throw error;
-
-    if (data?.user) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert({ id: data.user.id, email, name }, { onConflict: "id" });
-      if (profileError) {
-        console.warn("Falha ao salvar perfil:", profileError.message);
-      }
-    }
-
-    return data;
+    setUser(body.user);
+    await loadUserData(body.user);
+    return { session: { user: body.user } };
   }
 
   async function resetPassword(email: string): Promise<void> {
-    const redirectTo = typeof window !== "undefined" ? window.location.origin + window.location.pathname : undefined;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-    if (error) throw error;
+    await apiRequest("/auth/password/forgot", {
+      method: "POST",
+      body: { email },
+      skipRefresh: true,
+    });
   }
 
   async function logout(): Promise<void> {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    try {
+      await apiRequest("/auth/logout", { method: "POST", skipRefresh: true });
+    } catch (error) {
+      // Mesmo com falha de rede, o estado local é limpo.
+      console.warn("Falha ao encerrar a sessão no servidor:", (error as Error)?.message);
+    }
     setUser(null);
-    setProfile(null);
-    setDepartments([]);
-    setActiveDepartment(null);
-    storeDeptId(null);
+    clearUserData();
+    deptRestoredRef.current = false;
   }
 
   function selectDepartment(dept: DepartmentMembership | null): void {
