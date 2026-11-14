@@ -42,6 +42,7 @@ export interface Shift {
   end: string;
   description?: string;
   vagas?: number | null;
+  responsible?: string | null;
   volunteerIds: string[];
   manualNames?: string[];
 }
@@ -67,6 +68,7 @@ export interface ShiftEditorPayload {
   endTime: string;
   description: string;
   vagas: number;
+  responsible: string;
   selectedIds: string[];
   manualName: string;
 }
@@ -168,5 +170,5 @@ export interface Cidade {
 export interface DepartmentMemberRow {
   id: string;
   role?: string | null;
-  profiles?: { email?: string | null } | null;
+  profiles?: { email?: string | null; name?: string | null } | null;
 }

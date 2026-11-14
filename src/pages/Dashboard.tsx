@@ -700,34 +700,6 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <button type="button" onClick={() => navigate("/programacao")} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-left transition hover:border-slate-200 hover:bg-white">
-          <i className="fi fi-rr-calendar-lines text-2xl text-brand-400" />
-          <span>
-            <span className="block font-semibold text-navy-800">Gestão de Escalas</span>
-            <span className="block text-xs text-slate-400">Criar e editar turnos da escala</span>
-          </span>
-        </button>
-
-        <button type="button" onClick={() => navigate("/voluntarios")} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-left transition hover:border-slate-200 hover:bg-white">
-          <i className="fi fi-rr-users text-2xl text-brand-400" />
-          <span>
-            <span className="block font-semibold text-navy-800">Equipe e Aprovação</span>
-            <span className="block text-xs text-slate-400">Aprovar cadastros de voluntários</span>
-          </span>
-        </button>
-
-        {isCoordinator && (
-          <button type="button" onClick={() => navigate("/configuracoes")} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-left transition hover:border-slate-200 hover:bg-white">
-            <i className="fi fi-rr-settings text-2xl text-brand-400" />
-            <span>
-              <span className="block font-semibold text-navy-800">Configurações</span>
-              <span className="block text-xs text-slate-400">Módulos e gestão de equipe</span>
-            </span>
-          </button>
-        )}
-      </div>
-
       {isCoordinator && (
         <section className="revoke-access-card" aria-labelledby="revoke-access-title">
           <div className="revoke-access-icon" aria-hidden="true">

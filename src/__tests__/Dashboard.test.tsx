@@ -394,12 +394,12 @@ describe("Dashboard", () => {
       expect(screen.getAllByText("WhatsApp").length).toBeGreaterThanOrEqual(2);
     });
 
-    it("mostra os atalhos de módulo", () => {
+    it("não mostra os atalhos de módulo removidos", () => {
       (useAuth as any).mockReturnValue(deptAuth);
       renderDashboard();
-      expect(screen.getByText("Gestão de Escalas")).toBeDefined();
-      expect(screen.getByText("Equipe e Aprovação")).toBeDefined();
-      expect(screen.getByText("Configurações")).toBeDefined();
+      expect(screen.queryByText("Gestão de Escalas")).toBeNull();
+      expect(screen.queryByText("Equipe e Aprovação")).toBeNull();
+      expect(screen.queryByText("Módulos e gestão de equipe")).toBeNull();
     });
 
     it("explica o impacto e exige confirmação em duas etapas para revogar acesso", async () => {

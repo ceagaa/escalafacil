@@ -126,6 +126,7 @@ post("/api/departments/:id/shifts", async ({ env, params, request, user }) => {
     end_time?: string;
     description?: string;
     vagas?: number;
+    responsible?: string;
   }>(request);
 
   if (!b.id || !b.block_id || !b.start_time || !b.end_time) {
@@ -133,8 +134,8 @@ post("/api/departments/:id/shifts", async ({ env, params, request, user }) => {
   }
 
   await env.DB.prepare(
-    `INSERT INTO shifts (id, block_id, department_id, start_time, end_time, description, vagas)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO shifts (id, block_id, department_id, start_time, end_time, description, vagas, responsible)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       b.id,
@@ -143,7 +144,8 @@ post("/api/departments/:id/shifts", async ({ env, params, request, user }) => {
       b.start_time,
       b.end_time,
       b.description ?? "",
-      Number(b.vagas ?? 0)
+      Number(b.vagas ?? 0),
+      b.responsible ?? ""
     )
     .run();
 
@@ -180,6 +182,10 @@ patch("/api/shifts/:id", async ({ env, params, request, user }) => {
   if ("vagas" in b) {
     sets.push("vagas = ?");
     binds.push(Number(b.vagas ?? 0));
+  }
+  if ("responsible" in b) {
+    sets.push("responsible = ?");
+    binds.push((b.responsible as string) ?? "");
   }
   if ("active" in b) {
     sets.push("active = ?");

@@ -314,7 +314,7 @@ function AppLayout() {
           ...block,
           shifts: block.shifts.map((shift) =>
             shift.id === data.shiftId
-              ? { ...shift, start: data.startTime, end: data.endTime, description: data.description, vagas: data.vagas, volunteerIds: data.selectedIds, manualNames }
+              ? { ...shift, start: data.startTime, end: data.endTime, description: data.description, vagas: data.vagas, responsible: data.responsible, volunteerIds: data.selectedIds, manualNames }
               : shift
           ),
         }))
@@ -324,7 +324,7 @@ function AppLayout() {
       setSchedule((current) =>
         current.map((block) =>
           block.id === data.blockId
-            ? { ...block, shifts: [...block.shifts, { id: localShiftId!, start: data.startTime, end: data.endTime, description: data.description, vagas: data.vagas, volunteerIds: data.selectedIds, manualNames }] }
+            ? { ...block, shifts: [...block.shifts, { id: localShiftId!, start: data.startTime, end: data.endTime, description: data.description, vagas: data.vagas, responsible: data.responsible, volunteerIds: data.selectedIds, manualNames }] }
             : block
         )
       );
@@ -342,9 +342,9 @@ function AppLayout() {
     try {
       let targetShiftId: string | null = data.shiftId;
       if (targetShiftId) {
-        await updateShift(departmentId, targetShiftId, { start_time: data.startTime, end_time: data.endTime, description: data.description, vagas: data.vagas });
+        await updateShift(departmentId, targetShiftId, { start_time: data.startTime, end_time: data.endTime, description: data.description, vagas: data.vagas, responsible: data.responsible });
       } else {
-        const created = await createShift(departmentId, data.blockId, { start_time: data.startTime, end_time: data.endTime, description: data.description, vagas: data.vagas });
+        const created = await createShift(departmentId, data.blockId, { start_time: data.startTime, end_time: data.endTime, description: data.description, vagas: data.vagas, responsible: data.responsible });
         targetShiftId = created.id;
         const createdShiftId = created.id;
         const replacedLocalId = localShiftId;
@@ -682,7 +682,7 @@ function AppLayout() {
       </div>
 
       {shiftEditor && (
-        <ShiftEditorModal shiftEditor={shiftEditor} volunteers={volunteers} schedule={schedule} onClose={() => setShiftEditor(null)} onSave={saveShiftFromModal} />
+        <ShiftEditorModal shiftEditor={shiftEditor} volunteers={volunteers} schedule={schedule} departmentId={departmentId} coordinatorName={isCoordinator ? user?.name || null : null} onClose={() => setShiftEditor(null)} onSave={saveShiftFromModal} />
       )}
 
       {allocateModal && (

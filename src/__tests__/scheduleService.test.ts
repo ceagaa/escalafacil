@@ -191,7 +191,21 @@ describe("scheduleService", () => {
         end_time: "9:30",
         description: "Porta",
         vagas: 0,
+        responsible: "",
       });
+    });
+
+    it("envia o responsável informado", async () => {
+      mocks.apiPost.mockResolvedValue({ id: "shift-124" });
+      await createShift(DEPT_ID, "sex-manha", {
+        start_time: "8:00",
+        end_time: "9:30",
+        responsible: "Maria",
+      });
+      expect(mocks.apiPost).toHaveBeenCalledWith(
+        `/api/departments/${DEPT_ID}/shifts`,
+        expect.objectContaining({ responsible: "Maria" })
+      );
     });
   });
 
@@ -214,6 +228,7 @@ describe("scheduleService", () => {
         end_time: "10:00",
         description: "Porta 2",
         vagas: 0,
+        responsible: "",
       });
     });
   });

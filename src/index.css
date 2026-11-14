@@ -179,6 +179,10 @@ iframe {
   font-weight: 500;
   letter-spacing: 0.01em;
   gap: 15px !important;
+  /* <button> herda text-align:center do UA; rótulo longo ("Meus
+     departamentos") quebrava em 2 linhas e saía do alinhamento. */
+  text-align: left;
+  white-space: nowrap;
 }
 
 .app-nav-button:hover {

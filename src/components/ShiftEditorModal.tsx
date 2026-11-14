@@ -1,19 +1,42 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Modal, Button } from "./UI";
 import { getAvailabilitySlotId, parseAvailability } from "../utils/helpers";
 import { useBeforeUnload } from "../hooks/useBeforeUnload";
 import { useKeyboardShortcut } from "../hooks/useKeyboardShortcut";
-import type { ScheduleBlock, ShiftEditorPayload, ShiftEditorState, Volunteer } from "../types";
+import { listDepartmentMembers } from "../services/departmentService";
+import type {
+  DepartmentMemberRow,
+  ScheduleBlock,
+  ShiftEditorPayload,
+  ShiftEditorState,
+  Volunteer,
+} from "../types";
 
 interface ShiftEditorModalProps {
   shiftEditor: ShiftEditorState;
   volunteers: Volunteer[];
   schedule: ScheduleBlock[];
+  departmentId?: string | null;
+  coordinatorName?: string | null;
   onClose: () => void;
   onSave: (payload: ShiftEditorPayload) => void;
 }
 
-export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, onClose, onSave }: ShiftEditorModalProps) {
+type ResponsibleKind = "coordenador" | "voluntario" | "assistente";
+interface ResponsibleOption {
+  name: string;
+  kind: ResponsibleKind;
+}
+
+export default function ShiftEditorModal({
+  shiftEditor,
+  volunteers,
+  schedule,
+  departmentId,
+  coordinatorName,
+  onClose,
+  onSave,
+}: ShiftEditorModalProps) {
   const isEdit = Boolean(shiftEditor?.shiftId);
   const currentShift = isEdit && shiftEditor.shiftId
     ? schedule.flatMap((block) => block.shifts).find((shift) => shift.id === shiftEditor.shiftId)
@@ -24,16 +47,91 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
   const [endTime, setEndTime] = useState(currentShift?.end || "");
   const [description, setDescription] = useState(currentShift?.description || "");
   const [vagas, setVagas] = useState<number | string>(currentShift?.vagas || 0);
+  const [responsible, setResponsible] = useState(currentShift?.responsible || "");
   const [selectedIds, setSelectedIds] = useState<string[]>(currentShift?.volunteerIds || []);
   const [manualMode, setManualMode] = useState(false);
   const [manualName, setManualName] = useState(currentShift?.manualNames?.[0] || "");
 
-  const hasChanges = startTime !== (currentShift?.start || "") || endTime !== (currentShift?.end || "") || description !== (currentShift?.description || "") || vagas !== (currentShift?.vagas || 0) || JSON.stringify(selectedIds) !== JSON.stringify(currentShift?.volunteerIds || []) || manualName !== (currentShift?.manualNames?.[0] || "");
+  const hasChanges =
+    startTime !== (currentShift?.start || "") ||
+    endTime !== (currentShift?.end || "") ||
+    description !== (currentShift?.description || "") ||
+    vagas !== (currentShift?.vagas || 0) ||
+    responsible !== (currentShift?.responsible || "") ||
+    JSON.stringify(selectedIds) !== JSON.stringify(currentShift?.volunteerIds || []) ||
+    manualName !== (currentShift?.manualNames?.[0] || "");
   useBeforeUnload(hasChanges);
 
   const currentBlock =
     schedule.find((block) => block.id === blockId) || schedule[0] || null;
   const slotId = getAvailabilitySlotId(currentBlock?.day, currentBlock?.period);
+
+  // Dias disponíveis (ordem de exibição já vem do schedule) e períodos do dia
+  // selecionado — na prática sempre "Manhã" e "Tarde".
+  const days = useMemo(() => {
+    const seen: string[] = [];
+    for (const block of schedule) {
+      if (!seen.includes(block.day)) seen.push(block.day);
+    }
+    return seen;
+  }, [schedule]);
+
+  const periodsOfDay = useMemo(() => {
+    const seen: string[] = [];
+    for (const block of schedule) {
+      if (block.day === currentBlock?.day && !seen.includes(block.period)) seen.push(block.period);
+    }
+    return seen;
+  }, [schedule, currentBlock?.day]);
+
+  function selectBlockByDayPeriod(day: string, period: string) {
+    const match =
+      schedule.find((block) => block.day === day && block.period === period) ||
+      schedule.find((block) => block.day === day);
+    if (match) setBlockId(match.id);
+  }
+
+  // Membros do departamento (coordenador/assistente) para o campo Responsável.
+  const [members, setMembers] = useState<DepartmentMemberRow[]>([]);
+  useEffect(() => {
+    if (!departmentId) return;
+    let active = true;
+    listDepartmentMembers(departmentId)
+      .then((rows) => {
+        if (active) setMembers(rows);
+      })
+      .catch(() => {
+        // silencioso: ainda dá para escolher coordenador (prop) e voluntários
+      });
+    return () => {
+      active = false;
+    };
+  }, [departmentId]);
+
+  const responsibleOptions = useMemo<ResponsibleOption[]>(() => {
+    const options: ResponsibleOption[] = [];
+    const seen = new Set<string>();
+    const add = (kind: ResponsibleKind, name?: string | null) => {
+      const clean = (name || "").trim();
+      if (!clean || seen.has(clean)) return;
+      seen.add(clean);
+      options.push({ name: clean, kind });
+    };
+    add("coordenador", coordinatorName);
+    members
+      .filter((member) => member.role === "coordenador")
+      .forEach((member) => add("coordenador", member.profiles?.name));
+    volunteers.forEach((volunteer) => add("voluntario", volunteer.name));
+    members
+      .filter((member) => member.role === "assistente")
+      .forEach((member) => add("assistente", member.profiles?.name));
+    return options;
+  }, [coordinatorName, members, volunteers]);
+
+  const coordinatorOptions = responsibleOptions.filter((option) => option.kind === "coordenador");
+  const volunteerOptions = responsibleOptions.filter((option) => option.kind === "voluntario");
+  const assistantOptions = responsibleOptions.filter((option) => option.kind === "assistente");
+  const responsibleKnown = responsibleOptions.some((option) => option.name === responsible);
 
   const sortedVolunteers = [...volunteers].sort((a, b) => {
     const aAvailable = slotId && parseAvailability(a.availability).includes(slotId) ? 1 : 0;
@@ -73,31 +171,51 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
       endTime: endTime.trim(),
       description: description.trim(),
       vagas: Math.max(0, Number(vagas) || 0),
+      responsible: responsible.trim(),
       selectedIds: manualMode ? [] : selectedIds,
       manualName: manualMode ? manualName.trim() : "",
     });
-  }, [canSave, onSave, currentBlock, blockId, isEdit, shiftEditor, startTime, endTime, description, vagas, manualMode, selectedIds, manualName]);
+  }, [canSave, onSave, currentBlock, blockId, isEdit, shiftEditor, startTime, endTime, description, vagas, responsible, manualMode, selectedIds, manualName]);
 
   useKeyboardShortcut("s", handleSave, { ctrl: true });
+
+  const selectClass =
+    "mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400";
 
   return (
     <Modal title={isEdit ? "Editar turno" : "Criar turno"} onClose={onClose}>
       <div className="space-y-4">
         {!isEdit && (
-          <label className="block">
-            <span className="text-sm font-medium text-slate-600">Período</span>
-            <select
-              value={blockId}
-              onChange={(event) => setBlockId(event.target.value)}
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400"
-            >
-              {schedule.map((block) => (
-                <option key={block.id} value={block.id}>
-                  {block.day} — {block.period}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-sm font-medium text-slate-600">Dia</span>
+              <select
+                value={currentBlock?.day || ""}
+                onChange={(event) => selectBlockByDayPeriod(event.target.value, currentBlock?.period || "")}
+                className={selectClass}
+              >
+                {days.map((day) => (
+                  <option key={day} value={day}>
+                    {day}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-slate-600">Período</span>
+              <select
+                value={currentBlock?.period || ""}
+                onChange={(event) => selectBlockByDayPeriod(currentBlock?.day || "", event.target.value)}
+                className={selectClass}
+              >
+                {periodsOfDay.map((period) => (
+                  <option key={period} value={period}>
+                    {period}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         )}
 
         <div className="grid grid-cols-2 gap-3">
@@ -131,17 +249,59 @@ export default function ShiftEditorModal({ shiftEditor, volunteers, schedule, on
           />
         </label>
 
-        <label className="block">
-          <span className="text-sm font-medium text-slate-600">Vagas</span>
-          <input
-            type="number"
-            min="0"
-            value={vagas}
-            onChange={(event) => setVagas(event.target.value)}
-            placeholder="0"
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
-          />
-        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-sm font-medium text-slate-600">Vagas</span>
+            <input
+              type="number"
+              min="0"
+              value={vagas}
+              onChange={(event) => setVagas(event.target.value)}
+              placeholder="0"
+              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium text-slate-600">Responsável</span>
+            <select
+              value={responsible}
+              onChange={(event) => setResponsible(event.target.value)}
+              className={selectClass}
+            >
+              <option value="">Sem responsável</option>
+              {coordinatorOptions.length > 0 && (
+                <optgroup label="Coordenador">
+                  {coordinatorOptions.map((option) => (
+                    <option key={option.name} value={option.name}>
+                      {option.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {volunteerOptions.length > 0 && (
+                <optgroup label="Voluntários">
+                  {volunteerOptions.map((option) => (
+                    <option key={option.name} value={option.name}>
+                      {option.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {assistantOptions.length > 0 && (
+                <optgroup label="Assistentes">
+                  {assistantOptions.map((option) => (
+                    <option key={option.name} value={option.name}>
+                      {option.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {responsible && !responsibleKnown && (
+                <option value={responsible}>{responsible}</option>
+              )}
+            </select>
+          </label>
+        </div>
 
         {!manualMode ? (
           <div>

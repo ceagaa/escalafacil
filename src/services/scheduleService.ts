@@ -19,6 +19,7 @@ interface DbShift {
   end_time: string;
   description?: string | null;
   vagas?: number | null;
+  responsible?: string | null;
   department_id?: string | null;
 }
 
@@ -203,7 +204,7 @@ export async function saveShiftAssignments(
 export async function createShift(
   departmentId: string,
   blockId: string,
-  payload: { start_time: string; end_time: string; description?: string; vagas?: number }
+  payload: { start_time: string; end_time: string; description?: string; vagas?: number; responsible?: string }
 ): Promise<DbShift> {
   const base = dept(departmentId);
   try {
@@ -214,6 +215,7 @@ export async function createShift(
       end_time: payload.end_time,
       description: payload.description || "",
       vagas: payload.vagas || 0,
+      responsible: payload.responsible || "",
     });
   } catch (error) {
     throw new Error(sanitizeError(error, "create"));
@@ -223,7 +225,7 @@ export async function createShift(
 export async function updateShift(
   departmentId: string,
   shiftId: string,
-  payload: { start_time: string; end_time: string; description?: string; vagas?: number }
+  payload: { start_time: string; end_time: string; description?: string; vagas?: number; responsible?: string }
 ): Promise<DbShift> {
   dept(departmentId);
   try {
@@ -232,6 +234,7 @@ export async function updateShift(
       end_time: payload.end_time,
       description: payload.description || "",
       vagas: payload.vagas || 0,
+      responsible: payload.responsible || "",
     });
   } catch (error) {
     throw new Error(sanitizeError(error, "update"));
@@ -280,6 +283,7 @@ export async function fetchDepartmentData(
         start: shift.start_time,
         end: shift.end_time,
         description: shift.description || "",
+        responsible: shift.responsible ?? "",
         volunteerIds: (assigned || [])
           .filter((item) => item.shift_id === shift.id && item.volunteer_id)
           .map((item) => String(item.volunteer_id)),
