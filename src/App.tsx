@@ -189,7 +189,7 @@ function AppLayout() {
     async function loadRemoteData() {
       if (!isOnline || hasLoadedRemoteData || !departmentId || !eventoId) return;
       try {
-        const data = await fetchDepartmentData(departmentId, initialVolunteers);
+        const data = await fetchDepartmentData(departmentId, initialVolunteers, activeEvent?.tipo);
         setSchedule(data.schedule);
         setVolunteers(data.volunteers);
         setHasLoadedRemoteData(true);

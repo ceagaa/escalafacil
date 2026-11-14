@@ -33,12 +33,18 @@ post("/api/departments/:id/blocks", async ({ env, params, request, user }) => {
   const b = await readJson<{ id?: string; day?: string; period?: string; responsible?: string; accent?: string }>(request);
   if (!b.id || !b.day || !b.period) throw new ApiError("id, day e period são obrigatórios.", 400);
 
-  await env.DB.prepare(
-    `INSERT INTO schedule_blocks (id, department_id, day, period, responsible, accent)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  )
-    .bind(b.id, params.id, b.day, b.period, b.responsible ?? null, b.accent ?? null)
-    .run();
+  try {
+    await env.DB.prepare(
+      `INSERT INTO schedule_blocks (id, department_id, day, period, responsible, accent)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    )
+      .bind(b.id, params.id, b.day, b.period, b.responsible ?? null, b.accent ?? null)
+      .run();
+  } catch (err) {
+    // ID determinístico já existe (ex.: seed idempotente reexecutado).
+    if (String(err).includes("UNIQUE")) throw new ApiError("Bloco já existe.", 409, "23505");
+    throw err;
+  }
 
   const row = await env.DB.prepare(`SELECT * FROM schedule_blocks WHERE id = ?`).bind(b.id).first();
   return json({ data: mapRow(row) }, 201);

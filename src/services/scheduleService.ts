@@ -33,6 +33,97 @@ const dept = (departmentId: string): string => {
   return `/api/departments/${encodeURIComponent(departmentId)}`;
 };
 
+const BLOCK_PERIODS = ["Manhã", "Tarde"] as const;
+const CONGRESSO_BLOCK_DAYS = ["Sexta-feira", "Sábado", "Domingo"] as const;
+const BLOCK_ACCENT_BY_DAY: Record<string, string> = {
+  "Sexta-feira": "sexta",
+  "Sábado": "sabado",
+  "Domingo": "domingo",
+};
+
+/** Ordem de exibição dos dias (o que não estiver na lista vai depois). */
+const DAY_DISPLAY_ORDER = ["Sexta-feira", "Sábado", "Domingo", "Dia do Evento"];
+/** Ordem de exibição dos períodos dentro de um dia. */
+const PERIOD_DISPLAY_ORDER = ["Manhã", "Tarde", "Noite"];
+
+/**
+ * Ordena os blocos para exibição: dia na ordem canônica e, dentro do dia,
+ * período (Manhã → Tarde → Noite). O GET do Worker devolve `created_at DESC`,
+ * então sem isso "Tarde" poderia aparecer antes de "Manhã".
+ */
+export function sortBlocksForDisplay(blocks: DbScheduleBlock[]): DbScheduleBlock[] {
+  const dayRank = (day: string): number => {
+    const i = DAY_DISPLAY_ORDER.indexOf(day);
+    return i === -1 ? DAY_DISPLAY_ORDER.length : i;
+  };
+  const periodRank = (period: string): number => {
+    const i = PERIOD_DISPLAY_ORDER.indexOf(period);
+    return i === -1 ? PERIOD_DISPLAY_ORDER.length : i;
+  };
+  return [...blocks].sort((a, b) => {
+    const byDay = dayRank(a.day) - dayRank(b.day);
+    if (byDay !== 0) return byDay;
+    return periodRank(a.period) - periodRank(b.period);
+  });
+}
+
+export interface DefaultBlockSpec {
+  id: string;
+  day: string;
+  period: string;
+  accent: string | null;
+}
+
+function slug(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/**
+ * Blocos padrão (Manhã/Tarde) do departamento, conforme o tipo de evento:
+ * congresso regional → Sexta/Sábado/Domingo; demais → "Dia do Evento".
+ * Os IDs são determinísticos por departamento, então recriar é idempotente.
+ */
+export function defaultBlockSpecs(
+  departmentId: string,
+  eventoTipo?: string | null
+): DefaultBlockSpec[] {
+  const days = eventoTipo === "congresso_regional" ? CONGRESSO_BLOCK_DAYS : ["Dia do Evento"];
+  return days.flatMap((day) =>
+    BLOCK_PERIODS.map((period) => ({
+      id: `blk-${departmentId}-${slug(day)}-${slug(period)}`,
+      day,
+      period,
+      accent: BLOCK_ACCENT_BY_DAY[day] ?? null,
+    }))
+  );
+}
+
+/**
+ * Garante que o departamento tenha períodos (Manhã/Tarde).
+ * Se já existir bloco, devolve os existentes sem criar nada.
+ */
+export async function ensureDefaultBlocks(
+  departmentId: string,
+  eventoTipo?: string | null,
+  existing?: DbScheduleBlock[]
+): Promise<DbScheduleBlock[]> {
+  const current = existing ?? (await getScheduleBlocks(departmentId));
+  if (current.length > 0) return current;
+
+  const specs = defaultBlockSpecs(departmentId, eventoTipo);
+  // allSettled: se uma criação falhar (ex.: outra aba criou antes), segue em frente.
+  await Promise.allSettled(
+    specs.map((spec) => apiPost(`${dept(departmentId)}/blocks`, spec))
+  );
+  // Releitura final — devolve o que existir (criado aqui ou por concorrência).
+  return getScheduleBlocks(departmentId);
+}
+
 export async function getScheduleBlocks(departmentId: string): Promise<DbScheduleBlock[]> {
   const base = dept(departmentId);
   try {
@@ -158,7 +249,8 @@ export async function deleteShift(departmentId: string, shiftId: string): Promis
 
 export async function fetchDepartmentData(
   departmentId: string,
-  initialVolunteers: Volunteer[]
+  initialVolunteers: Volunteer[],
+  eventoTipo?: string | null
 ): Promise<{ schedule: ScheduleBlock[]; volunteers: Volunteer[] }> {
   if (!departmentId) throw new Error("departmentId is required");
 
@@ -169,7 +261,13 @@ export async function fetchDepartmentData(
     getVolunteers(departmentId),
   ]);
 
-  const groupedSchedule: ScheduleBlock[] = (blocks || []).map((block) => ({
+  // Departamento sem nenhum período (ex.: recém-criado): cria Manhã/Tarde padrão.
+  const finalBlocks =
+    blocks && blocks.length > 0
+      ? blocks
+      : await ensureDefaultBlocks(departmentId, eventoTipo, []);
+
+  const groupedSchedule: ScheduleBlock[] = sortBlocksForDisplay(finalBlocks || []).map((block) => ({
     id: block.id,
     day: block.day,
     period: block.period,
