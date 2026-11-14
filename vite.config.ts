@@ -1,6 +1,35 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+
+// Proxy /api e /auth para o Worker local (npm run dev:api / npm run dev:all).
+// Se o Worker estiver no ar, devolve erro amigável em vez de "502 Bad Gateway".
+const apiProxy: ProxyOptions = {
+  target: 'http://localhost:8787',
+  configure(proxy) {
+    // http-proxy expõe o evento 'error' (o tipo do Vite não declara .on).
+    type ProxyWithError = {
+      on(event: string, listener: (err: Error, req: unknown, res: unknown) => void): void;
+    };
+    type ErrorResponder = {
+      headersSent?: boolean;
+      writeHead(status: number, headers: Record<string, string>): void;
+      end(body: string): void;
+    };
+    (proxy as unknown as ProxyWithError).on('error', (_err, _req, res) => {
+      const response = res as ErrorResponder | undefined;
+      if (response && typeof response.writeHead === 'function' && !response.headersSent) {
+        response.writeHead(503, { 'content-type': 'application/json; charset=utf-8' });
+        response.end(
+          JSON.stringify({
+            error:
+              'Worker local (porta 8787) não está rodando. Execute "npm run dev" (sobe API + web juntas) ou "npm run dev:api" em outro terminal.',
+          }),
+        );
+      }
+    });
+  },
+}
 
 export default defineConfig(() => {
   return {
@@ -9,8 +38,8 @@ export default defineConfig(() => {
     // Em produção o Worker serve o SPA e a API no mesmo domínio.
     server: {
       proxy: {
-        '/api': 'http://localhost:8787',
-        '/auth': 'http://localhost:8787',
+        '/api': apiProxy,
+        '/auth': apiProxy,
       },
     },
     preview: {

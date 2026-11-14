@@ -14,7 +14,7 @@ App para gerenciar escala de voluntários dos departamentos.
 
 - React 18 + Vite
 - Tailwind CSS
-- Supabase (banco, autenticação, storage)
+- Cloudflare Workers + D1 (API, banco e autenticação próprios — sem Supabase)
 - Service Worker via Workbox (PWA)
 
 ## Como rodar
@@ -23,8 +23,14 @@ App para gerenciar escala de voluntários dos departamentos.
 # instala as dependências
 npm install
 
-# sobe o servidor de desenvolvimento
+# sobe a API (Worker local, porta 8787) + a web (Vite, porta 5173) juntas
 npm run dev
+
+# só a web (se a API já estiver rodando em outro terminal)
+npm run dev:web
+
+# só a API (Worker local na porta 8787)
+npm run dev:api
 
 # build de produção
 npm run build
@@ -36,103 +42,96 @@ npm test
 npm run lint
 ```
 
+O Vite faz proxy de `/api` e `/auth` para `http://localhost:8787`. Se o Worker local não estiver no ar, a resposta é um `503` com instrução (em vez de um `502` confuso).
+
+### Primeira vez na máquina
+
+1. **Secrets locais** — crie o arquivo `.dev.vars` na raiz (é ignorado pelo Git):
+
+   ```
+   JWT_SECRET=uma_string_longa_e_aleatoria
+   GOOGLE_CLIENT_ID=seu-client-id-do-google-cloud
+   ```
+
+2. **Banco local** — aplique as migrations no D1 local:
+
+   ```bash
+   npx wrangler d1 migrations apply escalafacil-db
+   ```
+
+Depois disso, `npm run dev` sobe tudo.
+
 ## Estrutura do projeto
 
 ```
 src/
   components/   → componentes reutilizáveis (UI, modais, etc.)
   pages/        → páginas do app (Login, Dashboard, Escala, etc.)
-  services/     → camada de comunicação com o Supabase
-  context/      → contexto de autenticação
+  services/     → camada de comunicação com a API
+  context/      → contexto de autenticação e tema
   hooks/        → hooks customizados
   utils/        → funções auxiliares
   __tests__/    → testes
-supabase/       → scripts SQL do banco (RLS, funções)
-public/         → assets estáticos e config do Cloudflare Pages
+worker/
+  src/          → API (Cloudflare Worker): auth + rotas
+  migrations/   → schema do D1 (SQL canônico)
+supabase/       → legado da migração Supabase → D1 (sem uso)
+public/         → assets estáticos, _headers e manifest do PWA
 ```
 
 ## Variáveis de ambiente
 
-O app fala **direto** com o Supabase pelo cliente `@supabase/supabase-js`; não existe mais proxy `/sb` (a Pages Function foi removida — ver histórico). A URL e a chave **anon** do Supabase entram no bundle do cliente, e isso é esperado: a chave anon é pública por design e quem protege os dados é o **RLS** no banco. Nunca use a chave `service_role` aqui.
+### Front — `.env` (prefixo `VITE_` obrigatório)
 
-Crie um arquivo `.env` na raiz para desenvolvimento local:
+| Variável | Para que serve |
+|---|---|
+| `VITE_STORAGE_PASSPHRASE` | Criptografia local de arquivos no navegador |
+| `VITE_GOOGLE_CLIENT_ID` | Login com Google (mesmo valor usado no Worker) |
 
+O prefixo `VITE_` é o que o Vite expõe ao cliente via `import.meta.env`; sem ele, a variável chega como `undefined`.
+
+### Worker
+
+Em produção os valores são **secrets** do Worker:
+
+```bash
+npx wrangler secret put JWT_SECRET
+npx wrangler secret put GOOGLE_CLIENT_ID
 ```
-VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_ANON_KEY=sua_chave_anon_aqui
-VITE_STORAGE_PASSPHRASE=uma_string_forte_e_aleatoria
-```
 
-O prefixo `VITE_` é obrigatório nessas variáveis: é o que o Vite expõe ao cliente via `import.meta.env`. Sem o prefixo, `src/services/supabase.js` recebe `undefined` e o app não autentica.
+Em desenvolvimento local eles vêm do `.dev.vars` (ver "Primeira vez na máquina").
 
-Nunca commite o `.env`. O `.gitignore` já tá configurado pra isso.
+Nunca commite `.env` nem `.dev.vars` — o `.gitignore` já cobre os dois.
 
 ## Deploy
 
-O projeto tá pronto pra Cloudflare Pages. Build: `npm run build`. Saída: `dist/`.
+O Worker único serve a **API** e a **SPA** (Static Assets) no mesmo domínio:
 
-Não existe pasta `functions/` nem `_routes.json`: o deploy é só o conteúdo de `dist/`, sem Function nenhuma.
-
-### Passo a passo no Cloudflare
-
-1. Abra [dash.cloudflare.com](https://dash.cloudflare.com) e entre no **Workers & Pages**.
-2. Abra o projeto **escalafacil** (Pages).
-3. Vá em **Settings** → **Variables and Secrets** (ou **Environment variables**).
-4. Em **Production** (e depois em **Preview**, se usar preview):
-   - **Add** → `VITE_SUPABASE_URL` → valor `https://xxxxx.supabase.co` (Supabase → Settings → API → Project URL).
-   - **Add** → `VITE_SUPABASE_ANON_KEY` → valor da chave **anon public** (Supabase → Settings → API).
-5. Confirme o build:
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
-   - **Root directory:** vazio (raiz do repo)
-   - Deploy command vazio na integração Git. Não use `wrangler deploy` (isso é Workers).
-6. **Save** e faça um deploy novo: **Deployments** → **Retry deployment**, ou um push no Git.
-7. Depois do deploy, abra o site → F12 → **Network** → login. A chamada vai para `https://seu-projeto.supabase.co/auth/v1/...`. Se ela falhar com 401/403, o problema está no RLS ou na chave, não em rota.
-8. No Supabase → **Authentication** → **URL Configuration**, mantenha o domínio do Pages em **Site URL** e **Redirect URLs** (ex.: `https://seu-projeto.pages.dev/**`). O reset de senha e o login com Google continuam no mesmo origin.
-
-A segurança dos dados depende inteiramente das políticas de RLS em `supabase/`.
-
-No Cloudflare Pages conectado ao GitHub, use `npm run build` como build command, `dist` como output directory e deixe o deploy command vazio: o Pages publica automaticamente o resultado do build. Não use `wrangler deploy`, que é o comando de Workers. (O projeto **não** tem script `npm run deploy`; se você quiser deploy manual por CLI, use `npx wrangler pages deploy dist` com um token que tenha a permissão correta — ver erro 10000 abaixo.)
-
-### Erro 10000 no deploy (Authentication error)
-
-Se o deploy falhar com:
-
-```
-✘ [ERROR] A request to the Cloudflare API (.../pages/projects/escalafacil) failed.
-  Authentication error [code: 10000]
+```bash
+npm run build
+npx wrangler deploy
 ```
 
-é porque o `CLOUDFLARE_API_TOKEN` configurado no projeto não tem a permissão `Cloudflare Pages: Edit`. Um "User API Token" com escopo só de usuário consegue autenticar, mas não tem acesso ao projeto Pages, e o wrangler falha na chamada da API.
+- Produção: `https://escalafacil-api.sswebtechcontato.workers.dev`
+- Banco de produção (uma vez por mudança de schema):
 
-Pra corrigir (o dashboard não deixa salvar o deploy command vazio, então use a opção 2):
-
-1. **Corrigir o token** (recomendado): crie um token novo em https://dash.cloudflare.com/profile/api-tokens:
-   - Create Token > Create custom token (ou o template de Pages)
-   - Permissions: `Account > Cloudflare Pages > Edit`
-   - Account Resources: `Include > Specific account` > a conta `Sswebtechcontato@gmail.com's Account` (`6e04823d080a758e7acea0a837746b01`)
-   - Continue > Create Token e copie o valor (ele só aparece uma vez)
-   - No projeto Pages: Settings > Environment variables, atualize a variável `CLOUDFLARE_API_TOKEN` (Production e Preview) com o token novo e rode o deploy de novo (Retry deployment)
-2. **Remover o deploy command** (se o painel permitir): em Settings > Builds & deployments do projeto Pages, deixe o deploy command vazio. O Pages publica o `dist` automaticamente depois do build, sem precisar de token.
+  ```bash
+  npx wrangler d1 migrations apply escalafacil-db --remote
+  ```
 
 ## Banco de dados
 
-Os scripts SQL sensíveis ficam em `supabase/` e são ignorados pelo Git. A migração `supabase/widen_evento_circuito.sql` é uma exceção, pois não contém dados sensíveis e precisa ser aplicada ao banco.
+Cloudflare D1 (SQLite). O schema canônico está em `worker/migrations/*.sql`:
 
-Para permitir eventos conjuntos com vários circuitos, aplique `supabase/widen_evento_circuito.sql` no SQL Editor do Supabase. O script amplia a coluna `eventos.circuito` para `text`, preservando os valores existentes.
+```bash
+# local (usado pelo npm run dev)
+npx wrangler d1 migrations apply escalafacil-db
 
-Para habilitar a exclusão de eventos por coordenadores, aplique a política de DELETE atualizada em `supabase/event_lifecycle.sql` (seção 4) ou `supabase/migration_eventos_complete.sql` (seção 4). Ela permite excluir ao criador ou a um coordenador vinculado ao mesmo evento; a edição continua restrita ao criador.
+# produção
+npx wrangler d1 migrations apply escalafacil-db --remote
+```
 
-## Manter o Supabase Ativo (Prevenção de Pausa do Plano Free)
-
-No plano gratuito do Supabase, projetos ficam pausados após 7 dias sem atividade. Para evitar isso, há um workflow do GitHub Actions configurado em `.github/workflows/keep-supabase-alive.yml` que executa a cada 3 dias (e também pode ser disparado manualmente).
-
-Para ativá-lo:
-1. Vá até o repositório no GitHub: **Settings** → **Secrets and variables** → **Actions**.
-2. Clique em **New repository secret** e adicione:
-   - `SUPABASE_URL` (ou `VITE_SUPABASE_URL`): a URL do projeto (ex.: `https://xxxx.supabase.co`).
-   - `SUPABASE_ANON_KEY` (ou `VITE_SUPABASE_ANON_KEY`): a chave pública **anon** do projeto.
-3. Para testar imediatamente, vá na aba **Actions** do GitHub, selecione o workflow **Keep Supabase Alive** e clique em **Run workflow**.
+O banco está **zerado por decisão** — a migração de dados antigos do Supabase foi descartada; os scripts em `supabase/` são apenas legado.
 
 ## Testes
 
@@ -140,7 +139,7 @@ Para ativá-lo:
 npm test
 ```
 
-Usa Vitest com jsdom. 228 testes cobrindo services, componentes e fluxos de auth.
+Usa Vitest com jsdom. 231 testes cobrindo services, componentes e fluxos de auth.
 
 ## Licença
 
