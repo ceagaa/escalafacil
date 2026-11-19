@@ -464,24 +464,14 @@ export default function EventSelector() {
       )}
 
       <div className="rounded-2xl bg-white p-6 shadow-card md:p-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-400/10">
-              <i className="fi fi-rr-calendar text-xl text-brand-400" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-navy-800">Meus Eventos</h2>
-              <p className="text-sm text-slate-500">Escolha um evento para continuar.</p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-400/10">
+            <i className="fi fi-rr-calendar text-xl text-brand-400" />
           </div>
-          <button
-            type="button"
-            onClick={openCreateModal}
-            className="flex items-center gap-2 rounded-xl bg-brand-400 px-4 py-2.5 text-sm font-semibold text-navy-800 transition hover:bg-brand-400/80"
-          >
-            <i className="fi fi-rr-plus text-xs" />
-            Criar evento
-          </button>
+          <div>
+            <h2 className="text-lg font-bold text-navy-800">Meus Eventos</h2>
+            <p className="text-sm text-slate-500">Escolha um evento para continuar.</p>
+          </div>
         </div>
 
         <div className="mt-5 flex gap-1 rounded-xl bg-slate-100 p-1">
@@ -530,7 +520,7 @@ export default function EventSelector() {
               </p>
               <p className="mt-1 text-xs text-slate-400">
                 {activeTab === "upcoming"
-                  ? "Crie um novo evento clicando no botão acima."
+                  ? "Crie um novo evento clicando no botão abaixo."
                   : "Eventos passados aparecerão aqui automaticamente."}
               </p>
               {activeTab === "upcoming" && (

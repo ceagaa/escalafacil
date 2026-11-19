@@ -140,3 +140,43 @@ describe("EventSelector event deletion permissions", () => {
     (expect(screen.queryByRole("button", { name: "Opções do evento" })) as any).not.toBeInTheDocument();
   });
 });
+
+describe("EventSelector create event entry point", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    }));
+    mocks.useAuth.mockReturnValue({
+      user: { id: "user-1" },
+      selectDepartment: vi.fn(),
+    });
+    mocks.useEvent.mockReturnValue({
+      selectEvent: vi.fn(),
+    });
+    mocks.getCoordinatedEventoIds.mockResolvedValue([]);
+  });
+
+  it("keeps only the 'Criar um novo evento' button in the empty state", async () => {
+    mocks.listEventos.mockResolvedValue([]);
+
+    render(<EventSelector />);
+
+    await waitFor(() => {
+      (expect(screen.getByRole("button", { name: "Criar um novo evento" })) as any).toBeInTheDocument();
+    });
+    (expect(screen.queryByRole("button", { name: "Criar evento" })) as any).not.toBeInTheDocument();
+  });
+
+  it("does not show the header 'Criar evento' button when there are events", async () => {
+    mocks.listEventos.mockResolvedValue([testEvent]);
+
+    render(<EventSelector />);
+
+    await waitFor(() => {
+      (expect(screen.getByText(/Congresso Regional/)) as any).toBeInTheDocument();
+    });
+    (expect(screen.queryByRole("button", { name: "Criar evento" })) as any).not.toBeInTheDocument();
+  });
+});
