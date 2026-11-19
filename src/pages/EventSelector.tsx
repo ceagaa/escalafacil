@@ -558,22 +558,9 @@ export default function EventSelector() {
                     <i className="fi fi-rr-angle-right text-sm text-slate-300 transition group-hover:text-brand-400" />
                   )}
                 </button>
+                {/* Menu kebab: quem pode excluir vê o menu (criador ou
+                    coordenador). A edição continua exclusiva do criador. */}
                 {canDeleteEvento(evento) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDeleteError("");
-                      setDeleteModal(evento);
-                    }}
-                    className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300"
-                    aria-label={`Excluir evento ${formatEventoNome(evento)}`}
-                    title="Excluir evento"
-                  >
-                    <i className="fi fi-rr-trash text-sm" />
-                    <span>Excluir</span>
-                  </button>
-                )}
-                {isCreator(evento) && (
                     <div className="relative" ref={contextMenuRef}>
                       <button
                         type="button"
@@ -588,13 +575,30 @@ export default function EventSelector() {
                       </button>
                       {contextMenu === evento.id && (
                         <div className="absolute right-0 top-full z-20 mt-1 w-44 overflow-hidden rounded-xl border border-slate-100 bg-white py-1 shadow-lg">
+                          {isCreator(evento) && (
+                            <button
+                              type="button"
+                              onClick={(e) => openEditModal(e, evento)}
+                              className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                            >
+                              <i className="fi fi-rr-edit text-xs text-slate-400" />
+                              Editar
+                            </button>
+                          )}
                           <button
                             type="button"
-                            onClick={(e) => openEditModal(e, evento)}
-                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setContextMenu(null);
+                              setDeleteError("");
+                              setDeleteModal(evento);
+                            }}
+                            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-red-600 transition hover:bg-red-50"
+                            aria-label={`Excluir evento ${formatEventoNome(evento)}`}
+                            title="Excluir"
                           >
-                            <i className="fi fi-rr-edit text-xs text-slate-400" />
-                            Editar Evento
+                            <i className="fi fi-rr-trash text-xs" />
+                            Excluir
                           </button>
                         </div>
                       )}

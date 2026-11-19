@@ -54,17 +54,20 @@ describe("EventSelector event deletion permissions", () => {
     mocks.getCoordinatedEventoIds.mockResolvedValue([]);
   });
 
-  it("shows a visible delete action to an event coordinator but keeps edit creator-only", async () => {
+  it("shows delete in the kebab menu to a coordinator but keeps edit creator-only", async () => {
     mocks.getCoordinatedEventoIds.mockResolvedValue(["event-1"]);
 
     render(<EventSelector />);
 
     await waitFor(() => {
-      (expect(screen.getByRole("button", { name: /Excluir evento/ })) as any).toBeInTheDocument();
+      (expect(screen.getByRole("button", { name: "Opções do evento" })) as any).toBeInTheDocument();
     });
 
-    (expect(screen.queryByRole("button", { name: "Opções do evento" })) as any).not.toBeInTheDocument();
-    (expect(screen.queryByRole("button", { name: "Editar Evento" })) as any).not.toBeInTheDocument();
+    // coordenador vê o menu, mas sem a opção de editar
+    fireEvent.click(screen.getByRole("button", { name: "Opções do evento" }));
+    (expect(screen.getByRole("button", { name: /Excluir evento/ })) as any).toBeInTheDocument();
+    (expect(screen.queryByRole("button", { name: "Editar" })) as any).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: /Excluir evento/ }));
     (expect(screen.getByRole("dialog", { name: "Excluir evento" })) as any).toBeInTheDocument();
     (expect(screen.getByRole("textbox", { name: "Digite Congresso" })) as any).toBeInTheDocument();
@@ -79,8 +82,9 @@ describe("EventSelector event deletion permissions", () => {
 
     render(<EventSelector />);
     await waitFor(() => {
-      (expect(screen.getByRole("button", { name: /Excluir evento/ })) as any).toBeInTheDocument();
+      (expect(screen.getByRole("button", { name: "Opções do evento" })) as any).toBeInTheDocument();
     });
+    fireEvent.click(screen.getByRole("button", { name: "Opções do evento" }));
     fireEvent.click(screen.getByRole("button", { name: /Excluir evento/ }));
 
     const input = screen.getByRole("textbox", { name: "Digite Congresso" });
@@ -105,15 +109,16 @@ describe("EventSelector event deletion permissions", () => {
 
     render(<EventSelector />);
     await waitFor(() => {
-      (expect(screen.getByRole("button", { name: /Excluir evento/ })) as any).toBeInTheDocument();
+      (expect(screen.getByRole("button", { name: "Opções do evento" })) as any).toBeInTheDocument();
     });
+    fireEvent.click(screen.getByRole("button", { name: "Opções do evento" }));
     fireEvent.click(screen.getByRole("button", { name: /Excluir evento/ }));
 
     (expect(screen.getByRole("textbox", { name: "Digite Assembleia" })) as any).toBeInTheDocument();
     (expect(screen.getByRole("button", { name: "Excluir Evento" })) as any).toBeDisabled();
   });
 
-  it("shows visible delete and edit options to the event creator", async () => {
+  it("shows both 'Excluir' and 'Editar' inside the kebab menu for the creator", async () => {
     mocks.useAuth.mockReturnValue({
       user: { id: "creator-1" },
       selectDepartment: vi.fn(),
@@ -122,11 +127,14 @@ describe("EventSelector event deletion permissions", () => {
     render(<EventSelector />);
 
     await waitFor(() => {
-      (expect(screen.getByRole("button", { name: /Excluir evento/ })) as any).toBeInTheDocument();
+      (expect(screen.getByRole("button", { name: "Opções do evento" })) as any).toBeInTheDocument();
     });
     fireEvent.click(screen.getByRole("button", { name: "Opções do evento" }));
 
-    (expect(screen.getByRole("button", { name: "Editar Evento" })) as any).toBeInTheDocument();
+    (expect(screen.getByRole("button", { name: "Editar" })) as any).toBeInTheDocument();
+    (expect(screen.getByRole("button", { name: /Excluir evento/ })) as any).toBeInTheDocument();
+    // o botão de excluir não fica mais solto na linha do evento
+    (expect(screen.getAllByRole("button", { name: /Excluir evento/ })) as any).toHaveLength(1);
   });
 
   it("does not show event actions to other users", async () => {
@@ -136,7 +144,6 @@ describe("EventSelector event deletion permissions", () => {
       (expect(screen.getByText(/Congresso Regional/)) as any).toBeInTheDocument();
     });
 
-    (expect(screen.queryByRole("button", { name: /Excluir evento/ })) as any).not.toBeInTheDocument();
     (expect(screen.queryByRole("button", { name: "Opções do evento" })) as any).not.toBeInTheDocument();
   });
 });

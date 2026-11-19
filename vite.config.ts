@@ -53,7 +53,12 @@ export default defineConfig(({ mode }) => {
   const apiProxy = createApiProxy(apiPort)
   const apiTarget = `http://localhost:${apiPort}`
   return {
-    base: './',
+    // Base ABSOLUTA: as rotas públicas são aninhadas (/:slug/cadastro e
+    // /:slug/escala). Com base relativa ('./') o navegador resolveria
+    // ./assets/... contra a rota atual (ex.: /minha-rota/assets/...), o
+    // fallback do SPA devolveria index.html e tudo quebraria com erro de
+    // MIME type ("Failed to load module script ... text/html").
+    base: '/',
     // Dev: /api e /auth são repassados ao Worker local (npx wrangler dev).
     // Em produção o Worker serve o SPA e a API no mesmo domínio.
     server: {
@@ -80,8 +85,8 @@ export default defineConfig(({ mode }) => {
           theme_color: '#172233',
           background_color: '#f6f6f6',
           display: 'standalone',
-          start_url: '.',
-          scope: '.',
+          start_url: '/',
+          scope: '/',
           lang: 'pt-BR',
           orientation: 'portrait-primary',
           icons: [
