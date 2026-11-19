@@ -125,16 +125,29 @@ Nunca commite `.env` nem `.dev.vars` — o `.gitignore` já cobre os dois.
 O Worker único serve a **API** e a **SPA** (Static Assets) no mesmo domínio:
 
 ```bash
-npm run build
-npx wrangler deploy
+npm run deploy   # = vite build + wrangler deploy
 ```
 
-- Produção: `https://escalafacil-api.sswebtechcontato.workers.dev`
+- Produção: `https://escalafacil.2swebtech.com.br` (domínio customizado → Worker `escalafacil-api`)
+- Alternativa: `https://escalafacil-api.sswebtechcontato.workers.dev`
 - Banco de produção (uma vez por mudança de schema):
 
   ```bash
   npx wrangler d1 migrations apply escalafacil-db --remote
   ```
+
+> ⚠️ **O nome do Worker precisa continuar `escalafacil-api`** (`wrangler.jsonc`): é
+> ele que recebe o domínio `escalafacil.2swebtech.com.br` e onde estão os secrets
+> `JWT_SECRET` e `GOOGLE_CLIENT_ID`. Deployar para outro nome (ex. `--name escalafacil`)
+> cria um Worker sem secrets e o login na produção falha com
+> *"Servidor não configurado (JWT_SECRET)"*.
+
+Secrets (uma vez por ambiente):
+
+```bash
+npx wrangler secret put JWT_SECRET
+npx wrangler secret put GOOGLE_CLIENT_ID
+```
 
 ## Banco de dados
 

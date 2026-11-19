@@ -8,6 +8,7 @@
     "dev:web": "vite",
     "dev:api": "node scripts/dev-api.mjs",
     "build": "vite build",
+    "deploy": "vite build && wrangler deploy",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run"
