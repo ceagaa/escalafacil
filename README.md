@@ -23,13 +23,13 @@ App para gerenciar escala de voluntários dos departamentos.
 # instala as dependências
 npm install
 
-# sobe a API (Worker local, porta 8787) + a web (Vite, porta 5173) juntas
+# sobe a API (Worker local) + a web (Vite) juntas
 npm run dev
 
 # só a web (se a API já estiver rodando em outro terminal)
 npm run dev:web
 
-# só a API (Worker local na porta 8787)
+# só a API (Worker local)
 npm run dev:api
 
 # build de produção
@@ -42,7 +42,24 @@ npm test
 npm run lint
 ```
 
-O Vite faz proxy de `/api` e `/auth` para `http://localhost:8787`. Se o Worker local não estiver no ar, a resposta é um `503` com instrução (em vez de um `502` confuso).
+O Vite faz proxy de `/api` e `/auth` para a porta da API local (8787 por padrão). Se o Worker local não estiver no ar, a resposta é um `503` com instrução (em vez de um `502` confuso).
+
+### Porta da API ocupada por outro projeto
+
+O `npm run dev` verifica a porta **antes** de subir e falha com uma mensagem
+clara se ela estiver ocupada por outro projeto — sem isso, o `wrangler dev`
+cai silenciosamente para a próxima porta (8788, 8789...) enquanto o proxy do
+Vite continua apontando para a original, e o app passa a falar com o backend
+errado (cadastro/login falham com "Ocorreu um erro inesperado.", por exemplo).
+
+Para usar outra porta, adicione no `.env`:
+
+```
+VITE_API_PORT=8790
+```
+
+`scripts/dev-api.mjs` (que sobe o wrangler) e `vite.config.ts` (proxy) leem o
+mesmo valor, então wrangler e proxy sempre sobem juntos. Veja `.env.example`.
 
 ### Primeira vez na máquina
 

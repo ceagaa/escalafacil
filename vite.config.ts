@@ -1,37 +1,57 @@
-import { defineConfig, type ProxyOptions } from 'vite'
+import { defineConfig, loadEnv, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// Proxy /api e /auth para o Worker local (npm run dev:api / npm run dev:all).
-// Se o Worker estiver no ar, devolve erro amigável em vez de "502 Bad Gateway".
-const apiProxy: ProxyOptions = {
-  target: 'http://localhost:8787',
-  configure(proxy) {
-    // http-proxy expõe o evento 'error' (o tipo do Vite não declara .on).
-    type ProxyWithError = {
-      on(event: string, listener: (err: Error, req: unknown, res: unknown) => void): void;
-    };
-    type ErrorResponder = {
-      headersSent?: boolean;
-      writeHead(status: number, headers: Record<string, string>): void;
-      end(body: string): void;
-    };
-    (proxy as unknown as ProxyWithError).on('error', (_err, _req, res) => {
-      const response = res as ErrorResponder | undefined;
-      if (response && typeof response.writeHead === 'function' && !response.headersSent) {
-        response.writeHead(503, { 'content-type': 'application/json; charset=utf-8' });
-        response.end(
-          JSON.stringify({
-            error:
-              'Worker local (porta 8787) não está rodando. Execute "npm run dev" (sobe API + web juntas) ou "npm run dev:api" em outro terminal.',
-          }),
-        );
-      }
-    });
-  },
+// Porta da API local: VITE_API_PORT (ambiente ou `.env`) > padrão.
+// É o mesmo valor lido por scripts/dev-api.mjs, que sobe o `wrangler dev`
+// nessa porta — assim wrangler e proxy nunca ficam dessincronizados.
+const DEFAULT_API_PORT = 8787
+
+function readApiPort(raw: string | undefined): number {
+  const port = Number(raw ?? DEFAULT_API_PORT)
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`VITE_API_PORT inválido: "${raw}". Use um número de porta válido (ex.: 8787).`)
+  }
+  return port
 }
 
-export default defineConfig(() => {
+// Proxy /api e /auth para o Worker local (npm run dev / npm run dev:api).
+// Se o Worker estiver no ar, devolve erro amigável em vez de "502 Bad Gateway".
+function createApiProxy(apiPort: number): ProxyOptions {
+  const target = `http://localhost:${apiPort}`
+  return {
+    target,
+    configure(proxy) {
+      // http-proxy expõe o evento 'error' (o tipo do Vite não declara .on).
+      type ProxyWithError = {
+        on(event: string, listener: (err: Error, req: unknown, res: unknown) => void): void;
+      };
+      type ErrorResponder = {
+        headersSent?: boolean;
+        writeHead(status: number, headers: Record<string, string>): void;
+        end(body: string): void;
+      };
+      (proxy as unknown as ProxyWithError).on('error', (_err, _req, res) => {
+        const response = res as ErrorResponder | undefined;
+        if (response && typeof response.writeHead === 'function' && !response.headersSent) {
+          response.writeHead(503, { 'content-type': 'application/json; charset=utf-8' });
+          response.end(
+            JSON.stringify({
+              error:
+                `Worker local (porta ${apiPort}) não está rodando. Execute "npm run dev" (sobe API + web juntas) ou "npm run dev:api" em outro terminal.`,
+            }),
+          );
+        }
+      });
+    },
+  }
+}
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const apiPort = readApiPort(process.env.VITE_API_PORT ?? env.VITE_API_PORT)
+  const apiProxy = createApiProxy(apiPort)
+  const apiTarget = `http://localhost:${apiPort}`
   return {
     base: './',
     // Dev: /api e /auth são repassados ao Worker local (npx wrangler dev).
@@ -44,8 +64,8 @@ export default defineConfig(() => {
     },
     preview: {
       proxy: {
-        '/api': 'http://localhost:8787',
-        '/auth': 'http://localhost:8787',
+        '/api': apiTarget,
+        '/auth': apiTarget,
       },
     },
     plugins: [

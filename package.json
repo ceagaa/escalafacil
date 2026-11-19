@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n api,web -c blue,green \"wrangler dev\" \"vite\"",
+    "dev": "concurrently -k -n api,web -c blue,green \"node scripts/dev-api.mjs\" \"vite\"",
     "dev:web": "vite",
-    "dev:api": "wrangler dev",
+    "dev:api": "node scripts/dev-api.mjs",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
