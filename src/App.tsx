@@ -73,12 +73,12 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen items-center justify-center bg-surface-50">
+        <div className="flex min-h-screen items-center justify-center bg-[var(--ef-bg)]">
           <div className="text-center">
-            <p className="text-sm text-slate-500">Erro ao carregar. Recarregue a página.</p>
+            <p className="text-sm text-[var(--ef-muted)]">Erro ao carregar. Recarregue a página.</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 rounded-lg bg-brand-400 px-4 py-2 text-sm font-medium text-navy-800"
+              className="ef-btn ef-btn-primary mt-4"
             >
               Recarregar
             </button>
@@ -490,9 +490,9 @@ function AppLayout() {
 
   if (eventLoading) {
     return (
-      <div className="ap-app min-h-screen bg-surface-50 text-slate-900">
+      <div className="ap-app min-h-screen">
         <div className="flex min-h-screen items-center justify-center">
-          <p className="text-sm text-slate-400">Carregando evento...</p>
+          <p className="text-sm text-[var(--ef-muted)]">Carregando evento...</p>
         </div>
       </div>
     );
@@ -500,19 +500,19 @@ function AppLayout() {
 
   if (!eventoId) {
     return (
-      <div className="ap-app min-h-screen bg-surface-50 text-slate-900">
+      <div className="ap-app min-h-screen">
         <header className="ap-header">
-          <div className="w-full bg-white px-5 py-5 shadow-sm md:px-8 md:py-6">
+          <div className="w-full px-5 py-4 md:px-8 md:py-5">
             <div className="flex items-center justify-between">
-              <img src={logo} alt="EscalaFácil" className="h-8 w-auto" />
+              <img src={logo} alt="EscalaFácil" className="h-9 w-auto" />
               <div className="flex items-center gap-2">
                 {user && <UserMenu user={user} onLogout={handleLogout} />}
               </div>
             </div>
           </div>
         </header>
-        <section className="ap-main-content space-y-6 p-4 md:p-8">
-          <Suspense fallback={<div className="flex items-center justify-center py-12"><p className="text-sm text-slate-400">Carregando...</p></div>}>
+        <section className="ap-main-content space-y-6 p-4 pt-6 md:p-8">
+          <Suspense fallback={<div className="flex items-center justify-center py-12"><p className="text-sm text-[var(--ef-muted)]">Carregando...</p></div>}>
             <EventSelector />
           </Suspense>
         </section>
@@ -521,68 +521,68 @@ function AppLayout() {
   }
 
   return (
-    <div className="ap-app min-h-screen bg-surface-50 text-slate-900">
+    <div className="ap-app min-h-screen">
       <a href="#main" className="skip-link">Pular para o conteúdo</a>
 
       {toast && (
-        <div role="alert" className="app-toast fixed left-1/2 -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">
+        <div role="alert" className="app-toast fixed left-1/2 -translate-x-1/2 rounded-full bg-navy-800 px-5 py-3 text-sm font-semibold text-white shadow-xl">
           {toast}
         </div>
       )}
 
-      <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-slate-200 bg-white p-5 lg:block" aria-label="Menu principal">
+      <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[var(--ef-border)] bg-[var(--ef-sidebar)] p-5 lg:block" aria-label="Menu principal">
         <div>
-          <img src={logo} alt="EscalaFácil" className="ap-brand-logo mx-auto mb-6 h-[100px] w-[100px] object-contain" />
+          <img src={logo} alt="EscalaFácil" className="ap-brand-logo mx-auto mb-6 h-20 w-20 object-contain" />
 
           {hasDepartment ? (
             <div className="relative mt-4">
               {hasMultipleDepts ? (
                 <>
                   <button type="button" onClick={() => setShowDeptSwitcher(!showDeptSwitcher)} className="flex w-full items-center gap-2 text-left transition hover:opacity-80">
-                    <h1 className="font-semibold leading-tight text-brand-400 truncate">{departmentName}</h1>
-                    <i className={`fi fi-rr-angle-small-down text-sm text-brand-400 transition-transform ${showDeptSwitcher ? "rotate-180" : ""}`} />
+                    <h1 className="truncate text-[15px] font-semibold leading-tight text-[var(--ef-accent-strong)]">{departmentName}</h1>
+                    <i className={`fi fi-rr-angle-small-down text-sm text-[var(--ef-accent-strong)] transition-transform ${showDeptSwitcher ? "rotate-180" : ""}`} />
                   </button>
                   {showDeptSwitcher && (
-                    <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                    <div className="ef-menu absolute left-0 top-full z-50 mt-2 w-64 p-2">
                       {departments.map((dept) => {
                         const deptName = dept.department?.name || "Departamento";
                         const isActive = dept.department?.id === departmentId;
                         return (
-                          <button key={dept.id} type="button" onClick={() => { selectDepartment(dept); setShowDeptSwitcher(false); }} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${isActive ? "bg-brand-400/15 text-brand-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}>
-                            <i className={`fi fi-rr-building text-base ${isActive ? "text-brand-400" : "text-slate-500"}`} />
+                          <button key={dept.id} type="button" onClick={() => { selectDepartment(dept); setShowDeptSwitcher(false); }} className={`ef-menu-item ${isActive ? "bg-[var(--ef-accent-soft)] text-[var(--ef-accent-strong)]" : ""}`}>
+                            <i className={`fi fi-rr-building text-base ${isActive ? "text-[var(--ef-accent-strong)]" : "text-[var(--ef-faint)]"}`} />
                             <span className="truncate">{deptName}</span>
-                            {isActive && <i className="fi fi-rr-check ml-auto text-xs text-brand-400" />}
+                            {isActive && <i className="fi fi-rr-check ml-auto text-xs text-[var(--ef-accent-strong)]" />}
                           </button>
                         );
                       })}
                       <div className="my-1 border-t border-slate-200" />
-                      <button type="button" onClick={() => { selectDepartment(null); setShowDeptSwitcher(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900">
-                        <i className="fi fi-rr-apps text-base text-slate-500" />
+                      <button type="button" onClick={() => { selectDepartment(null); setShowDeptSwitcher(false); }} className="ef-menu-item">
+                        <i className="fi fi-rr-apps text-base text-[var(--ef-faint)]" />
                         Ver todos os departamentos
                       </button>
                     </div>
                   )}
                 </>
               ) : (
-                <h1 className="font-semibold leading-tight text-brand-400">{departmentName}</h1>
+                <h1 className="text-[15px] font-semibold leading-tight text-[var(--ef-accent-strong)]">{departmentName}</h1>
               )}
             </div>
           ) : (
             <div className="mt-4">
-              <p className="text-xs text-slate-400">Nenhum departamento selecionado</p>
-              <p className="mt-1 text-xs text-slate-500">Acesse o Dashboard para escolher um departamento.</p>
+              <p className="text-xs text-[var(--ef-faint)]">Nenhum departamento selecionado</p>
+              <p className="mt-1 text-xs text-[var(--ef-muted)]">Acesse o Dashboard para escolher um departamento.</p>
             </div>
           )}
         </div>
 
-        <div className="mt-8 flex items-center gap-4 px-2">
-          <span className="text-base font-semibold text-slate-500">Menu</span>
-          <span className="h-px flex-1 border-t border-dashed border-slate-300" />
+        <div className="mt-8 flex items-center gap-3 px-2">
+          <span className="ef-eyebrow">Menu</span>
+          <span className="h-px flex-1 border-t border-slate-200" />
         </div>
 
-        <nav className="mt-5 space-y-2" aria-label="Navegação principal">
+        <nav className="mt-4 space-y-1.5" aria-label="Navegação principal">
           {visibleNavigationItems.map((item) => (
-            <button key={item.path} onClick={() => navTo(item.path)} aria-current={activeView === item.path ? "page" : undefined} className={`app-nav-button flex w-full items-center gap-3 text-sm transition ${activeView === item.path ? "is-active" : ""}`}>
+            <button key={item.path} onClick={() => navTo(item.path)} aria-current={activeView === item.path ? "page" : undefined} className={`app-nav-button flex w-full items-center gap-3 transition ${activeView === item.path ? "is-active" : ""}`}>
               <i className={item.iconClass} />
               {item.label}
             </button>
@@ -593,9 +593,9 @@ function AppLayout() {
           <button
             type="button"
             onClick={() => { clearEvent(); selectDepartment(null); }}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"
+            className="ef-menu-item"
           >
-            <i className="fi fi-rr-arrow-left text-base text-slate-500" />
+            <i className="fi fi-rr-arrow-left text-base text-[var(--ef-faint)]" />
             Trocar Evento
           </button>
         </div>
@@ -604,15 +604,15 @@ function AppLayout() {
       <main id="main" tabIndex={-1} className="lg:pl-72">
         {hasDepartment && (
           <div className="mobile-department-brand px-4 pb-2 pt-5 lg:hidden">
-            <h1 className="font-semibold leading-tight text-brand-400">{departmentName}</h1>
+            <h1 className="text-[15px] font-semibold leading-tight text-[var(--ef-accent-strong)]">{departmentName}</h1>
           </div>
         )}
 
         <header className="ap-header">
-          <div className="w-full bg-white px-5 py-5 shadow-sm md:px-8 md:py-6">
+          <div className="w-full px-5 py-4 md:px-8 md:py-5">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl font-bold tracking-tight text-navy-800 md:text-3xl">
+                <h1 className="ef-h1 truncate">
                   {activeView === "/"
                     ? (hasDepartment ? departmentName : "Dashboard")
                     : routeTitle}
@@ -625,8 +625,8 @@ function AppLayout() {
           </div>
         </header>
 
-        <section className="ap-main-content space-y-6 p-4 md:p-8">
-          <Suspense fallback={<div className="flex items-center justify-center py-12"><p className="text-sm text-slate-400">Carregando...</p></div>}>
+        <section className="ap-main-content space-y-5 p-4 pt-6 md:p-8">
+          <Suspense fallback={<div className="flex items-center justify-center py-12"><p className="text-sm text-[var(--ef-muted)]">Carregando...</p></div>}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/departamentos" element={<Dashboard forcePicker />} />
@@ -648,7 +648,7 @@ function AppLayout() {
         <div id="mobile-more-menu" className="ap-mobile-more-menu lg:hidden">
           <div className="flex items-center justify-between px-3 pb-2 pt-1">
             <p className="text-sm font-semibold">Mais opções</p>
-            <button type="button" className="text-sm font-semibold text-slate-500" onClick={() => setShowMobileMore(false)}>Fechar</button>
+            <button type="button" className="text-sm font-semibold text-[var(--ef-muted)]" onClick={() => setShowMobileMore(false)}>Fechar</button>
           </div>
           {visibleNavigationItems.slice(3).map((item) => (
             <button key={item.path} type="button" onClick={() => navTo(item.path)} aria-current={activeView === item.path ? "page" : undefined} className="ap-mobile-more-item">
@@ -704,7 +704,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-surface-50"><p className="text-sm text-slate-400">Carregando...</p></div>}>
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p className="text-sm text-[var(--ef-muted)]">Carregando...</p></div>}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/:slug/cadastro" element={<PublicCadastro />} />

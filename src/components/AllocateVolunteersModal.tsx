@@ -43,26 +43,27 @@ export default function AllocateVolunteersModal({
   return (
     <Modal title={`Alocar Voluntários — ${shift.start} até ${shift.end}`} onClose={onClose}>
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-600">Buscar voluntário</label>
+        <label className="block" htmlFor="allocate-search">
+          <span className="ef-label">Buscar voluntário</span>
           <input
+            id="allocate-search"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Nome ou congregação..."
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
+            className="ef-input"
             autoFocus
           />
-        </div>
+        </label>
 
         {slotId && (
-          <p className="text-xs text-slate-400">
-            Voluntários com disponibilidade para <strong>{block.day} — {block.period}</strong> estão destacados.
+          <p className="ef-meta">
+            Voluntários com disponibilidade para <strong className="font-semibold text-[var(--ef-text-2)]">{block.day} — {block.period}</strong> estão destacados.
           </p>
         )}
         <div className="max-h-72 space-y-2 overflow-auto pr-1">
           {sortedVolunteers.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-400">Nenhum voluntário encontrado.</p>
+            <p className="py-6 text-center text-sm text-[var(--ef-muted)]">Nenhum voluntário encontrado.</p>
           ) : (
             sortedVolunteers.map((volunteer) => {
               const isAssigned = assignedSet.has(volunteer.id);
@@ -71,33 +72,33 @@ export default function AllocateVolunteersModal({
               return (
                 <div
                   key={volunteer.id}
-                  className={`flex items-center justify-between rounded-2xl border p-3 transition ${
+                  className={`flex items-center justify-between rounded-tile border p-3 transition ${
                     isAssigned
-                      ? "border-brand-400/40 bg-brand-400/5"
-                      : "border-slate-100 hover:bg-slate-50"
+                      ? "border-[var(--ef-accent)] bg-[var(--ef-accent-soft)]"
+                      : "border-[var(--ef-border)] bg-[var(--ef-tile)] hover:bg-[var(--ef-hover)]"
                   }`}
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-semibold text-[#172233]">{volunteer.name}</span>
+                      <span className="truncate text-sm font-semibold text-[var(--ef-text)]">{volunteer.name}</span>
                       {isAvailable && (
-                        <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                        <span className="ef-badge ef-badge-ok shrink-0 !py-0.5 !text-[10px]">
                           Disponível
                         </span>
                       )}
                       {isAssigned && (
-                        <span className="shrink-0 rounded-full bg-brand-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-400">
+                        <span className="ef-badge ef-badge-accent shrink-0 !py-0.5 !text-[10px]">
                           Alocado
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-slate-400">{volunteer.congregation || "Sem congregação"}</span>
+                    <span className="text-xs text-[var(--ef-muted)]">{volunteer.congregation || "Sem congregação"}</span>
                   </div>
                   {isAssigned ? (
                     <button
                       type="button"
                       onClick={() => onDeallocate(volunteer.id)}
-                      className="ml-3 shrink-0 rounded-xl border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-50"
+                      className="ml-3 shrink-0 rounded-full border border-[var(--ef-border)] px-3 py-1.5 text-xs font-semibold text-[var(--ef-danger)] transition hover:bg-[var(--ef-danger-soft)]"
                     >
                       <i className="fi fi-rr-trash mr-1 text-[10px]" />
                       Remover
@@ -106,9 +107,9 @@ export default function AllocateVolunteersModal({
                     <button
                       type="button"
                       onClick={() => onAllocate(volunteer.id)}
-                      className="ml-3 shrink-0 rounded-xl bg-brand-400 px-3 py-1.5 text-xs font-semibold text-[#172233] transition hover:bg-brand-400/80"
+                      className="ef-btn ef-btn-primary ef-btn-sm ml-3 shrink-0 !min-h-0 !px-3 !py-1.5 !text-xs"
                     >
-                      <i className="fi fi-rr-plus mr-1 text-[10px]" />
+                      <i className="fi fi-rr-plus text-[10px]" />
                       Alocar
                     </button>
                   )}

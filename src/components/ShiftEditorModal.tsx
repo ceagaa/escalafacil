@@ -179,8 +179,7 @@ export default function ShiftEditorModal({
 
   useKeyboardShortcut("s", handleSave, { ctrl: true });
 
-  const selectClass =
-    "mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-400";
+  const selectClass = "ef-select";
 
   return (
     <Modal title={isEdit ? "Editar turno" : "Criar turno"} onClose={onClose}>
@@ -188,7 +187,7 @@ export default function ShiftEditorModal({
         {!isEdit && (
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="text-sm font-medium text-slate-600">Dia</span>
+              <span className="ef-label">Dia</span>
               <select
                 value={currentBlock?.day || ""}
                 onChange={(event) => selectBlockByDayPeriod(event.target.value, currentBlock?.period || "")}
@@ -202,7 +201,7 @@ export default function ShiftEditorModal({
               </select>
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-slate-600">Período</span>
+              <span className="ef-label">Período</span>
               <select
                 value={currentBlock?.period || ""}
                 onChange={(event) => selectBlockByDayPeriod(currentBlock?.day || "", event.target.value)}
@@ -220,49 +219,49 @@ export default function ShiftEditorModal({
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="text-sm font-medium text-slate-600">Início</span>
+            <span className="ef-label">Início</span>
             <input
               value={startTime}
               onChange={(event) => setStartTime(event.target.value)}
               placeholder="Ex: 8:00"
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
+              className="ef-input"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-slate-600">Fim</span>
+            <span className="ef-label">Fim</span>
             <input
               value={endTime}
               onChange={(event) => setEndTime(event.target.value)}
               placeholder="Ex: 9:30"
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
+              className="ef-input"
             />
           </label>
         </div>
 
         <label className="block">
-          <span className="text-sm font-medium text-slate-600">Descrição / Local</span>
+          <span className="ef-label">Descrição / Local</span>
           <input
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Ex: Guarda Volumes — Entrada principal"
-            className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
+            className="ef-input"
           />
         </label>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="text-sm font-medium text-slate-600">Vagas</span>
+            <span className="ef-label">Vagas</span>
             <input
               type="number"
               min="0"
               value={vagas}
               onChange={(event) => setVagas(event.target.value)}
               placeholder="0"
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
+              className="ef-input"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-slate-600">Responsável</span>
+            <span className="ef-label">Responsável</span>
             <select
               value={responsible}
               onChange={(event) => setResponsible(event.target.value)}
@@ -305,7 +304,7 @@ export default function ShiftEditorModal({
 
         {!manualMode ? (
           <div>
-            <p className="text-sm font-medium text-slate-600">Voluntários</p>
+            <p className="ef-label">Voluntários</p>
             <div className="mt-2 max-h-56 space-y-2 overflow-auto pr-1">
               {sortedVolunteers.map((volunteer) => {
                 const available =
@@ -313,18 +312,18 @@ export default function ShiftEditorModal({
                 return (
                   <label
                     key={volunteer.id}
-                    className="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-100 p-3 hover:bg-slate-50"
+                    className="flex cursor-pointer items-center justify-between rounded-tile border border-[var(--ef-border)] bg-[var(--ef-tile)] p-3 transition hover:bg-[var(--ef-hover)]"
                   >
                     <span>
-                      <strong className="flex items-center gap-2">
+                      <strong className="flex items-center gap-2 text-sm font-semibold text-[var(--ef-text)]">
                         {volunteer.name}
                         {available && (
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                          <span className="ef-badge ef-badge-ok !py-0.5 !text-[10px]">
                             Disponível
                           </span>
                         )}
                       </strong>
-                      <small className="text-slate-500">
+                      <small className="text-[var(--ef-muted)]">
                         {volunteer.congregation || "Sem congregação"}
                       </small>
                     </span>
@@ -341,12 +340,12 @@ export default function ShiftEditorModal({
           </div>
         ) : (
           <label className="block">
-            <span className="text-sm font-medium text-slate-600">Nome do voluntário (Avulso)</span>
+            <span className="ef-label">Nome do voluntário (Avulso)</span>
             <input
               value={manualName}
               onChange={(event) => setManualName(event.target.value)}
               placeholder="Ex: Irmão Joãozinho"
-              className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
+              className="ef-input"
             />
           </label>
         )}
@@ -358,13 +357,13 @@ export default function ShiftEditorModal({
             onChange={() => setManualMode((current) => !current)}
             className="h-5 w-5"
           />
-          <span className="text-sm font-medium text-slate-600">
+          <span className="text-sm font-medium text-[var(--ef-text-2)]">
             Adicionar nome não cadastrado (Avulso)
           </span>
         </label>
 
         {conflictingVolunteers.length > 0 && (
-          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          <p className="ef-alert ef-alert-danger">
             Atenção: {conflictingVolunteers.map((volunteer) => volunteer.name).join(", ")}{" "}
             {conflictingVolunteers.length === 1 ? "já está escalado" : "já estão escalados"} em outro
             turno neste mesmo horário.

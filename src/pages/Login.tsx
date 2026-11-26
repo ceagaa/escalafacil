@@ -34,7 +34,7 @@ export default function Login() {
       <div className="flex min-h-screen items-center justify-center bg-[#172233]">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#42d27b] border-t-transparent" />
-          <p className="text-sm text-slate-400">Carregando...</p>
+          <p className="text-sm text-[#c7cad1]">Carregando...</p>
         </div>
       </div>
     );
@@ -125,14 +125,14 @@ export default function Login() {
       <section className="order-2 flex items-center justify-center bg-white px-6 py-12 sm:px-12 lg:order-1 lg:px-16">
         <div className="w-full max-w-md">
           <div className="mb-8">
-            <img src={logo} alt="EscalaFácil" className="mx-auto h-[120px] w-[120px] object-contain" />
+            <img src={logo} alt="EscalaFácil" className="mx-auto h-24 w-24 object-contain" />
           </div>
 
-          <div className="flex rounded-2xl bg-slate-100 p-1">
-            <button type="button" onClick={() => switchMode("login")} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${mode === "login" ? "bg-white text-[#172233] shadow-sm" : "text-slate-700 hover:text-slate-900"}`}>
+          <div className="ef-tabs mb-6">
+            <button type="button" onClick={() => switchMode("login")} className={`ef-tab ${mode === "login" ? "is-active" : ""}`}>
               Login
             </button>
-            <button type="button" onClick={() => switchMode("signup")} className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${mode === "signup" ? "bg-white text-[#172233] shadow-sm" : "text-slate-700 hover:text-slate-900"}`}>
+            <button type="button" onClick={() => switchMode("signup")} className={`ef-tab ${mode === "signup" ? "is-active" : ""}`}>
               Cadastro
             </button>
           </div>
@@ -141,36 +141,36 @@ export default function Login() {
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
-            <div className="relative flex justify-center text-sm"><span className="bg-white px-3 text-slate-400">ou</span></div>
+            <div className="relative flex justify-center text-sm"><span className="bg-white px-3 text-[var(--ef-faint)]">ou</span></div>
           </div>
 
           {mode === "login" ? (
             <form onSubmit={handleLoginSubmit}>
               <div className="space-y-4">
                 <label className="block">
-                  <span className="text-sm font-medium text-[#172233]">E-mail</span>
-                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="email" autoFocus />
+                  <span className="ef-label">E-mail</span>
+                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" className="ef-input" autoComplete="email" autoFocus />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-medium text-[#172233]">Senha</span>
+                  <span className="ef-label">Senha</span>
                   <div className="relative">
-                    <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Sua senha" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 pr-10 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="current-password" />
-                    <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} className="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 transition hover:text-slate-600">
+                    <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Sua senha" className="ef-input pr-12" autoComplete="current-password" />
+                    <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} className="absolute inset-y-0 right-0 flex items-center px-4 text-[var(--ef-faint)] transition hover:text-[var(--ef-text-2)]">
                       <i className={`fi ${showPassword ? "fi-rr-eye-crossed" : "fi-rr-eye"}`} aria-hidden="true" />
                     </button>
                   </div>
                 </label>
               </div>
 
-              {error && <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
-              {notice && <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{notice}</p>}
+              {error && <p role="alert" className="ef-alert ef-alert-danger mt-4">{error}</p>}
+              {notice && <p className="ef-alert ef-alert-ok mt-4">{notice}</p>}
 
-              <button type="submit" disabled={submitting} className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#42d27b] px-4 py-3 text-sm font-semibold text-[#172233] transition hover:bg-[#36b868] disabled:opacity-50">
+              <button type="submit" disabled={submitting} className="ef-btn ef-btn-primary ef-btn-block ef-btn-lg mt-6">
                 {submitting && <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#172233] border-t-transparent" />}
                 {submitting ? "Entrando..." : "Entrar"}
               </button>
 
-              <button type="button" onClick={handleForgotPassword} disabled={submitting} className="mt-3 w-full text-center text-sm font-medium text-slate-500 transition hover:text-[#2a9d5c] disabled:opacity-50">
+              <button type="button" onClick={handleForgotPassword} disabled={submitting} className="mt-4 w-full text-center text-sm font-medium text-[var(--ef-muted)] transition hover:text-[var(--ef-accent-strong)] disabled:opacity-50">
                 Esqueci minha senha
               </button>
             </form>
@@ -178,18 +178,18 @@ export default function Login() {
             <form onSubmit={handleSignUpSubmit}>
               <div className="space-y-4">
                 <label className="block">
-                  <span className="text-sm font-medium text-[#172233]">Nome completo</span>
-                  <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="name" autoFocus />
+                  <span className="ef-label">Nome completo</span>
+                  <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" className="ef-input" autoComplete="name" autoFocus />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-medium text-[#172233]">E-mail</span>
-                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="email" />
+                  <span className="ef-label">E-mail</span>
+                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" className="ef-input" autoComplete="email" />
                 </label>
                 <label className="block">
-                  <span className="text-sm font-medium text-[#172233]">Senha</span>
+                  <span className="ef-label">Senha</span>
                   <div className="relative">
-                    <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Mínimo de 6 caracteres" className="mt-1 w-full border-0 border-b border-slate-300 bg-transparent px-0 py-3 pr-10 text-base text-[#172233] outline-none transition placeholder:text-slate-400 focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/40" autoComplete="new-password" />
-                    <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} className="absolute inset-y-0 right-0 flex items-center px-2 text-slate-400 transition hover:text-slate-600">
+                    <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Mínimo de 6 caracteres" className="ef-input pr-12" autoComplete="new-password" />
+                    <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} aria-pressed={showPassword} className="absolute inset-y-0 right-0 flex items-center px-4 text-[var(--ef-faint)] transition hover:text-[var(--ef-text-2)]">
                       <i className={`fi ${showPassword ? "fi-rr-eye-crossed" : "fi-rr-eye"}`} aria-hidden="true" />
                     </button>
                   </div>
@@ -198,18 +198,18 @@ export default function Login() {
 
               <label className="mt-5 flex cursor-pointer items-start gap-3">
                 <input type="checkbox" checked={lgpdAccepted} onChange={(e) => setLgpdAccepted(e.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-300 text-[#42d27b] focus:ring-[#42d27b]" />
-                <span className="text-sm text-slate-600">
+                <span className="text-sm text-[var(--ef-text-2)]">
                   Aceito as{" "}
-                  <button type="button" onClick={(e) => { e.preventDefault(); setShowLGPD(true); }} className="font-semibold text-[#2a9d5c] underline hover:text-[#1f7a44]">
+                  <button type="button" onClick={(e) => { e.preventDefault(); setShowLGPD(true); }} className="font-semibold text-[var(--ef-accent-strong)] underline hover:underline">
                     Políticas de Privacidade e LGPD
                   </button>
                 </span>
               </label>
 
-              {error && <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>}
-              {notice && <p className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">{notice}</p>}
+              {error && <p role="alert" className="ef-alert ef-alert-danger mt-4">{error}</p>}
+              {notice && <p className="ef-alert ef-alert-ok mt-4">{notice}</p>}
 
-              <button type="submit" disabled={submitting} className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#42d27b] px-4 py-3 text-sm font-semibold text-[#172233] transition hover:bg-[#36b868] disabled:opacity-50">
+              <button type="submit" disabled={submitting} className="ef-btn ef-btn-primary ef-btn-block ef-btn-lg mt-6">
                 {submitting && <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#172233] border-t-transparent" />}
                 {submitting ? "Criando conta..." : "Criar conta"}
               </button>
@@ -218,21 +218,29 @@ export default function Login() {
         </div>
       </section>
 
-      <section className="order-1 flex items-center bg-[#172233] px-6 py-12 sm:px-12 lg:order-2 lg:px-20">
+      <section className="order-1 flex items-center bg-[#172233] px-6 py-14 sm:px-12 lg:order-2 lg:px-20">
         <div className="max-w-lg">
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#42d27b]">Organização simples</span>
-          <h2 className="mt-4 text-3xl font-bold leading-tight text-white sm:text-4xl">
+          <h2 className="mt-4 text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-[40px]">
             Tudo o que sua equipe precisa para cuidar do dia.
           </h2>
           <p className="mt-5 text-base leading-7 text-slate-300">
             Centralize a programação de escalas, acompanhe voluntários e mantenha a boa organização em um só lugar,
             com informações claras para todo o departamento.
           </p>
-          <div className="mt-8 flex items-center gap-3 text-sm font-semibold text-white">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#42d27b]/15 text-[#42d27b]">
-              <i className="fi fi-rr-check" />
-            </span>
-            Feito para organizar o trabalho dos departamentos
+          <div className="mt-8 space-y-3">
+            {[
+              "Feito para organizar o trabalho dos departamentos",
+              "Escala compartilhada com um link só",
+              "Voluntários confirmam presença pelo celular",
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3 text-sm font-semibold text-white">
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#42d27b]/15 text-[#42d27b]">
+                  <i className="fi fi-rr-check" />
+                </span>
+                {item}
+              </div>
+            ))}
           </div>
         </div>
       </section>

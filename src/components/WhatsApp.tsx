@@ -23,7 +23,7 @@ interface WhatsAppIconLinkProps {
 
 export function WhatsAppIconLink({ phone, label = "WhatsApp", compact = false, text = "" }: WhatsAppIconLinkProps) {
   const url = text ? createWaMeLink(phone, text) : createWhatsAppUrl(phone);
-  if (!url) return <span className="text-slate-400">Sem WhatsApp</span>;
+  if (!url) return <span className="text-[var(--ef-faint)]">Sem WhatsApp</span>;
   return (
     <a
       href={url}
@@ -50,10 +50,9 @@ interface VolunteerWhatsAppNameProps {
 export function VolunteerWhatsAppName({ volunteer, compact = false, message = "" }: VolunteerWhatsAppNameProps) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-semibold ${
+      className={`inline-flex items-center gap-1.5 font-semibold text-[var(--ef-text)] ${
         compact ? "text-sm" : "text-base"
       }`}
-      style={{ color: "#172233" }}
     >
       <span>{volunteer.name}</span>
       <WhatsAppIconLink phone={volunteer.phone} label={volunteer.name} compact text={message} />
@@ -65,7 +64,7 @@ export function ResponsibleNames({ responsible }: { responsible?: string | null 
   return (
     <div className="flex flex-wrap items-center gap-3">
       {getResponsibleNames(responsible).map((name) => (
-        <span key={name} className="flex items-center gap-1.5 font-semibold" style={{ color: "#172233" }}>
+        <span key={name} className="flex items-center gap-1.5 font-semibold text-[var(--ef-text)]">
           <span>{name}</span>
           {responsibleContacts[name] && (
             <WhatsAppIconLink phone={responsibleContacts[name]} label={name} compact />

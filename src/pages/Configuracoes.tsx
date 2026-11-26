@@ -22,9 +22,9 @@ const THEME_OPTIONS: { value: ThemePreference; label: string; description: strin
 function AppearanceSettings() {
   const { preference, setPreference } = useTheme();
   return (
-    <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
-      <h2 className="text-lg font-bold text-[#172233]">Aparência</h2>
-      <p className="mt-1 text-sm text-slate-500">
+    <section className="ef-card p-6 md:p-7">
+      <h2 className="ef-h2">Aparência</h2>
+      <p className="mt-1 text-sm text-[var(--ef-muted)]">
         Escolha como o EscalaFácil aparece neste dispositivo.
       </p>
       <div className="mt-5 grid gap-3 sm:grid-cols-3" role="group" aria-label="Tema do aplicativo">
@@ -50,23 +50,23 @@ function AppInformationSettings() {
 
   return (
     <>
-      <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
-        <h2 className="text-lg font-bold text-[#172233]">Aplicativo</h2>
+      <section className="ef-card p-6 md:p-7">
+        <h2 className="ef-h2">Aplicativo</h2>
         <button
           type="button"
           onClick={() => setShowPolicy(true)}
-          className="mt-4 flex min-h-14 w-full items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:bg-slate-50"
+          className="mt-4 flex min-h-14 w-full items-center gap-3 rounded-tile bg-[var(--ef-tile)] px-4 py-3 text-left transition hover:bg-[var(--ef-hover)]"
         >
-          <i className="fi fi-rr-shield-check text-lg text-brand-500" aria-hidden="true" />
+          <i className="fi fi-rr-shield-check text-lg text-[var(--ef-accent-strong)]" aria-hidden="true" />
           <span className="flex-1">
-            <span className="block font-semibold text-[#172233]">Política de Privacidade</span>
-            <span className="mt-0.5 block text-xs text-slate-500">Leia como seus dados são utilizados</span>
+            <span className="block font-semibold text-[var(--ef-text)]">Política de Privacidade</span>
+            <span className="mt-0.5 block text-xs text-[var(--ef-muted)]">Leia como seus dados são utilizados</span>
           </span>
-          <i className="fi fi-rr-angle-small-right text-slate-400" aria-hidden="true" />
+          <i className="fi fi-rr-angle-small-right text-[var(--ef-faint)]" aria-hidden="true" />
         </button>
-        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-sm">
-          <span className="text-slate-500">Versão do aplicativo</span>
-          <span className="font-semibold text-[#172233]">{APP_VERSION}</span>
+        <div className="mt-4 flex items-center justify-between border-t border-[var(--ef-border)] pt-4 text-sm">
+          <span className="text-[var(--ef-muted)]">Versão do aplicativo</span>
+          <span className="font-semibold text-[var(--ef-text)]">{APP_VERSION}</span>
         </div>
       </section>
       {showPolicy && <LGPDModal onClose={() => setShowPolicy(false)} />}
@@ -163,12 +163,12 @@ export default function Configuracoes() {
       <div className="mx-auto max-w-lg space-y-6">
         <AppearanceSettings />
         <AppInformationSettings />
-        <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl">
+        <div className="ef-card p-6 text-center md:p-7">
+          <div className="ef-empty-icon mx-auto !bg-[var(--ef-hover)] text-2xl">
             <i className="fi fi-rr-lock" />
           </div>
-          <h2 className="mt-4 text-lg font-bold text-[#172233]">Acesso restrito a coordenadores</h2>
-          <p className="mt-2 text-sm text-slate-500">
+          <h2 className="ef-h2 mt-4">Acesso restrito a coordenadores</h2>
+          <p className="mt-2 text-sm text-[var(--ef-muted)]">
             Somente o coordenador do departamento pode gerenciar a equipe e as configurações.
           </p>
         </div>
@@ -180,20 +180,20 @@ export default function Configuracoes() {
     <div className="mx-auto max-w-2xl space-y-6">
       <AppearanceSettings />
       <AppInformationSettings />
-      <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
-        <h2 className="text-lg font-bold text-[#172233]">Link público da escala</h2>
-        <p className="mt-1 text-sm text-slate-500">
+      <section className="ef-card p-6 md:p-7">
+        <h2 className="ef-h2">Link público da escala</h2>
+        <p className="mt-1 text-sm text-[var(--ef-muted)]">
           Compartilhe a escala geral do departamento com os voluntários via WhatsApp.
         </p>
 
         {publicScaleLink ? (
           <div className="mt-4">
-            <div className="flex items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-              <span className="min-w-0 flex-1 truncate text-sm text-slate-600">{publicScaleLink}</span>
+            <div className="flex items-center gap-2 rounded-tile bg-[var(--ef-tile)] px-4 py-3">
+              <span className="min-w-0 flex-1 truncate text-sm text-[var(--ef-text-2)]">{publicScaleLink}</span>
               <button
                 type="button"
                 onClick={handleCopyScaleLink}
-                className="shrink-0 rounded-xl bg-[#172233] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#101827]"
+                className="ef-btn ef-btn-sm ef-btn-dark shrink-0"
               >
                 {copiedLink ? "Copiado!" : "Copiar"}
               </button>
@@ -210,21 +210,21 @@ export default function Configuracoes() {
               }
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-whatsapp px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-whatsapp-dark"
+              className="ef-btn mt-3 bg-whatsapp !text-white hover:bg-whatsapp-dark"
             >
               Compartilhar no WhatsApp
             </a>
           </div>
         ) : (
-          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          <p className="ef-alert ef-alert-warn mt-4">
             Este departamento ainda não possui um link público.
           </p>
         )}
       </section>
 
-      <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
-        <h2 className="text-lg font-bold text-[#172233]">Gestão de Equipe</h2>
-        <p className="mt-1 text-sm text-slate-500">
+      <section className="ef-card p-6 md:p-7">
+        <h2 className="ef-h2">Gestão de Equipe</h2>
+        <p className="mt-1 text-sm text-[var(--ef-muted)]">
           Adicione assistentes pelo e-mail cadastrado no sistema.
         </p>
 
@@ -236,36 +236,36 @@ export default function Configuracoes() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             placeholder="email@exemplo.com"
-            className="w-full rounded-xl border border-slate-200 px-4 py-3 text-base outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+            className="ef-input min-w-0 flex-1"
           />
           <button
             type="submit"
             disabled={addingMember || !email.trim()}
-            className="shrink-0 rounded-xl bg-[#172233] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#101827] disabled:opacity-50"
+            className="ef-btn ef-btn-primary shrink-0 disabled:opacity-50"
           >
             {addingMember ? "Adicionando..." : "Adicionar"}
           </button>
         </form>
 
         {teamError && (
-          <p role="alert" className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          <p role="alert" className="ef-alert ef-alert-danger mt-3">
             {teamError}
           </p>
         )}
         {teamNotice && (
-          <p role="status" className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          <p role="status" className="ef-alert ef-alert-ok mt-3">
             {teamNotice}
           </p>
         )}
 
-        <div className="mt-5 divide-y divide-slate-100">
+        <div className="mt-5 divide-y divide-[var(--ef-border)]">
           {members.map((member) => (
             <div key={member.id} className="flex items-center justify-between gap-3 py-3">
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium text-[#172233]">
+                <p className="truncate text-[15px] font-medium text-[var(--ef-text)]">
                   {member.profiles?.email || "Usuário"}
                 </p>
-                <span className="mt-0.5 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                <span className="ef-badge ef-badge-neutral mt-1 !text-[11px]">
                   {member.role}
                 </span>
               </div>
@@ -273,7 +273,7 @@ export default function Configuracoes() {
                 <button
                   type="button"
                   onClick={() => handleRemoveMember(member.id)}
-                  className="rounded-full px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                  className="rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--ef-danger)] transition hover:bg-[var(--ef-danger-soft)]"
                 >
                   Remover
                 </button>
@@ -281,7 +281,7 @@ export default function Configuracoes() {
             </div>
           ))}
           {members.length === 0 && (
-            <p className="py-6 text-center text-sm text-slate-400">Nenhum membro encontrado.</p>
+            <p className="py-6 text-center text-sm text-[var(--ef-muted)]">Nenhum membro encontrado.</p>
           )}
         </div>
       </section>

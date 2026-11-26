@@ -43,26 +43,26 @@ export default function ConfirmModal({
   }, [onCancel]);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
+    <div className="ef-backdrop fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl outline-none"
+        className="ef-modal-panel w-full max-w-sm p-6 outline-none"
       >
-        <h3 id={titleId} className="text-lg font-bold text-[#172233]">{title}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-slate-500">{message}</p>
+        <h3 id={titleId} className="ef-h2">{title}</h3>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--ef-text-2)]">{message}</p>
         {confirmationText && (
-          <label className="mt-4 block text-sm font-medium text-slate-700">
+          <label className="mt-4 block text-sm font-medium text-[var(--ef-text-2)]">
             Digite <span className="font-bold">{confirmationText}</span> para confirmar:
             <input
               type="text"
               value={confirmationValue}
               onChange={(event) => setConfirmationValue(event.target.value)}
               autoComplete="off"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-base outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
+              className="ef-input mt-2"
               aria-label={`Digite ${confirmationText}`}
             />
           </label>
@@ -71,7 +71,7 @@ export default function ConfirmModal({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            className="ef-btn ef-btn-outline flex-1"
           >
             {cancelLabel}
           </button>
@@ -79,10 +79,8 @@ export default function ConfirmModal({
             type="button"
             onClick={onConfirm}
             disabled={!confirmationMatches}
-            className={`flex-1 rounded-xl px-4 py-3 text-sm font-semibold text-white transition ${
-              danger
-                ? "bg-red-600 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-                : "bg-[#42d27b] text-[#172233] hover:bg-[#36b868]"
+            className={`ef-btn flex-1 disabled:cursor-not-allowed disabled:opacity-50 ${
+              danger ? "ef-btn-danger" : "ef-btn-primary"
             }`}
           >
             {confirmLabel}

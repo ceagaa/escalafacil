@@ -1,6 +1,6 @@
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
-    <div className={`animate-pulse rounded-xl bg-slate-200 ${className}`} aria-hidden="true" />
+    <div className={`animate-pulse rounded-tile bg-[var(--ef-hover)] ${className}`} aria-hidden="true" />
   );
 }
 
@@ -8,7 +8,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 export function SkeletonStat() {
   return (
-    <div className="rounded-card bg-white p-9 shadow-card" aria-hidden="true">
+    <div className="ef-card p-7" aria-hidden="true">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Skeleton className="h-3 w-20" />

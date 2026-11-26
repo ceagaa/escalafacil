@@ -19,11 +19,10 @@ export function maskIdentificacao(value: string, isAssembleia: boolean): string 
   return isAssembleia ? applyCircuitoMask(value) : value.toUpperCase().slice(0, 10);
 }
 
-const INPUT_CLASS =
-  "w-full rounded-xl border border-slate-200 px-4 py-3 text-base outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20";
-const SELECT_CLASS = INPUT_CLASS;
+const INPUT_CLASS = "ef-input";
+const SELECT_CLASS = "ef-select";
 const ICON_BUTTON_CLASS =
-  "shrink-0 rounded-xl border border-slate-200 px-3 text-slate-400 transition hover:border-red-300 hover:bg-red-50 hover:text-red-500";
+  "flex h-11 w-11 shrink-0 items-center justify-center rounded-input border border-[var(--ef-border)] bg-[var(--ef-tile)] text-[var(--ef-muted)] transition hover:border-[var(--ef-danger)] hover:bg-[var(--ef-danger-soft)] hover:text-[var(--ef-danger)] disabled:opacity-50";
 
 interface UfCityFieldsProps {
   uf: string;
@@ -55,12 +54,12 @@ export function UfCityFields({
   return (
     <>
       <div>
-        <label className="block text-sm font-medium text-slate-700">Estado (UF)</label>
+        <label className="ef-label">Estado (UF)</label>
         <select
           value={uf}
           onChange={(event) => onChangeUf(event.target.value)}
           disabled={disabled}
-          className={`mt-1 ${SELECT_CLASS}`}
+          className={SELECT_CLASS}
         >
           <option value="">Selecione o estado</option>
           {estados.map((estado) => (
@@ -114,10 +113,10 @@ export function IdentificacoesFields({
 
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700">
+      <label className="ef-label">
         {isAssembleia ? "Circuito(s)" : "Identificação do Congresso"}
       </label>
-      <div className="mt-1 space-y-2">
+      <div className="space-y-2">
         {values.map((value, index) => (
           <div key={index} className="flex gap-2">
             <input
@@ -146,12 +145,12 @@ export function IdentificacoesFields({
         type="button"
         onClick={onAdd}
         disabled={disabled}
-        className="mt-2 flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-brand-400 transition hover:bg-brand-400/5"
+        className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--ef-accent-strong)] transition hover:bg-[var(--ef-accent-soft)] disabled:opacity-50"
       >
         <i className="fi fi-rr-plus text-[10px]" />
         {addLabel}
       </button>
-      {addHint && <p className="mt-1 text-xs text-slate-400">{addHint}</p>}
+      {addHint && <p className="mt-1 text-xs text-[var(--ef-muted)]">{addHint}</p>}
     </div>
   );
 }

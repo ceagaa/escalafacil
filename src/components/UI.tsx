@@ -6,15 +6,16 @@ interface CardProps {
   className?: string;
 }
 
+/** Card base: superfície em cinza suave, sem borda, raio 20px. */
 export function Card({ children, className = "" }: CardProps) {
   return (
-    <div className={`ap-card rounded-card bg-white shadow-card ${className || "p-5"}`}>
+    <div className={`ap-card ef-card ${className || "p-5"}`}>
       {children}
     </div>
   );
 }
 
-type ButtonVariant = "primary" | "outline" | "danger";
+type ButtonVariant = "primary" | "outline" | "danger" | "dark" | "ghost";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -22,21 +23,24 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   className?: string;
 }
 
+const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
+  primary: "ef-btn-primary",
+  outline: "ef-btn-outline",
+  danger: "ef-btn-danger",
+  dark: "ef-btn-dark",
+  ghost: "ef-btn-ghost",
+};
+
 export function Button({ children, variant = "primary", square = false, className = "", type = "button", onClick, disabled = false, ...rest }: ButtonProps) {
-  const base = "inline-flex items-center justify-center gap-2 text-sm font-semibold transition disabled:opacity-50";
-  const size = square ? "h-10 w-10 rounded-full p-0" : "rounded-full px-8 py-4";
-  const styles: Record<ButtonVariant, string> = {
-    primary: "bg-[#172233] text-white hover:bg-[#101827]",
-    outline: "border border-slate-200 bg-white text-[#345C3F] hover:bg-slate-50",
-    danger: "bg-[#172233] text-white hover:bg-[#101827]",
-  };
+  const size = square ? "ef-btn-square" : "";
+  const variantClass = BUTTON_VARIANTS[variant] || BUTTON_VARIANTS.primary;
 
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`${base} ${size} ${styles[variant] || styles.primary} ${className}`}
+      className={`ef-btn ${variantClass} ${size} ${className}`.trim()}
       {...rest}
     >
       {children}
@@ -57,7 +61,7 @@ export function IconButton({ label, iconClass, onClick }: IconButtonProps) {
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-300 transition hover:bg-slate-100 hover:text-slate-500"
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[var(--ef-faint)] transition hover:bg-[var(--ef-hover)] hover:text-[var(--ef-text-2)]"
     >
       <i className={iconClass} />
     </button>
@@ -90,22 +94,22 @@ export function Modal({ title, children, onClose }: ModalProps) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
+    <div className="ef-backdrop fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="w-full max-w-lg rounded-3xl bg-white p-5 shadow-2xl outline-none"
+        className="ef-modal-panel w-full max-w-lg p-5 outline-none md:p-6"
       >
         <div className="flex items-center justify-between gap-4">
-          <h3 id={titleId} className="text-xl font-bold">{title}</h3>
+          <h3 id={titleId} className="ef-h2">{title}</h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-100 text-slate-500"
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[var(--ef-hover)] text-[var(--ef-muted)] transition hover:text-[var(--ef-text)]"
           >
             ×
           </button>
@@ -127,13 +131,13 @@ interface FieldProps {
 export function Field({ label, value, onChange, required = false, placeholder = "" }: FieldProps) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-slate-600">{label}</span>
+      <span className="ef-label">{label}</span>
       <input
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
         required={required}
-        className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none placeholder:text-slate-300 focus:border-slate-400"
+        className="ef-input"
       />
     </label>
   );
@@ -149,11 +153,11 @@ interface SelectProps {
 export function Select({ label, value, onChange, options }: SelectProps) {
   return (
     <label className="block">
-      <span className="text-sm font-medium text-slate-600">{label}</span>
+      <span className="ef-label">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full rounded-2xl border border-slate-200 px-4 py-3 text-base outline-none focus:border-slate-400"
+        className="ef-select"
       >
         {options.map((option) => (
           <option key={option}>{option}</option>
@@ -191,23 +195,23 @@ interface StatProps {
 
 export function Stat({ icon, label, value, detail, day }: StatProps) {
   const theme = dayTheme[day] || dayTheme["Sexta-feira"];
-  const iconBackground = hexToRgba(theme.color, 0.1);
+  const iconBackground = hexToRgba(theme.color, 0.12);
 
   return (
-    <Card className="ap-stat-card relative w-[230px] shrink-0 p-9 md:w-auto">
+    <Card className="ap-stat-card relative w-[230px] shrink-0 p-6 md:w-auto md:p-7">
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <p className="text-sm font-semibold leading-none text-slate-500">{label}</p>
+          <p className="text-[13px] font-semibold leading-none text-[var(--ef-muted)]">{label}</p>
           <div
-            className="ap-stat-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+            className="ap-stat-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
             style={{ backgroundColor: iconBackground, color: theme.color }}
           >
             <StatSvgIcon name={icon} />
           </div>
         </div>
         <div>
-          <p className="text-3xl font-bold leading-none text-slate-950 md:text-4xl">{value}</p>
-          <p className="mt-3 text-xs leading-snug text-slate-400 md:text-sm">{detail}</p>
+          <p className="text-[30px] font-bold leading-none tracking-tight text-[var(--ef-text)] md:text-[34px]">{value}</p>
+          <p className="mt-3 text-xs leading-snug text-[var(--ef-faint)] md:text-[13px]">{detail}</p>
         </div>
       </div>
     </Card>
@@ -222,7 +226,7 @@ interface LiveNowBadgeProps {
 export function LiveNowBadge({ color, backgroundColor }: LiveNowBadgeProps) {
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide"
       style={{ backgroundColor, color }}
     >
       <span className="relative flex h-2 w-2">
@@ -252,7 +256,7 @@ export function DayBadge({ day, period }: DayBadgeProps) {
       <span className="text-[16px] font-semibold" style={{ color: theme.color }}>
         {day}
       </span>
-      <span className="text-[14px] font-medium text-slate-400">{period}</span>
+      <span className="text-[14px] font-medium text-[var(--ef-muted)]">{period}</span>
     </div>
   );
 }

@@ -168,21 +168,21 @@ export default function PublicCadastro() {
 
   if (loadingDept) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f6]">
-        <div className="text-sm text-slate-500">Carregando...</div>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--ef-bg)]">
+        <div className="text-sm text-[var(--ef-muted)]">Carregando...</div>
       </div>
     );
   }
 
   if (notFound || !department) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f6]">
-        <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--ef-bg)] px-4">
+        <div className="ef-card w-full max-w-md p-8 text-center">
+          <div className="ef-empty-icon mx-auto !bg-[var(--ef-hover)] text-3xl">
             <i className="fi fi-rr-link-slash" />
           </div>
-          <h1 className="mt-4 text-xl font-bold text-[#172233]">Departamento não encontrado</h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <h1 className="ef-h2 mt-4">Departamento não encontrado</h1>
+          <p className="mt-2 text-sm text-[var(--ef-muted)]">
             {error || "Verifique o link e tente novamente."}
           </p>
         </div>
@@ -192,15 +192,15 @@ export default function PublicCadastro() {
 
   if (submitted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f6] px-4">
-        <div className="rounded-2xl bg-white p-8 text-center shadow-sm md:p-10">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#42d27b]/10 text-3xl text-[#2a9d5c]">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--ef-bg)] px-4">
+        <div className="ef-card w-full max-w-md p-8 text-center md:p-10">
+          <div className="ef-empty-icon mx-auto !bg-[var(--ef-accent-soft)] !text-[var(--ef-accent-strong)] text-3xl">
             <i className="fi fi-rr-check-circle" />
           </div>
-          <h1 className="mt-4 text-xl font-bold text-[#172233]">Cadastro recebido!</h1>
-          <p className="mt-3 text-sm leading-relaxed text-slate-500">
+          <h1 className="ef-h2 mt-4">Cadastro recebido!</h1>
+          <p className="mt-3 text-sm leading-relaxed text-[var(--ef-text-2)]">
             A coordenação do departamento{" "}
-            <span className="font-semibold text-[#172233]">{department.name}</span>{" "}
+            <span className="font-semibold text-[var(--ef-text)]">{department.name}</span>{" "}
             entrará em contato via WhatsApp.
           </p>
         </div>
@@ -209,68 +209,66 @@ export default function PublicCadastro() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f6f6] px-4 py-8">
+    <div className="min-h-screen bg-[var(--ef-bg)] px-4 py-8 md:py-12">
       <div className="mx-auto max-w-lg">
         <div className="mb-6 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#42d27b]/10 text-2xl text-[#2a9d5c]">
-            <i className="fi fi-rr-hand-holding-heart" />
+          <div className="ef-empty-icon mx-auto !bg-[var(--ef-accent-soft)] !text-[var(--ef-accent-strong)]">
+            <i className="fi fi-rr-hand-holding-heart text-2xl" />
           </div>
-          <h1 className="mt-3 text-xl font-bold text-[#172233]">Seja um Voluntário</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="ef-h1 mt-4">Seja um Voluntário</h1>
+          <p className="ef-lead mt-2">
             Cadastre-se para ajudar no departamento{" "}
-            <span className="font-semibold">{department.name}</span>
+            <span className="font-semibold text-[var(--ef-text-2)]">{department.name}</span>
           </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl bg-white p-6 shadow-sm md:p-8"
-        >
+        <form onSubmit={handleSubmit} className="ef-card p-5 md:p-7">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="ef-label" htmlFor="pub-name">
                 Nome completo *
               </label>
               <input
+                id="pub-name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+                className="ef-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="ef-label" htmlFor="pub-congregation">
                 Congregação *
               </label>
               <input
+                id="pub-congregation"
                 type="text"
                 value={congregation}
                 onChange={(e) => setCongregation(e.target.value)}
                 placeholder="Nome da congregação"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+                className="ef-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <label className="ef-label" htmlFor="pub-phone">
                 WhatsApp *
               </label>
               <input
+                id="pub-phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(formatPhone(e.target.value))}
                 placeholder="+55 99999-9999"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-[#42d27b] focus:ring-2 focus:ring-[#42d27b]/20"
+                className="ef-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700">
-                Disponibilidade
-              </label>
-              <p className="mt-1 text-xs text-slate-400">
+              <span className="ef-label">Disponibilidade</span>
+              <p className="text-xs text-[var(--ef-muted)]">
                 Selecione {assembleia ? "Manhã e/ou Tarde" : "os turnos em que você pode ajudar"}
               </p>
               {assembleia ? (
@@ -282,10 +280,11 @@ export default function PublicCadastro() {
                         key={slot.id}
                         type="button"
                         onClick={() => toggleSlot(slot.id)}
-                        className={`flex-1 rounded-xl border px-4 py-4 text-center text-sm font-medium transition ${
+                        aria-pressed={isSelected}
+                        className={`flex-1 rounded-tile border px-4 py-4 text-center text-sm font-semibold transition ${
                           isSelected
-                            ? "border-[#42d27b] bg-[#42d27b]/10 text-[#1a7a42]"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                            ? "border-[#42d27b] bg-[#42d27b]/10 text-[var(--ef-accent-strong)]"
+                            : "border-slate-200 bg-[var(--ef-tile)] text-[var(--ef-text-2)] hover:border-[var(--ef-faint)]"
                         }`}
                       >
                         {slot.label}
@@ -302,10 +301,11 @@ export default function PublicCadastro() {
                         key={slot.id}
                         type="button"
                         onClick={() => toggleSlot(slot.id)}
-                        className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
+                        aria-pressed={isSelected}
+                        className={`rounded-tile border px-3 py-3 text-left transition ${
                           isSelected
-                            ? "border-[#42d27b] bg-[#42d27b]/10 font-medium text-[#1a7a42]"
-                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                            ? "border-[#42d27b] bg-[#42d27b]/10 font-medium text-[var(--ef-accent-strong)]"
+                            : "border-slate-200 bg-[var(--ef-tile)] text-[var(--ef-text-2)] hover:border-[var(--ef-faint)]"
                         }`}
                       >
                         <span className="block text-xs font-semibold uppercase tracking-wide opacity-60">
@@ -321,7 +321,7 @@ export default function PublicCadastro() {
           </div>
 
           {error && (
-            <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div role="alert" className="ef-alert ef-alert-danger mt-4">
               {error}
             </div>
           )}
@@ -329,7 +329,7 @@ export default function PublicCadastro() {
           <button
             type="submit"
             disabled={submitting}
-            className="mt-6 w-full rounded-xl bg-[#42d27b] px-4 py-3 text-sm font-semibold text-[#172233] transition hover:bg-[#36b868] disabled:opacity-50"
+            className="ef-btn ef-btn-primary ef-btn-block ef-btn-lg mt-6"
           >
             {submitting ? "Cadastrando..." : "Cadastrar"}
           </button>

@@ -56,17 +56,20 @@ export default {
         sans: ["Poppins", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
       },
       borderRadius: {
+        // espelha --ef-r-* do src/index.css
         card: "20px",
         modal: "24px",
-        input: "16px",
+        input: "14px",
+        tile: "14px",
         pill: "999px",
       },
       boxShadow: {
-        card: "0 1px 3px rgba(0, 0, 0, 0.06)",
-        "card-hover": "0 4px 12px rgba(0, 0, 0, 0.08)",
-        modal: "0 20px 60px rgba(0, 0, 0, 0.15)",
-        toast: "0 8px 30px rgba(0, 0, 0, 0.12)",
-        nav: "0 14px 38px rgba(15, 23, 42, 0.18)",
+        // espelha --ef-shadow-* do src/index.css
+        card: "0 1px 2px rgba(16, 24, 40, 0.05)",
+        "card-hover": "0 6px 16px rgba(16, 24, 40, 0.10)",
+        modal: "0 24px 56px rgba(16, 24, 40, 0.18)",
+        toast: "0 8px 30px rgba(16, 24, 40, 0.14)",
+        nav: "0 8px 24px rgba(16, 24, 40, 0.12)",
       },
       fontSize: {
         "2xs": ["0.625rem", { lineHeight: "0.875rem" }],

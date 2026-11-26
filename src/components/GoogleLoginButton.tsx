@@ -146,7 +146,7 @@ export default function GoogleLoginButton({ disabled = false }: GoogleLoginButto
     <div className="mt-6">
       {loading && (
         <div
-          className="h-10 w-full animate-pulse rounded-full border border-slate-200 bg-slate-50"
+          className="h-10 w-full animate-pulse rounded-full border border-[var(--ef-border)] bg-[var(--ef-hover)]"
           aria-hidden="true"
         />
       )}
@@ -155,10 +155,7 @@ export default function GoogleLoginButton({ disabled = false }: GoogleLoginButto
         className={`flex justify-center ${disabled ? "pointer-events-none opacity-50" : ""}`}
       />
       {error && (
-        <p
-          role="alert"
-          className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
-        >
+        <p role="alert" className="ef-alert ef-alert-danger mt-4">
           {error}
         </p>
       )}

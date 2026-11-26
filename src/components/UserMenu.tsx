@@ -55,67 +55,59 @@ function ProfileModal({ user, onClose }: { user: AuthUser; onClose: () => void }
         <div className="flex items-center gap-4">
           <span
             aria-hidden="true"
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-400 text-lg font-bold text-white"
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--ef-accent)] text-lg font-bold text-[var(--ef-accent-ink)]"
           >
             {getUserInitials(user)}
           </span>
           <div className="min-w-0">
-            <p className="truncate font-semibold text-[#172233]">{name.trim() || user.email}</p>
-            <p className="truncate text-sm text-slate-500">{user.email}</p>
+            <p className="ef-h3 truncate">{name.trim() || user.email}</p>
+            <p className="truncate text-sm text-[var(--ef-muted)]">{user.email}</p>
           </div>
         </div>
 
-        <div>
-          <label htmlFor="profile-name" className="block text-sm font-medium text-slate-600">
-            Nome
-          </label>
+        <label className="block" htmlFor="profile-name">
+          <span className="ef-label">Nome</span>
           <input
             id="profile-name"
             type="text"
             value={name}
             onChange={(event) => setName(event.target.value)}
             autoComplete="name"
-            className="mt-1 w-full rounded-xl border border-slate-200 px-4 py-3 text-base outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
+            className="ef-input"
           />
-        </div>
+        </label>
 
-        <div>
-          <label htmlFor="profile-email" className="block text-sm font-medium text-slate-600">
-            E-mail
-          </label>
+        <label className="block" htmlFor="profile-email">
+          <span className="ef-label">E-mail</span>
           <input
             id="profile-email"
             type="email"
             value={user.email}
             readOnly
             disabled
-            className="mt-1 w-full cursor-not-allowed rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-base text-slate-500"
+            className="ef-input cursor-not-allowed"
           />
-        </div>
+        </label>
 
         {error && (
-          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {error}
-          </p>
+          <p role="alert" className="ef-alert ef-alert-danger">{error}</p>
         )}
         {notice && (
-          <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-            {notice}
-          </p>
+          <p role="status" className="ef-alert ef-alert-ok">{notice}</p>
         )}
 
         <div className="flex justify-end gap-2 pt-1">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+            className="ef-btn ef-btn-ghost"
           >
             Fechar
           </button>
           <button
             type="submit"
             disabled={saving || !name.trim()}
-            className="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-50"
+            className="ef-btn ef-btn-primary disabled:opacity-50"
           >
             {saving ? "Salvando..." : "Salvar"}
           </button>
@@ -173,7 +165,7 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Abrir menu de ${displayName}`}
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-400 text-sm font-bold text-white shadow-sm transition hover:bg-brand-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+        className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--ef-accent)] text-sm font-bold text-[var(--ef-accent-ink)] transition hover:bg-[var(--ef-accent-hover)]"
       >
         {getUserInitials(user)}
       </button>
@@ -182,22 +174,22 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
         <div
           role="menu"
           aria-label="Menu do usuário"
-          className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl"
+          className="ef-menu absolute right-0 top-full z-50 mt-2 w-64 p-2"
         >
           <div className="flex items-center gap-3 px-3 py-2.5">
             <span
               aria-hidden="true"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-400 text-xs font-bold text-white"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--ef-accent)] text-xs font-bold text-[var(--ef-accent-ink)]"
             >
               {getUserInitials(user)}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-800">{displayName}</p>
-              <p className="truncate text-xs text-slate-500">{user.email}</p>
+              <p className="truncate text-sm font-semibold text-[var(--ef-text)]">{displayName}</p>
+              <p className="truncate text-xs text-[var(--ef-muted)]">{user.email}</p>
             </div>
           </div>
 
-          <div className="my-1 border-t border-slate-200" />
+          <div className="my-1 border-t border-[var(--ef-border)]" />
 
           <button
             type="button"
@@ -206,7 +198,7 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
               setOpen(false);
               setShowProfile(true);
             }}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            className="ef-menu-item"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 shrink-0">
               <circle cx="12" cy="8" r="4" />
@@ -220,7 +212,7 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
             role="menuitem"
             onClick={() => setPreference(nextPreference)}
             title={`Tema ${themeLabel}. Alterar para ${nextThemeLabel}`}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            className="ef-menu-item"
           >
             {theme === "dark" ? (
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4 shrink-0">
@@ -233,10 +225,10 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
               </svg>
             )}
             Tema
-            <span className="ml-auto text-xs text-slate-400">{themeLabel}</span>
+            <span className="ml-auto text-xs text-[var(--ef-faint)]">{themeLabel}</span>
           </button>
 
-          <div className="my-1 border-t border-slate-200" />
+          <div className="my-1 border-t border-[var(--ef-border)]" />
 
           <button
             type="button"
@@ -245,7 +237,7 @@ export default function UserMenu({ user, onLogout }: UserMenuProps) {
               setOpen(false);
               onLogout();
             }}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
+            className="ef-menu-item !text-[var(--ef-danger)] hover:!bg-[var(--ef-danger-soft)]"
           >
             <i className="fi fi-rr-sign-out-alt text-base" aria-hidden="true" />
             Sair

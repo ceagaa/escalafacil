@@ -72,9 +72,9 @@ export function mergeCoordinated(
 type CardVariant = "mine" | "taken" | "available";
 
 const CARD_BADGE_CLASS: Record<CardVariant, string> = {
-  mine: "bg-brand-400/15 text-brand-400",
-  taken: "bg-amber-50 text-amber-700",
-  available: "bg-slate-100 text-slate-500",
+  mine: "ef-badge-accent",
+  taken: "ef-badge-warn",
+  available: "ef-badge-neutral",
 };
 
 const CARD_BADGE_LABEL: Record<CardVariant, string> = {
@@ -84,9 +84,9 @@ const CARD_BADGE_LABEL: Record<CardVariant, string> = {
 };
 
 const CARD_ICON_CLASS: Record<CardVariant, string> = {
-  mine: "bg-brand-400/10 text-brand-400",
+  mine: "bg-brand-400/15 text-[var(--ef-accent-strong)]",
   taken: "bg-amber-50 text-amber-600",
-  available: "bg-brand-400/10 text-brand-400",
+  available: "bg-brand-400/15 text-[var(--ef-accent-strong)]",
 };
 
 interface DepartmentCardProps {
@@ -114,8 +114,8 @@ function DepartmentCard({ name, variant, ownerName, disabled, onSelect }: Depart
     available: "Ao assumir, você será o coordenador deste departamento.",
   }[variant];
   const cardClass = interactive
-    ? "border-transparent hover:border-brand-400/40 hover:shadow-md"
-    : "cursor-not-allowed border-transparent opacity-80";
+    ? "ef-card ef-card-hover"
+    : "ef-card cursor-not-allowed opacity-70";
 
   return (
     <button
@@ -124,18 +124,18 @@ function DepartmentCard({ name, variant, ownerName, disabled, onSelect }: Depart
       disabled={disabled || !interactive}
       aria-label={name}
       title={variant === "taken" ? "Já coordenado por " + ownerName : undefined}
-      className={"group rounded-2xl border-2 bg-white p-6 text-left shadow-card transition disabled:opacity-60 " + cardClass}
+      className={"group p-5 text-left transition disabled:opacity-60 " + cardClass}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className={"flex h-12 w-12 items-center justify-center rounded-2xl " + CARD_ICON_CLASS[variant]}>
-          <i className="fi fi-rr-building text-xl" />
+        <div className={"flex h-11 w-11 items-center justify-center rounded-2xl " + CARD_ICON_CLASS[variant]}>
+          <i className="fi fi-rr-building text-lg" />
         </div>
-        <span className={"rounded-full px-2.5 py-0.5 text-[11px] font-semibold " + CARD_BADGE_CLASS[variant]}>
+        <span className={"ef-badge " + CARD_BADGE_CLASS[variant]}>
           {CARD_BADGE_LABEL[variant]}
         </span>
       </div>
-      <p className="mt-4 font-semibold text-navy-800">{name}</p>
-      <p className="mt-1 text-xs leading-relaxed text-slate-400">{hint}</p>
+      <p className="mt-4 text-[15px] font-semibold text-[var(--ef-text)]">{name}</p>
+      <p className="mt-1 text-xs leading-relaxed text-[var(--ef-muted)]">{hint}</p>
     </button>
   );
 }
@@ -154,12 +154,12 @@ function DepartmentSection({ title, description, departments, variant, disabled,
   return (
     <section className="space-y-3">
       <div>
-        <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-          {title} <span className="ml-1 font-semibold text-slate-400">({departments.length})</span>
+        <h3 className="ef-eyebrow">
+          {title} <span className="ml-1 font-semibold text-[var(--ef-faint)]">({departments.length})</span>
         </h3>
-        {description && <p className="mt-0.5 text-xs text-slate-400">{description}</p>}
+        {description && <p className="mt-1 text-xs text-[var(--ef-muted)]">{description}</p>}
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-3">
         {departments.map((dept) => (
           <DepartmentCard
             key={dept.id}
@@ -500,20 +500,20 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
     return (
       <div className="space-y-6">
         {toast && (
-          <div role="alert" className="app-toast fixed left-1/2 top-6 -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
+          <div role="alert" className="app-toast fixed left-1/2 top-6 -translate-x-1/2 rounded-full bg-navy-800 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
         )}
 
         <div>
-          <h2 className="text-xl font-bold text-navy-800">{forcePicker ? "Departamentos" : "Bem-vindo!"}</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <h2 className="ef-h1">{forcePicker ? "Departamentos" : "Bem-vindo!"}</h2>
+          <p className="ef-lead mt-2">
             {activeEvent
               ? `Escolha o departamento para o evento: ${getEventoTipoLabel(activeEvent.tipo)}.`
               : "Escolha o departamento da sua equipe para começar."}
           </p>
           {eventLabel && (
             <>
-              <p className="mt-0.5 text-xs font-medium text-slate-500">{eventLabel}</p>
-              {eventDate && <p className="mt-0.5 text-xs text-slate-400">{eventDate}</p>}
+              <p className="mt-1 text-sm font-medium text-[var(--ef-text-2)]">{eventLabel}</p>
+              {eventDate && <p className="mt-0.5 text-xs text-[var(--ef-muted)]">{eventDate}</p>}
             </>
           )}
         </div>
@@ -554,18 +554,18 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
             />
 
             <section className="space-y-3">
-              <h3 className="text-sm font-bold uppercase tracking-wide text-slate-500">Criar</h3>
-              <div className="grid gap-4 md:grid-cols-3">
+              <h3 className="ef-eyebrow">Criar</h3>
+              <div className="grid gap-3 md:grid-cols-3">
                 <button
                   type="button"
                   onClick={() => { setShowNewDeptModal(true); setNewDeptName(""); }}
-                  className="group flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 bg-white p-6 text-left shadow-card transition hover:border-brand-400/40 hover:bg-brand-400/5"
+                  className="group flex flex-col items-center justify-center gap-2 rounded-[20px] border-2 border-dashed border-[var(--ef-border)] bg-transparent p-6 text-left transition hover:border-[var(--ef-accent)] hover:bg-[var(--ef-accent-soft)]"
                 >
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 transition group-hover:bg-brand-400/15">
-                    <i className="fi fi-rr-plus text-xl text-slate-400 transition group-hover:text-brand-400" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--ef-hover)] transition group-hover:bg-[var(--ef-accent-soft)]">
+                    <i className="fi fi-rr-plus text-xl text-[var(--ef-faint)] transition group-hover:text-[var(--ef-accent-strong)]" />
                   </div>
-                  <p className="mt-2 text-sm font-semibold text-slate-500 transition group-hover:text-navy-800">Novo Departamento</p>
-                  <p className="text-xs text-slate-400">Criar departamento personalizado</p>
+                  <p className="mt-2 text-sm font-semibold text-[var(--ef-text-2)] transition group-hover:text-[var(--ef-text)]">Novo Departamento</p>
+                  <p className="text-xs text-[var(--ef-muted)]">Criar departamento personalizado</p>
                 </button>
               </div>
             </section>
@@ -584,10 +584,10 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
         )}
 
         {showNewDeptModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
-            <div role="dialog" aria-modal="true" aria-labelledby="new-dept-title" className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-              <h3 id="new-dept-title" className="text-lg font-bold text-navy-800">Novo Departamento</h3>
-              <label htmlFor="new-dept-name" className="mt-2 block text-sm leading-relaxed text-slate-500">
+          <div className="ef-backdrop fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div role="dialog" aria-modal="true" aria-labelledby="new-dept-title" className="ef-modal-panel w-full max-w-sm p-6">
+              <h3 id="new-dept-title" className="ef-h2">Novo Departamento</h3>
+              <label htmlFor="new-dept-name" className="mt-2 block text-sm leading-relaxed text-[var(--ef-muted)]">
                 Digite o nome do departamento que deseja criar:
               </label>
               <input
@@ -596,19 +596,19 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
                 value={newDeptName}
                 onChange={(e) => setNewDeptName(e.target.value)}
                 placeholder="Ex: Limpeza, Estacionamento..."
-                className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-300 focus:border-brand-400 focus:ring-2 focus:ring-brand-400/20"
+                className="ef-input mt-3"
                 autoFocus
                 onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter" && newDeptName.trim()) handleCreateDepartment(); }}
               />
               <div className="mt-6 flex gap-3">
-                <button type="button" onClick={() => setShowNewDeptModal(false)} disabled={creatingDept} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
+                <button type="button" onClick={() => setShowNewDeptModal(false)} disabled={creatingDept} className="ef-btn ef-btn-outline flex-1 disabled:opacity-50">
                   Cancelar
                 </button>
                 <button
                   type="button"
                   onClick={handleCreateDepartment}
                   disabled={!newDeptName.trim() || creatingDept}
-                  className="flex-1 rounded-xl bg-brand-400 px-4 py-3 text-sm font-semibold text-navy-800 transition hover:bg-brand-400/80 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="ef-btn ef-btn-primary flex-1 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {creatingDept ? "Criando..." : "Criar e Assumir"}
                 </button>
@@ -623,13 +623,13 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
   return (
     <div className="space-y-6">
       {toast && (
-        <div role="alert" className="app-toast fixed left-1/2 top-6 -translate-x-1/2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
+        <div role="alert" className="app-toast fixed left-1/2 top-6 -translate-x-1/2 rounded-full bg-navy-800 px-5 py-3 text-sm font-semibold text-white shadow-xl">{toast}</div>
       )}
 
       <div>
-        <h2 className="text-xl font-bold text-navy-800">Painel do Coordenador</h2>
-        <p className="mt-1 text-sm text-slate-500">{departmentName}</p>
-        {eventDate && <p className="mt-0.5 text-xs text-slate-400">{eventDate}</p>}
+        <h2 className="ef-h1">Painel do Coordenador</h2>
+        <p className="ef-lead mt-1">{departmentName}</p>
+        {eventDate && <p className="mt-0.5 text-xs text-[var(--ef-muted)]">{eventDate}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-2">
@@ -640,59 +640,59 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
           </>
         ) : (
           <>
-            <div className="rounded-2xl bg-white p-5 shadow-card">
+            <div className="ef-card p-5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Voluntários</p>
-                <i className="fi fi-rr-users text-lg text-brand-400" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ef-muted)]">Voluntários</p>
+                <i className="fi fi-rr-users text-lg text-[var(--ef-accent-strong)]" />
               </div>
-              <p className="mt-2 text-2xl font-bold text-navy-800">{deptStats?.volunteers ?? "—"}</p>
-              <p className="text-xs text-slate-400">ativos</p>
+              <p className="mt-2 text-2xl font-bold tracking-tight text-[var(--ef-text)]">{deptStats?.volunteers ?? "—"}</p>
+              <p className="text-xs text-[var(--ef-muted)]">ativos</p>
             </div>
-            <div className="rounded-2xl bg-white p-5 shadow-card">
+            <div className="ef-card p-5">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Turnos</p>
-                <i className="fi fi-rr-calendar-lines text-lg text-brand-400" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--ef-muted)]">Turnos</p>
+                <i className="fi fi-rr-calendar-lines text-lg text-[var(--ef-accent-strong)]" />
               </div>
-              <p className="mt-2 text-2xl font-bold text-navy-800">{deptStats?.shifts ?? "—"}</p>
-              <p className="text-xs text-slate-400">na escala</p>
+              <p className="mt-2 text-2xl font-bold tracking-tight text-[var(--ef-text)]">{deptStats?.shifts ?? "—"}</p>
+              <p className="text-xs text-[var(--ef-muted)]">na escala</p>
             </div>
           </>
         )}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-slate-100 bg-white p-5">
+        <div className="ef-card p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-400/15">
-              <i className="fi fi-rr-user-add text-lg text-brand-400" />
+            <div className="ef-icon-tile">
+              <i className="fi fi-rr-user-add text-lg" />
             </div>
             <div>
-              <p className="text-sm font-bold text-navy-800">Cadastro de Voluntários</p>
-              <p className="text-xs text-slate-400">Link público para novos voluntários</p>
+              <p className="text-sm font-bold text-[var(--ef-text)]">Cadastro de Voluntários</p>
+              <p className="text-xs text-[var(--ef-muted)]">Link público para novos voluntários</p>
             </div>
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <input readOnly value={signupLink} aria-label="Link de cadastro de voluntários" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-500 outline-none" />
-            <a href={`https://wa.me/?text=${encodeURIComponent("Link de cadastro de voluntários — " + departmentName + ":\n" + signupLink)}`} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-1.5 rounded-xl bg-whatsapp px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-whatsapp-dark">
+            <input readOnly value={signupLink} aria-label="Link de cadastro de voluntários" className="ef-input min-w-0 flex-1 truncate !py-2.5 text-xs" />
+            <a href={`https://wa.me/?text=${encodeURIComponent("Link de cadastro de voluntários — " + departmentName + ":\n" + signupLink)}`} target="_blank" rel="noopener noreferrer" className="ef-btn ef-btn-sm shrink-0 bg-whatsapp !text-white hover:bg-whatsapp-dark">
               <i className="fi fi-brands-whatsapp text-sm" />
               WhatsApp
             </a>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-100 bg-white p-5">
+        <div className="ef-card p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-400/15">
-              <i className="fi fi-rr-calendar text-lg text-brand-400" />
+            <div className="ef-icon-tile">
+              <i className="fi fi-rr-calendar text-lg" />
             </div>
             <div>
-              <p className="text-sm font-bold text-navy-800">Escala Pública</p>
-              <p className="text-xs text-slate-400">Acesso somente leitura da escala</p>
+              <p className="text-sm font-bold text-[var(--ef-text)]">Escala Pública</p>
+              <p className="text-xs text-[var(--ef-muted)]">Acesso somente leitura da escala</p>
             </div>
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <input readOnly value={scaleLink} aria-label="Link da escala pública" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-500 outline-none" />
-            <a href={`https://wa.me/?text=${encodeURIComponent("Confira a escala — " + departmentName + ":\n" + scaleLink)}`} target="_blank" rel="noopener noreferrer" className="shrink-0 flex items-center gap-1.5 rounded-xl bg-whatsapp px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-whatsapp-dark">
+            <input readOnly value={scaleLink} aria-label="Link da escala pública" className="ef-input min-w-0 flex-1 truncate !py-2.5 text-xs" />
+            <a href={`https://wa.me/?text=${encodeURIComponent("Confira a escala — " + departmentName + ":\n" + scaleLink)}`} target="_blank" rel="noopener noreferrer" className="ef-btn ef-btn-sm shrink-0 bg-whatsapp !text-white hover:bg-whatsapp-dark">
               <i className="fi fi-brands-whatsapp text-sm" />
               WhatsApp
             </a>
@@ -733,8 +733,8 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
       )}
 
       {revokeStep === 1 && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
-          <div role="dialog" aria-modal="true" aria-labelledby="revoke-step1-title" className="revoke-dialog w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="ef-backdrop fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="revoke-step1-title" className="revoke-dialog ef-modal-panel w-full max-w-sm p-6">
             <div className="revoke-dialog-heading">
               <span className="revoke-warning-badge" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -744,14 +744,14 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
               </span>
               <h3 id="revoke-step1-title">Revogar coordenação?</h3>
             </div>
-            <p className="mt-4 text-sm leading-relaxed text-slate-500">
-              Você deixará de coordenar <strong className="font-semibold text-navy-800">{departmentName}</strong> e perderá acesso ao painel deste departamento.
+            <p className="mt-4 text-sm leading-relaxed text-[var(--ef-text-2)]">
+              Você deixará de coordenar <strong className="font-semibold text-[var(--ef-text)]">{departmentName}</strong> e perderá acesso ao painel deste departamento.
             </p>
             <div className="mt-6 flex gap-3">
-              <button type="button" onClick={() => setRevokeStep(0)} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+              <button type="button" onClick={() => setRevokeStep(0)} className="ef-btn ef-btn-outline flex-1">
                 Cancelar
               </button>
-              <button type="button" onClick={confirmRevokeStep1} className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700">
+              <button type="button" onClick={confirmRevokeStep1} className="ef-btn ef-btn-danger flex-1">
                 Continuar
               </button>
             </div>
@@ -760,8 +760,8 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
       )}
 
       {revokeStep === 2 && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
-          <div role="dialog" aria-modal="true" aria-labelledby="revoke-step2-title" className="revoke-dialog w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="ef-backdrop fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="revoke-step2-title" className="revoke-dialog ef-modal-panel w-full max-w-sm p-6">
             <div className="revoke-dialog-heading">
               <span className="revoke-warning-badge" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -771,7 +771,7 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
               </span>
               <h3 id="revoke-step2-title">Confirmação final</h3>
             </div>
-            <label htmlFor="revoke-dept-name" className="mt-2 block text-sm leading-relaxed text-slate-500">
+            <label htmlFor="revoke-dept-name" className="mt-2 block text-sm leading-relaxed text-[var(--ef-text-2)]">
               Para confirmar, digite o nome do departamento:
             </label>
             <input
@@ -780,21 +780,21 @@ export default function Dashboard({ forcePicker = false }: DashboardProps) {
               value={revokeInput}
               onChange={(e) => setRevokeInput(e.target.value)}
               placeholder={departmentName}
-              className="mt-3 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition placeholder:text-slate-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
+              className="ef-input mt-3"
               autoFocus
             />
-            <p className="mt-2 text-xs text-slate-500">
-              Digite <strong className="font-semibold text-navy-800">{departmentName}</strong> exatamente como aparece.
+            <p className="mt-2 text-xs text-[var(--ef-muted)]">
+              Digite <strong className="font-semibold text-[var(--ef-text)]">{departmentName}</strong> exatamente como aparece.
             </p>
             <div className="mt-6 flex gap-3">
-              <button type="button" onClick={() => setRevokeStep(0)} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+              <button type="button" onClick={() => setRevokeStep(0)} className="ef-btn ef-btn-outline flex-1">
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={doRevoke}
                 disabled={!canConfirmRevoke}
-                className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                className="ef-btn ef-btn-danger flex-1 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Confirmar revogação
               </button>

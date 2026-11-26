@@ -118,19 +118,19 @@ export default function ScheduleView({
       <div className="space-y-5">
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-bold text-[#172233]">Escala</h2>
-            <Button onClick={() => onCreateShift(dayCards[0]?.id)} className="!px-5 !py-2.5">
+            <h2 className="ef-h2">Escala</h2>
+            <Button onClick={() => onCreateShift(dayCards[0]?.id)}>
               <i className="fi fi-rr-plus" /> Criar Turno
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {!isSingleDay && (
-              <div className="ap-day-tabs flex p-0">
+              <div className="ap-day-tabs flex p-1">
                 {eventDays.map((day) => (
                   <button
                     key={day.label}
                     onClick={() => setActiveDay(day.label)}
-                    className="rounded-full px-6 py-4 text-sm font-medium transition md:px-8"
+                    className="rounded-full px-6 py-3.5 text-sm font-semibold transition hover:bg-[var(--ef-hover)] hover:text-[var(--ef-text)]"
                     style={
                       activeDay === day.label
                         ? {
@@ -138,7 +138,7 @@ export default function ScheduleView({
                             color: (dayTheme[day.label] || dayTheme["Sexta-feira"]).color,
                             boxShadow: "none",
                           }
-                        : undefined
+                        : { color: "var(--ef-muted)" }
                     }
                   >
                     <span className="hidden md:inline">{day.label.replace("-feira", "")}</span>
@@ -151,15 +151,15 @@ export default function ScheduleView({
               </div>
             )}
             {isSingleDay && (
-              <div className="flex items-center gap-2 rounded-full bg-brand-400/10 px-4 py-2">
-                <i className="fi fi-rr-calendar text-sm text-brand-400" />
-                <span className="text-sm font-medium text-brand-400">{eventDays[0]?.label}</span>
+              <div className="flex items-center gap-2 rounded-full bg-[var(--ef-accent-soft)] px-4 py-2">
+                <i className="fi fi-rr-calendar text-sm text-[var(--ef-accent-strong)]" />
+                <span className="text-sm font-semibold text-[var(--ef-accent-strong)]">{eventDays[0]?.label}</span>
                 {eventDays[0]?.date && (
-                  <span className="text-xs text-slate-500">· {eventDays[0]?.date}</span>
+                  <span className="text-xs text-[var(--ef-muted)]">· {eventDays[0]?.date}</span>
                 )}
               </div>
             )}
-            <Button variant="outline" onClick={copyDaySummary} className="!px-4 !py-2">
+            <Button variant="outline" onClick={copyDaySummary}>
               <i className="fi fi-rr-copy" /> {copied ? "Copiado!" : "Copiar Resumo do Dia"}
             </Button>
           </div>
@@ -169,13 +169,13 @@ export default function ScheduleView({
           <button
             type="button"
             onClick={() => onCreateShift()}
-            className="group flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 py-12 text-center transition hover:border-brand-400/40 hover:bg-brand-400/5"
+            className="group flex w-full flex-col items-center justify-center rounded-card border-2 border-dashed border-[var(--ef-border)] py-12 text-center transition hover:border-[var(--ef-accent)] hover:bg-[var(--ef-accent-soft)]"
           >
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 transition group-hover:bg-brand-400/15">
-              <i className="fi fi-rr-calendar-plus text-2xl text-slate-400 transition group-hover:text-brand-400" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--ef-hover)] transition group-hover:bg-[var(--ef-accent-soft)]">
+              <i className="fi fi-rr-calendar-plus text-2xl text-[var(--ef-faint)] transition group-hover:text-[var(--ef-accent-strong)]" />
             </div>
-            <p className="mt-4 text-base font-semibold text-slate-700 transition group-hover:text-navy-800">Criar Escala</p>
-            <p className="mt-1 text-sm text-slate-400">Clique para criar o primeiro turno</p>
+            <p className="mt-4 text-base font-semibold text-[var(--ef-text-2)] transition group-hover:text-[var(--ef-text)]">Criar Escala</p>
+            <p className="mt-1 text-sm text-[var(--ef-muted)]">Clique para criar o primeiro turno</p>
           </button>
         ) : (
           <div className="grid w-full gap-4 lg:grid-cols-2">
@@ -183,16 +183,16 @@ export default function ScheduleView({
               const theme = dayTheme[block.day] || dayTheme["Sexta-feira"];
 
               return (
-                <Card key={block.id} className="ap-period-card overflow-hidden p-7">
-                  <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-7">
+                <Card key={block.id} className="ap-period-card overflow-hidden p-6 md:p-7">
+                  <div className="flex items-start justify-between gap-4 border-b border-[var(--ef-border)] pb-6">
                     <DayBadge day={block.day} period={block.period} />
                     <div className="flex flex-col items-end gap-1 text-right">
-                      <span className="text-[12px] font-medium text-slate-400">Responsável</span>
+                      <span className="text-[12px] font-medium text-[var(--ef-muted)]">Responsável</span>
                       <ResponsibleNames responsible={block.responsible} />
                     </div>
                   </div>
 
-                  <div className="space-y-3 pt-7">
+                  <div className="space-y-3 pt-6">
                     {block.shifts.map((shift) => {
                       const selectedVolunteers = shift.volunteerIds
                         .map((id) => volunteers.find((volunteer) => volunteer.id === id))
@@ -205,7 +205,7 @@ export default function ScheduleView({
                       return (
                         <div
                           key={shift.id}
-                          className={`ap-shift-card rounded-3xl bg-[#f6f6f6] p-7 shadow-sm transition ${
+                          className={`ap-shift-card rounded-2xl p-6 transition ${
                             current ? "border-2" : "border border-transparent"
                           }`}
                           style={
@@ -220,18 +220,18 @@ export default function ScheduleView({
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <p className="text-xs font-medium text-slate-400">Designação</p>
+                                <p className="text-xs font-medium text-[var(--ef-muted)]">Designação</p>
                                 {current && <LiveNowBadge color={theme.color} backgroundColor={theme.soft} />}
                               </div>
                               <div className="mt-1 flex flex-wrap items-baseline gap-2">
-                                <span className="text-[18px] font-bold leading-tight" style={{ color: "#172233" }}>
+                                <span className="text-[18px] font-bold leading-tight text-[var(--ef-text)]">
                                   {shift.start}
                                 </span>
-                                <span className="text-sm text-slate-400">até</span>
-                                <span className="text-[18px] font-semibold text-slate-700">{shift.end}</span>
+                                <span className="text-sm text-[var(--ef-muted)]">até</span>
+                                <span className="text-[18px] font-semibold text-[var(--ef-text-2)]">{shift.end}</span>
                               </div>
                               {shift.description && (
-                                <p className="mt-1 text-xs font-medium text-slate-400">
+                                <p className="mt-1 text-xs font-medium text-[var(--ef-muted)]">
                                   {shift.description}
                                 </p>
                               )}
@@ -269,7 +269,7 @@ export default function ScheduleView({
                           {occupancy !== null && (
                             <div className="mt-3">
                               <div className="flex items-center justify-between text-[11px]">
-                                <span className="font-medium text-slate-500">
+                                <span className="font-medium text-[var(--ef-muted)]">
                                   {filledSlots}/{totalSlots} vagas preenchidas
                                 </span>
                                 <span className={`font-bold ${
@@ -278,7 +278,7 @@ export default function ScheduleView({
                                   {Math.round(occupancy * 100)}%
                                 </span>
                               </div>
-                              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-200">
+                              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[var(--ef-hover)]">
                                 <div
                                   className={`h-full rounded-full transition-all duration-300 ${
                                     occupancy >= 1 ? "bg-emerald-500" : occupancy >= 0.5 ? "bg-amber-400" : "bg-red-400"
@@ -351,18 +351,17 @@ function ShiftDetailsCard({ volunteers, manualNames, block, shift, departmentNam
             {manualNames.map((name) => (
               <span
                 key={name}
-                className="inline-flex w-fit items-center gap-1.5 rounded-full font-semibold"
-                style={{ color: "#172233" }}
+                className="inline-flex w-fit items-center gap-1.5 rounded-full font-semibold text-[var(--ef-text)]"
               >
                 <span>{name}</span>
-                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                <span className="ef-badge ef-badge-warn !py-0.5 !text-[10px]">
                   Avulso
                 </span>
               </span>
             ))}
           </>
         ) : (
-          <span className="text-sm font-semibold" style={{ color: "#172233" }}>
+          <span className="text-sm font-semibold text-[var(--ef-text)]">
             {UNASSIGNED_LABEL}
           </span>
         )}

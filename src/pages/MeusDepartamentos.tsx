@@ -33,31 +33,31 @@ export default function MeusDepartamentos() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-navy-800">Meus departamentos</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <h2 className="ef-h1">Meus departamentos</h2>
+        <p className="ef-lead mt-2">
           Departamentos que você assumiu{eventoId ? " neste evento" : ""}. Clique para abrir o painel.
         </p>
       </div>
 
       {myMemberships.length === 0 ? (
-        <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-10 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl">
-            <i className="fi fi-rr-building text-slate-400" />
+        <div className="ef-card p-8 text-center md:p-10">
+          <div className="ef-empty-icon mx-auto !bg-[var(--ef-hover)] text-2xl">
+            <i className="fi fi-rr-building" />
           </div>
-          <p className="mt-4 font-semibold text-navy-800">Nenhum departamento assumido ainda</p>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-4 font-semibold text-[var(--ef-text)]">Nenhum departamento assumido ainda</p>
+          <p className="mt-1 text-sm text-[var(--ef-muted)]">
             Assuma a coordenação de um departamento disponível para ele aparecer aqui.
           </p>
           <button
             type="button"
             onClick={() => navigate("/departamentos")}
-            className="mt-5 rounded-xl bg-brand-400 px-5 py-2.5 text-sm font-semibold text-navy-800 transition hover:bg-brand-400/80"
+            className="ef-btn ef-btn-primary mt-5"
           >
             Ver departamentos disponíveis
           </button>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3">
           {myMemberships.map((membership) => {
             const deptId = membership?.department?.id || membership?.department_id;
             const name = membership?.department?.name || "Departamento";
@@ -71,20 +71,20 @@ export default function MeusDepartamentos() {
                 aria-label={name}
                 aria-current={isActive ? "page" : undefined}
                 className={
-                  "group rounded-2xl border-2 bg-white p-6 text-left shadow-card transition hover:border-brand-400/40 hover:shadow-md " +
-                  (isActive ? "border-brand-400/60" : "border-transparent")
+                  "group ef-card ef-card-hover p-5 text-left transition " +
+                  (isActive ? "!bg-[var(--ef-accent-soft)]" : "")
                 }
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-400/10 text-brand-400">
-                    <i className="fi fi-rr-building text-xl" />
+                  <div className="ef-icon-tile">
+                    <i className="fi fi-rr-building text-lg" />
                   </div>
-                  <span className="rounded-full bg-brand-400/15 px-2.5 py-0.5 text-[11px] font-semibold text-brand-400">
+                  <span className={`ef-badge ${isActive ? "ef-badge-accent" : "ef-badge-neutral"}`}>
                     {isActive ? "Ativo agora" : roleLabel}
                   </span>
                 </div>
-                <p className="mt-4 font-semibold text-navy-800">{name}</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                <p className="mt-4 text-[15px] font-semibold text-[var(--ef-text)]">{name}</p>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--ef-muted)]">
                   {membership?.role === "coordenador"
                     ? "Você coordena este departamento."
                     : "Função: " + roleLabel + "."}
@@ -99,7 +99,7 @@ export default function MeusDepartamentos() {
         <button
           type="button"
           onClick={() => navigate("/departamentos")}
-          className="flex items-center gap-2 text-sm font-semibold text-brand-400 transition hover:text-brand-400/80"
+          className="flex items-center gap-2 text-sm font-semibold text-[var(--ef-accent-strong)] transition hover:underline"
         >
           <i className="fi fi-rr-apps" />
           Ver todos os departamentos

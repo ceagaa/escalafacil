@@ -149,21 +149,21 @@ export default function PublicEscala() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f6]">
-        <div className="text-sm text-slate-500">Carregando escala...</div>
+      <div className="flex min-h-screen items-center justify-center bg-[var(--ef-bg)]">
+        <div className="text-sm text-[var(--ef-muted)]">Carregando escala...</div>
       </div>
     );
   }
 
   if (notFound) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f6f6f6] px-4">
-        <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-3xl">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--ef-bg)] px-4">
+        <div className="ef-card w-full max-w-md p-8 text-center">
+          <div className="ef-empty-icon mx-auto !bg-[var(--ef-hover)] text-3xl">
             <i className="fi fi-rr-link-slash" />
           </div>
-          <h1 className="mt-4 text-xl font-bold text-[#172233]">Departamento não encontrado</h1>
-          <p className="mt-2 text-sm text-slate-500">Verifique o link e tente novamente.</p>
+          <h1 className="ef-h2 mt-4">Departamento não encontrado</h1>
+          <p className="mt-2 text-sm text-[var(--ef-muted)]">Verifique o link e tente novamente.</p>
         </div>
       </div>
     );
@@ -172,20 +172,20 @@ export default function PublicEscala() {
   const days = ["Sexta-feira", "Sábado", "Domingo"];
 
   return (
-    <div className="min-h-screen bg-[#f6f6f6] px-4 py-8">
+    <div className="min-h-screen bg-[var(--ef-bg)] px-4 py-8 md:py-12">
       <div className="mx-auto max-w-2xl">
         <div className="mb-6 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#42d27b]/10 text-2xl text-[#2a9d5c]">
-            <i className="fi fi-rr-calendar-lines" />
+          <div className="ef-empty-icon mx-auto !bg-[var(--ef-accent-soft)] !text-[var(--ef-accent-strong)]">
+            <i className="fi fi-rr-calendar-lines text-2xl" />
           </div>
-          <h1 className="mt-3 text-xl font-bold text-[#172233]">Escala Geral</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Departamento <span className="font-semibold">{department?.name}</span>
+          <h1 className="ef-h1 mt-4">Escala Geral</h1>
+          <p className="ef-lead mt-2">
+            Departamento <span className="font-semibold text-[var(--ef-text-2)]">{department?.name}</span>
           </p>
         </div>
 
         {loadError && (
-          <div className="mb-6 rounded-2xl bg-white p-6 text-center text-sm text-red-600 shadow-sm">
+          <div className="ef-alert ef-alert-danger mb-6 text-center" role="alert">
             {loadError}
           </div>
         )}
@@ -198,34 +198,34 @@ export default function PublicEscala() {
             return (
               <section key={day}>
                 <h2
-                  className="mb-3 text-lg font-bold"
+                  className="mb-3 text-lg font-bold tracking-tight"
                   style={{ color: theme.color }}
                 >
                   {day}
                 </h2>
-                <div className="grid gap-4">
+                <div className="grid gap-3">
                   {blocks.map((block) => (
-                    <div key={block.id} className="rounded-2xl bg-white p-5 shadow-sm">
-                      <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-3">
-                        <span className="font-semibold text-[#172233]">{block.period}</span>
+                    <div key={block.id} className="ef-card p-5">
+                      <div className="mb-3 flex items-center justify-between border-b border-[var(--ef-border)] pb-3">
+                        <span className="ef-h3">{block.period}</span>
                         {block.responsible && (
-                          <span className="text-xs text-slate-400">Resp.: {block.responsible}</span>
+                          <span className="ef-meta">Resp.: {block.responsible}</span>
                         )}
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {block.shifts.map((shift) => (
                           <div
                             key={shift.id}
-                            className="rounded-xl bg-[#f6f6f6] px-4 py-3"
+                            className="rounded-tile bg-[var(--ef-tile)] px-4 py-3"
                           >
-                            <p className="text-sm font-semibold text-[#172233]">
-                              {shift.start} <span className="font-normal text-slate-400">até</span>{" "}
+                            <p className="text-sm font-semibold text-[var(--ef-text)]">
+                              {shift.start} <span className="font-normal text-[var(--ef-muted)]">até</span>{" "}
                               {shift.end}
                             </p>
                             {shift.description && (
-                              <p className="mt-0.5 text-xs text-slate-400">{shift.description}</p>
+                              <p className="mt-0.5 text-xs text-[var(--ef-muted)]">{shift.description}</p>
                             )}
-                            <p className="mt-1 text-sm text-slate-600">
+                            <p className="mt-1 text-sm text-[var(--ef-text-2)]">
                               {shift.volunteers.length || shift.manualNames.length
                                 ? [
                                     ...shift.volunteers,
