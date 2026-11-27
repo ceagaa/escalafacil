@@ -117,20 +117,20 @@ export default function ScheduleView({
     <div className="ap-schedule-view grid w-full gap-6">
       <div className="space-y-5">
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="ef-h2">Escala</h2>
-            <Button onClick={() => onCreateShift(dayCards[0]?.id)}>
+            <Button className="ml-auto" onClick={() => onCreateShift(dayCards[0]?.id)}>
               <i className="fi fi-rr-plus" /> Criar Turno
             </Button>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {!isSingleDay && (
-              <div className="ap-day-tabs flex p-1">
+              <div className="ap-day-tabs flex w-full p-1 md:w-auto">
                 {eventDays.map((day) => (
                   <button
                     key={day.label}
                     onClick={() => setActiveDay(day.label)}
-                    className="rounded-full px-6 py-3.5 text-sm font-semibold transition hover:bg-[var(--ef-hover)] hover:text-[var(--ef-text)]"
+                    className="min-w-0 flex-1 rounded-full px-2 py-3 text-sm font-semibold transition hover:bg-[var(--ef-hover)] hover:text-[var(--ef-text)] md:flex-none md:px-6 md:py-3.5"
                     style={
                       activeDay === day.label
                         ? {
@@ -159,7 +159,7 @@ export default function ScheduleView({
                 )}
               </div>
             )}
-            <Button variant="outline" onClick={copyDaySummary}>
+            <Button variant="outline" className="w-full md:w-auto" onClick={copyDaySummary}>
               <i className="fi fi-rr-copy" /> {copied ? "Copiado!" : "Copiar Resumo do Dia"}
             </Button>
           </div>

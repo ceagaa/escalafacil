@@ -77,7 +77,13 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg'],
+        includeAssets: [
+          'favicon.svg',
+          'favicon-32x32.png',
+          'apple-touch-icon.png',
+          'android-chrome-192x192.png',
+          'android-chrome-512x512.png',
+        ],
         manifest: {
           name: 'EscalaFácil',
           short_name: 'EscalaFácil',
@@ -97,13 +103,13 @@ export default defineConfig(({ mode }) => {
               purpose: 'any',
             },
             {
-              src: 'favicon.png',
+              src: 'android-chrome-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable',
             },
             {
-              src: 'favicon.png',
+              src: 'android-chrome-192x192.png',
               sizes: '192x192',
               type: 'image/png',
               purpose: 'any',

@@ -52,7 +52,7 @@ const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const PublicCadastro = lazy(() => import("./pages/PublicCadastro"));
 const PublicEscala = lazy(() => import("./pages/PublicEscala"));
 const AllocateVolunteersModal = lazy(() => import("./components/AllocateVolunteersModal"));
-import logo from "./assets/img/logotipo.webp";
+import BrandLogo from "./components/BrandLogo";
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -504,7 +504,7 @@ function AppLayout() {
         <header className="ap-header">
           <div className="w-full px-5 py-4 md:px-8 md:py-5">
             <div className="flex items-center justify-between">
-              <img src={logo} alt="EscalaFácil" className="h-9 w-auto" />
+              <BrandLogo className="block h-9 w-auto" />
               <div className="flex items-center gap-2">
                 {user && <UserMenu user={user} onLogout={handleLogout} />}
               </div>
@@ -532,7 +532,7 @@ function AppLayout() {
 
       <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[var(--ef-border)] bg-[var(--ef-sidebar)] p-5 lg:block" aria-label="Menu principal">
         <div>
-          <img src={logo} alt="EscalaFácil" className="ap-brand-logo mx-auto mb-6 h-20 w-20 object-contain" />
+          <BrandLogo className="ap-brand-logo mx-auto mb-6 block h-20 w-48" />
 
           {hasDepartment ? (
             <div className="relative mt-4">

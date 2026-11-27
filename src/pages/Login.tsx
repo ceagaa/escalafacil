@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 import LGPDModal from "../components/LGPDModal";
-import logo from "../assets/img/logotipo.webp";
+import BrandLogo from "../components/BrandLogo";
 
 type Mode = "login" | "signup";
 
@@ -122,10 +122,10 @@ export default function Login() {
 
   return (
     <div className="grid min-h-screen bg-white lg:grid-cols-2">
-      <section className="order-2 flex items-center justify-center bg-white px-6 py-12 sm:px-12 lg:order-1 lg:px-16">
+      <section className="order-1 flex items-center justify-center bg-white px-5 py-8 sm:px-12 sm:py-12 lg:px-16">
         <div className="w-full max-w-md">
-          <div className="mb-8">
-            <img src={logo} alt="EscalaFácil" className="mx-auto h-24 w-24 object-contain" />
+          <div className="mb-6 sm:mb-8">
+            <BrandLogo className="mx-auto block h-auto w-48 sm:w-56" />
           </div>
 
           <div className="ef-tabs mb-6">
@@ -149,7 +149,7 @@ export default function Login() {
               <div className="space-y-4">
                 <label className="block">
                   <span className="ef-label">E-mail</span>
-                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" className="ef-input" autoComplete="email" autoFocus />
+                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="seu@email.com" className="ef-input" autoComplete="email" />
                 </label>
                 <label className="block">
                   <span className="ef-label">Senha</span>
@@ -179,7 +179,7 @@ export default function Login() {
               <div className="space-y-4">
                 <label className="block">
                   <span className="ef-label">Nome completo</span>
-                  <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" className="ef-input" autoComplete="name" autoFocus />
+                  <input type="text" value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" className="ef-input" autoComplete="name" />
                 </label>
                 <label className="block">
                   <span className="ef-label">E-mail</span>
@@ -218,7 +218,7 @@ export default function Login() {
         </div>
       </section>
 
-      <section className="order-1 flex items-center bg-[#172233] px-6 py-14 sm:px-12 lg:order-2 lg:px-20">
+      <section className="hidden items-center bg-[#172233] px-6 py-14 sm:px-12 lg:order-2 lg:flex lg:px-20">
         <div className="max-w-lg">
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#42d27b]">Organização simples</span>
           <h2 className="mt-4 text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-[40px]">

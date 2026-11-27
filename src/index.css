@@ -634,6 +634,18 @@ iframe {
   font-family: 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+.brand-logo-dark {
+  display: none;
+}
+
+html[data-theme="dark"] .brand-logo-light {
+  display: none;
+}
+
+html[data-theme="dark"] .brand-logo-dark {
+  display: block;
+}
+
 .ap-header {
   margin: 0;
   padding: 0;
@@ -1077,6 +1089,14 @@ html[data-theme="dark"] .revoke-dialog .text-red-700 {
 }
 
 @media (max-width: 640px) {
+  .ap-shift-card {
+    padding: 16px !important;
+  }
+
+  .ap-period-card {
+    padding: 20px !important;
+  }
+
   .revoke-access-card {
     align-items: flex-start;
     flex-wrap: wrap;
