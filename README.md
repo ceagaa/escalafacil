@@ -130,6 +130,10 @@ npm run deploy   # = vite build + wrangler deploy
 
 - Produção: `https://escalafacil.2swebtech.com.br` (domínio customizado → Worker `escalafacil-api`)
 - Alternativa: `https://escalafacil-api.sswebtechcontato.workers.dev`
+
+O vínculo do domínio oficial é **declarativo**: fica no `routes` do `wrangler.jsonc`
+(`custom_domain: true`), então todo `npm run deploy` garante que o Worker
+`escalafacil-api` continue publicando em `https://escalafacil.2swebtech.com.br`.
 - Banco de produção (uma vez por mudança de schema):
 
   ```bash

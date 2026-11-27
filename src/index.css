@@ -1148,26 +1148,6 @@ html[data-theme="dark"] .lgpd-modal .bg-slate-100 {
   color: var(--ef-text);
 }
 
-.ap-app aside .ap-brand-logo {
-  border-radius: var(--ef-r-card);
-  background: var(--ef-card);
-  padding: 10px;
-}
-
-.ap-header img[alt="EscalaFácil"],
-.ap-app img[alt="EscalaFácil"] {
-  border-radius: 12px;
-}
-
-html[data-theme="dark"] .ap-header img[alt="EscalaFácil"] {
-  background: #ffffff;
-  padding: 6px;
-}
-
-html[data-theme="dark"] .ap-app aside .ap-brand-logo {
-  background: #ffffff;
-  padding: 6px;
-}
 
 .ap-app .app-main-content {
   color: var(--ef-text);

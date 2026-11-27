@@ -3,6 +3,10 @@
   "name": "escalafacil-api",
   "main": "worker/src/index.ts",
   "compatibility_date": "2026-11-01",
+  // Domínio oficial de produção — sempre publicado neste Worker.
+  "routes": [{ "pattern": "escalafacil.2swebtech.com.br", "custom_domain": true }],
+  "workers_dev": true,
+  "preview_urls": true,
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": "./dist",
