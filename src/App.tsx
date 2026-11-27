@@ -128,7 +128,7 @@ const ROUTE_TITLES: Record<string, string> = {
 function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, activeDepartment, departments, selectDepartment } = useAuth();
+  const { user, logout, activeDepartment, selectDepartment } = useAuth();
   const { activeEvent, eventoId, eventLoading, clearEvent } = useEvent();
 
   const [activeDay, setActiveDay] = useState(() => getDefaultDay(activeEvent?.tipo));
@@ -140,7 +140,6 @@ function AppLayout() {
   const [now, setNow] = useState(() => new Date());
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [hasLoadedRemoteData, setHasLoadedRemoteData] = useState(false);
-  const [showDeptSwitcher, setShowDeptSwitcher] = useState(false);
   const [showMobileMore, setShowMobileMore] = useState(false);
   const [allocateModal, setAllocateModal] = useState<AllocateModalState | null>(null);
 
@@ -157,8 +156,6 @@ function AppLayout() {
     }),
     [isCoordinator, hasDepartment]
   );
-
-  const hasMultipleDepts = departments.length > 1;
 
   // Mantém o dia ativo coerente com o evento selecionado (assembleia tem um dia só).
   useEffect(() => {
@@ -481,7 +478,6 @@ function AppLayout() {
 
   function navTo(path: string) {
     navigate(path);
-    setShowDeptSwitcher(false);
     setShowMobileMore(false);
   }
 
@@ -532,47 +528,7 @@ function AppLayout() {
 
       <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[var(--ef-border)] bg-[var(--ef-sidebar)] p-5 lg:block" aria-label="Menu principal">
         <div>
-          <BrandLogo className="ap-brand-logo mx-auto mb-6 h-14 w-[134px]" />
-
-          {hasDepartment ? (
-            <div className="relative mt-4">
-              {hasMultipleDepts ? (
-                <>
-                  <button type="button" onClick={() => setShowDeptSwitcher(!showDeptSwitcher)} className="flex w-full items-center gap-2 text-left transition hover:opacity-80">
-                    <h1 className="truncate text-[15px] font-semibold leading-tight text-[var(--ef-accent-strong)]">{departmentName}</h1>
-                    <i className={`fi fi-rr-angle-small-down text-sm text-[var(--ef-accent-strong)] transition-transform ${showDeptSwitcher ? "rotate-180" : ""}`} />
-                  </button>
-                  {showDeptSwitcher && (
-                    <div className="ef-menu absolute left-0 top-full z-50 mt-2 w-64 p-2">
-                      {departments.map((dept) => {
-                        const deptName = dept.department?.name || "Departamento";
-                        const isActive = dept.department?.id === departmentId;
-                        return (
-                          <button key={dept.id} type="button" onClick={() => { selectDepartment(dept); setShowDeptSwitcher(false); }} className={`ef-menu-item ${isActive ? "bg-[var(--ef-accent-soft)] text-[var(--ef-accent-strong)]" : ""}`}>
-                            <i className={`fi fi-rr-building text-base ${isActive ? "text-[var(--ef-accent-strong)]" : "text-[var(--ef-faint)]"}`} />
-                            <span className="truncate">{deptName}</span>
-                            {isActive && <i className="fi fi-rr-check ml-auto text-xs text-[var(--ef-accent-strong)]" />}
-                          </button>
-                        );
-                      })}
-                      <div className="my-1 border-t border-slate-200" />
-                      <button type="button" onClick={() => { selectDepartment(null); setShowDeptSwitcher(false); }} className="ef-menu-item">
-                        <i className="fi fi-rr-apps text-base text-[var(--ef-faint)]" />
-                        Ver todos os departamentos
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <h1 className="text-[15px] font-semibold leading-tight text-[var(--ef-accent-strong)]">{departmentName}</h1>
-              )}
-            </div>
-          ) : (
-            <div className="mt-4">
-              <p className="text-xs text-[var(--ef-faint)]">Nenhum departamento selecionado</p>
-              <p className="mt-1 text-xs text-[var(--ef-muted)]">Acesse o Dashboard para escolher um departamento.</p>
-            </div>
-          )}
+          <BrandLogo className="ap-brand-logo mb-6 h-14 w-[134px]" />
         </div>
 
         <div className="mt-8 flex items-center gap-3 px-2">
