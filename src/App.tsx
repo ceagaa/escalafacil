@@ -532,7 +532,7 @@ function AppLayout() {
 
       <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[var(--ef-border)] bg-[var(--ef-sidebar)] p-5 lg:block" aria-label="Menu principal">
         <div>
-          <BrandLogo className="ap-brand-logo mx-auto mb-6 h-20 w-48" />
+          <BrandLogo className="ap-brand-logo mx-auto mb-6 h-14 w-[134px]" />
 
           {hasDepartment ? (
             <div className="relative mt-4">
