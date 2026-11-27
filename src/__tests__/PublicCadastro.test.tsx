@@ -124,7 +124,7 @@ describe("PublicCadastro", () => {
 
     const sextaManha = screen.getAllByText("Manhã")[0].closest("button")!;
     fireEvent.click(sextaManha);
-    expect(sextaManha.className).toContain("border-[#42d27b]");
+    expect(sextaManha.className).toContain("border-[var(--ef-accent)]");
 
     fireEvent.click(sextaManha);
     expect(sextaManha.className).toContain("border-slate-200");

@@ -504,7 +504,7 @@ function AppLayout() {
         <header className="ap-header">
           <div className="w-full px-5 py-4 md:px-8 md:py-5">
             <div className="flex items-center justify-between">
-              <BrandLogo className="block h-9 w-auto" />
+              <BrandLogo className="h-9 w-[149px]" />
               <div className="flex items-center gap-2">
                 {user && <UserMenu user={user} onLogout={handleLogout} />}
               </div>
@@ -532,7 +532,7 @@ function AppLayout() {
 
       <aside className="fixed left-0 top-0 hidden h-full w-72 border-r border-[var(--ef-border)] bg-[var(--ef-sidebar)] p-5 lg:block" aria-label="Menu principal">
         <div>
-          <BrandLogo className="ap-brand-logo mx-auto mb-6 block h-20 w-48" />
+          <BrandLogo className="ap-brand-logo mx-auto mb-6 h-20 w-48" />
 
           {hasDepartment ? (
             <div className="relative mt-4">

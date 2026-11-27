@@ -11,7 +11,7 @@ export default function BrandLogo({
   alt = "EscalaFácil",
 }: BrandLogoProps) {
   return (
-    <span className={`brand-logo ${className}`}>
+    <span className={`brand-logo flex items-center ${className}`}>
       <img
         src={logoDark}
         alt={alt}

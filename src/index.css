@@ -31,11 +31,11 @@
   --ef-border: #e3e4e8;
 
   /* marca */
-  --ef-accent: #42d27b;
-  --ef-accent-hover: #36b868;
-  --ef-accent-ink: #172233;
-  --ef-accent-strong: #1f7a44;
-  --ef-accent-soft: rgba(66, 210, 123, 0.14);
+  --ef-accent: #A43D3B;
+  --ef-accent-hover: #873230;
+  --ef-accent-ink: #ffffff;
+  --ef-accent-strong: #873230;
+  --ef-accent-soft: rgba(164, 61, 59, 0.14);
   --ef-navy: #172233;
   --ef-navy-hover: #0f1720;
   --ef-on-navy: #ffffff;
@@ -63,7 +63,7 @@
   --ef-shadow-modal: 0 24px 56px rgba(16, 24, 40, 0.18);
 
   /* foco */
-  --ef-focus: 0 0 0 3px rgba(66, 210, 123, 0.35);
+  --ef-focus: 0 0 0 3px rgba(164, 61, 59, 0.35);
 }
 
 html[data-theme="dark"] {
@@ -82,9 +82,9 @@ html[data-theme="dark"] {
   --ef-faint: #7d838e;
   --ef-border: #2e3138;
 
-  --ef-accent-ink: #0f1720;
-  --ef-accent-strong: #6ee7a2;
-  --ef-accent-soft: rgba(66, 210, 123, 0.16);
+  --ef-accent-ink: #ffffff;
+  --ef-accent-strong: #efaaa7;
+  --ef-accent-soft: rgba(164, 61, 59, 0.20);
 
   --ef-danger-soft: #2a1614;
   --ef-danger-ink: #ff9a91;
@@ -636,6 +636,11 @@ iframe {
 
 .brand-logo-dark {
   display: none;
+}
+
+.brand-logo img {
+  min-width: 0;
+  object-fit: contain;
 }
 
 html[data-theme="dark"] .brand-logo-light {

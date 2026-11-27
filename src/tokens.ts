@@ -10,16 +10,16 @@
 export const DESIGN_TOKENS = {
   colors: {
     brand: {
-      50: "#eefbf3",
-      100: "#d6f5e3",
-      200: "#b0eacc",
-      300: "#7dd9ae",
-      400: "#42d27b", // Primary accent
-      500: "#2a9d5c", // Secondary accent
-      600: "#1f7a44", // Hover secondary
-      700: "#1a6237",
-      800: "#174e2e",
-      900: "#134127",
+      50: "#fbf1f0",
+      100: "#f5dada",
+      200: "#e7aeac",
+      300: "#d3817e",
+      400: "#A43D3B", // Primary accent
+      500: "#873230", // Secondary accent
+      600: "#702725", // Hover secondary
+      700: "#591f1e",
+      800: "#421718",
+      900: "#2c1011",
     },
     navy: {
       50: "#f0f3f7",

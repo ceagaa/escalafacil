@@ -33,7 +33,7 @@ export default function Login() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#172233]">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#42d27b] border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[var(--ef-accent)] border-t-transparent" />
           <p className="text-sm text-[#c7cad1]">Carregando...</p>
         </div>
       </div>
@@ -125,7 +125,7 @@ export default function Login() {
       <section className="order-1 flex items-center justify-center bg-white px-5 py-8 sm:px-12 sm:py-12 lg:px-16">
         <div className="w-full max-w-md">
           <div className="mb-6 sm:mb-8">
-            <BrandLogo className="mx-auto block h-auto w-48 sm:w-56" />
+            <BrandLogo className="mx-auto h-auto w-48 sm:w-56" />
           </div>
 
           <div className="ef-tabs mb-6">
@@ -197,7 +197,7 @@ export default function Login() {
               </div>
 
               <label className="mt-5 flex cursor-pointer items-start gap-3">
-                <input type="checkbox" checked={lgpdAccepted} onChange={(e) => setLgpdAccepted(e.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-300 text-[#42d27b] focus:ring-[#42d27b]" />
+                <input type="checkbox" checked={lgpdAccepted} onChange={(e) => setLgpdAccepted(e.target.checked)} className="mt-0.5 h-5 w-5 rounded border-slate-300 text-[var(--ef-accent)] focus:ring-[var(--ef-accent)]" />
                 <span className="text-sm text-[var(--ef-text-2)]">
                   Aceito as{" "}
                   <button type="button" onClick={(e) => { e.preventDefault(); setShowLGPD(true); }} className="font-semibold text-[var(--ef-accent-strong)] underline hover:underline">
@@ -220,7 +220,7 @@ export default function Login() {
 
       <section className="hidden items-center bg-[#172233] px-6 py-14 sm:px-12 lg:order-2 lg:flex lg:px-20">
         <div className="max-w-lg">
-          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#42d27b]">Organização simples</span>
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--ef-accent)]">Organização simples</span>
           <h2 className="mt-4 text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-[40px]">
             Tudo o que sua equipe precisa para cuidar do dia.
           </h2>
@@ -235,7 +235,7 @@ export default function Login() {
               "Voluntários confirmam presença pelo celular",
             ].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm font-semibold text-white">
-                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#42d27b]/15 text-[#42d27b]">
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[var(--ef-accent-soft)] text-[var(--ef-accent)]">
                   <i className="fi fi-rr-check" />
                 </span>
                 {item}

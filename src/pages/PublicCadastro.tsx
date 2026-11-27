@@ -283,7 +283,7 @@ export default function PublicCadastro() {
                         aria-pressed={isSelected}
                         className={`flex-1 rounded-tile border px-4 py-4 text-center text-sm font-semibold transition ${
                           isSelected
-                            ? "border-[#42d27b] bg-[#42d27b]/10 text-[var(--ef-accent-strong)]"
+                            ? "border-[var(--ef-accent)] bg-[var(--ef-accent-soft)] text-[var(--ef-accent-strong)]"
                             : "border-slate-200 bg-[var(--ef-tile)] text-[var(--ef-text-2)] hover:border-[var(--ef-faint)]"
                         }`}
                       >
@@ -304,7 +304,7 @@ export default function PublicCadastro() {
                         aria-pressed={isSelected}
                         className={`rounded-tile border px-3 py-3 text-left transition ${
                           isSelected
-                            ? "border-[#42d27b] bg-[#42d27b]/10 font-medium text-[var(--ef-accent-strong)]"
+                            ? "border-[var(--ef-accent)] bg-[var(--ef-accent-soft)] font-medium text-[var(--ef-accent-strong)]"
                             : "border-slate-200 bg-[var(--ef-tile)] text-[var(--ef-text-2)] hover:border-[var(--ef-faint)]"
                         }`}
                       >

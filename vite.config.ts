@@ -88,7 +88,7 @@ export default defineConfig(({ mode }) => {
           name: 'EscalaFácil',
           short_name: 'EscalaFácil',
           description: 'Gerenciamento de escalas, voluntários e departamentos para eventos sazonais.',
-          theme_color: '#172233',
+          theme_color: '#A43D3B',
           background_color: '#f6f6f6',
           display: 'standalone',
           start_url: '/',
